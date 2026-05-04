@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "PULp angeBOT",
+  title: "PULP angeBOT",
   description: "Pulpmedia Angebots-Tool",
 };
 

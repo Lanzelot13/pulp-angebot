@@ -8,8 +8,7 @@ export default function Home() {
       textAlign: 'center',
     }}>
       <h1 style={{ fontSize: 48, fontWeight: 900, marginBottom: 8 }}>
-        PUL<span style={{ color: '#FF1900' }}>p</span> ange
-        <span style={{ color: '#FF1900' }}>BOT</span>
+        PULP ange<span style={{ color: '#FF1900' }}>BOT</span>
       </h1>
       <p style={{ color: '#888', fontSize: 16 }}>
         Pulpmedia Angebots-Tool · API läuft
