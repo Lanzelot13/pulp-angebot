@@ -540,3 +540,152 @@
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
+
+/* === EDITOR CONTROLS === */
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 2px dashed #FF1900;
+  color: #FF1900;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.addBtn:hover {
+  background: #FF1900;
+  color: #fff;
+}
+
+.removeBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #FF1900;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+.card:hover .removeBtn,
+.serviceItem:hover .removeBtn,
+.package:hover .removeBtn,
+.timelineStep:hover .removeBtn,
+.statCard:hover .removeBtn {
+  opacity: 1;
+}
+.card,
+.serviceItem,
+.package,
+.timelineStep,
+.statCard {
+  position: relative;
+}
+
+.removeFeatureBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #ff4444;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 6px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.removeFeatureBtn:hover { opacity: 1; }
+
+.addFeatureBtn {
+  background: transparent;
+  border: 1px dashed #FF1900;
+  color: #FF1900;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.15s, color 0.15s;
+}
+.addFeatureBtn:hover {
+  background: #FF1900;
+  color: #fff;
+}
+
+/* === PICKER === */
+.pickerToggle {
+  margin-bottom: 24px;
+}
+.pickerBtn {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.pickerBtn:hover { background: #eee; }
+
+.pickerPanel {
+  margin-top: 12px;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.pickerItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.1s;
+}
+.pickerItem:hover { background: #eee; }
+.pickerItem input[type="checkbox"] {
+  accent-color: #FF1900;
+  width: 16px;
+  height: 16px;
+}
+.pickerDetail {
+  color: #888;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.emptyHint {
+  color: #999;
+  font-style: italic;
+  font-size: 14px;
+  margin-top: 16px;
+}
