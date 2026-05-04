@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiKey } from '@/lib/auth'
 import { createSlug } from '@/lib/slug'
 import { CreateOfferRequest } from '@/lib/types'
+
+// Helper: convert value to Prisma-compatible JSON or DbNull
+function jsonOrNull(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  return value ? (value as Prisma.InputJsonValue) : Prisma.DbNull
+}
 
 // GET /api/offers — List all offers
 export async function GET(request: NextRequest) {
@@ -70,15 +76,15 @@ export async function POST(request: NextRequest) {
       contactSlug: body.contactSlug,
       mocoRef: body.mocoRef || null,
       validUntil: body.validUntil ? new Date(body.validUntil) : null,
-      hero: body.hero || null,
-      understanding: body.understanding || null,
-      services: body.services || null,
-      packages: body.packages || null,
-      timeline: body.timeline || null,
-      stats: body.stats || null,
+      hero: jsonOrNull(body.hero),
+      understanding: jsonOrNull(body.understanding),
+      services: jsonOrNull(body.services),
+      packages: jsonOrNull(body.packages),
+      timeline: jsonOrNull(body.timeline),
+      stats: jsonOrNull(body.stats),
       referenceIds: body.referenceIds || [],
       channelIds: body.channelIds || [],
-      legal: body.legal || null,
+      legal: jsonOrNull(body.legal),
     },
     include: { contact: true },
   })
