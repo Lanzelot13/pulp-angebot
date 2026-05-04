@@ -80,20 +80,23 @@ export function OfferPage({ offer: initialOffer, references, channels, mode }: O
     tag?: string
     className?: string
   }) => {
-    const Tag = tag as keyof JSX.IntrinsicElements
-    if (!isEdit) return <Tag className={className}>{value}</Tag>
+    if (!isEdit) {
+      const Tag = tag as keyof JSX.IntrinsicElements
+      return <Tag className={className}>{value}</Tag>
+    }
     return (
-      <Tag
+      <div
+        role="textbox"
         className={`${className} ${styles.editable}`}
         contentEditable
         suppressContentEditableWarning
-        onBlur={(e: React.FocusEvent<HTMLElement>) => {
+        onBlur={(e) => {
           const newVal = e.currentTarget.textContent || ''
           if (newVal !== value) onSave(newVal)
         }}
       >
         {value}
-      </Tag>
+      </div>
     )
   }
 
