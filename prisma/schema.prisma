@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OfferStatus {
+  DRAFT
+  PRICED
+  ACCEPTED
+}
+
+model Offer {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  status        OfferStatus @default(DRAFT)
+
+  // Client
+  clientName    String
+  clientCompany String
+
+  // Project
+  projectName   String
+  offerNumber   String?
+
+  // Pulpmedia contact
+  contactSlug   String
+  contact       Contact     @relation(fields: [contactSlug], references: [slug])
+
+  // Optional Moco reference
+  mocoRef       String?
+
+  // Dates
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  validUntil    DateTime?
+
+  // Edit token for inline editor
+  editToken     String      @unique @default(cuid())
+
+  // === SECTIONS (JSON fields) ===
+  hero          Json?       // { title, subtitle, headerImage }
+  understanding Json?       // { headline, text, cards[] }
+  services      Json?       // { headline, items[] }
+  packages      Json?       // { intro, showPrices, items[] }
+  timeline      Json?       // { headline, steps[] }
+  stats         Json?       // [{ number, label, detail }]
+  referenceIds  String[]    // IDs from Reference table
+  channelIds    String[]    // IDs from Channel table
+  legal         Json?       // { paymentTerms }
+
+  // Version tracking
+  version       Int         @default(1)
+  versions      OfferVersion[]
+
+  @@index([status])
+  @@index([contactSlug])
+}
+
+model OfferVersion {
+  id        Int      @id @default(autoincrement())
+  offerId   String
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  version   Int
+  data      Json     // Full snapshot of the offer at this version
+  changedBy String   // "paul", "robert", "editor", "skill"
+  createdAt DateTime @default(now())
+
+  @@index([offerId])
+}
+
+model Contact {
+  slug      String   @id          // "paul", "robert", etc.
+  name      String                // "Paul Lanzerstorfer"
+  role      String                // "CEO"
+  phone     String
+  email     String
+  avatarUrl String?
+  offers    Offer[]
+}
+
+model Reference {
+  id          String   @id @default(cuid())
+  name        String                // "TGW Logistics"
+  description String                // "Videoproduktion für TGW Logistics"
+  imageUrl    String?
+  tags        String[]              // ["Videoproduktion", "Industrie"]
+  sortOrder   Int      @default(0)
+}
+
+model Channel {
+  id        String   @id @default(cuid())
+  name      String                // "LinkedIn"
+  icon      String?               // emoji or icon name
+  url       String?               // optional link
+  sortOrder Int      @default(0)
+}
