@@ -30,6 +30,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
   const [allReferences, setAllReferences] = useState<Reference[]>([])
   const [allChannels, setAllChannels] = useState<Channel[]>([])
   const [pickerOpen, setPickerOpen] = useState<'references' | 'channels' | null>(null)
+  const [timelineHidden, setTimelineHidden] = useState(false)
 
   const isEdit = mode === 'edit'
 
@@ -74,7 +75,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     try {
       // Collect changed fields
       const changes: Record<string, unknown> = { changedBy: 'editor' }
-      const fields = ['hero', 'understanding', 'services', 'packages', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds'] as const
+      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds'] as const
       for (const f of fields) {
         if (JSON.stringify(draft[f]) !== JSON.stringify(savedOffer[f])) {
           changes[f] = draft[f]
@@ -198,6 +199,20 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     updateDraft('channelIds', updated)
   }
 
+  // Drag-and-drop for reference reordering
+  const [dragRefIdx, setDragRefIdx] = useState<number | null>(null)
+  const handleRefDragStart = (idx: number) => setDragRefIdx(idx)
+  const handleRefDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (dragRefIdx === null || dragRefIdx === idx) return
+    const ids = [...(draft.referenceIds || [])]
+    const [moved] = ids.splice(dragRefIdx, 1)
+    ids.splice(idx, 0, moved)
+    updateDraft('referenceIds', ids)
+    setDragRefIdx(idx)
+  }
+  const handleRefDragEnd = () => setDragRefIdx(null)
+
   return (
     <div className={styles.page}>
       {/* Edit banner with Save/Cancel */}
@@ -251,9 +266,17 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       <section className={styles.hero}>
         <div className={styles.container}>
           <div className={styles.heroTop}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/pulp-logo.svg" alt="Pulpmedia" className={styles.logoImg} />
             <div className={styles.heroMeta}>
-              <strong>Angebot {draft.offerNumber || draft.slug}</strong><br />
+              <strong>Angebot{' '}
+                <Editable
+                  tag="span"
+                  className=""
+                  value={draft.offerNumber || draft.slug}
+                  onSave={(v) => updateDraft('offerNumber', v)}
+                />
+              </strong><br />
               {formatDate(draft.createdAt)}<br />
               {draft.validUntil && <>Gültig bis {formatDate(draft.validUntil)}</>}
             </div>
@@ -274,11 +297,21 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
           <div className={styles.heroInfo}>
             <div className={styles.heroInfoItem}>
               <label>Kunde</label>
-              <span>{draft.clientCompany}</span>
+              <Editable
+                tag="span"
+                className=""
+                value={draft.clientCompany}
+                onSave={(v) => updateDraft('clientCompany', v)}
+              />
             </div>
             <div className={styles.heroInfoItem}>
               <label>Projekt</label>
-              <span>{draft.projectName}</span>
+              <Editable
+                tag="span"
+                className=""
+                value={draft.projectName}
+                onSave={(v) => updateDraft('projectName', v)}
+              />
             </div>
           </div>
         </div>
@@ -417,7 +450,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             )}
             <div className={styles.packagesGrid}>
               {(packages?.items || []).map((pkg, i) => (
-                <div key={i} className={`${styles.package} ${i === 1 ? styles.recommended : ''}`}>
+                <div key={i} className={`${styles.package} ${pkg.highlighted || i === 1 ? styles.recommended : ''}`}>
                   <RemoveButton onClick={() => {
                     const items = packages!.items.filter((_, idx) => idx !== i)
                     updateDraft('packages', { ...packages!, items })
@@ -454,8 +487,41 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     }}
                   />
                   <ul className={styles.packageFeatures}>
-                    {pkg.features.filter(f => f.included).map((f, fi) => (
-                      <li key={fi}>
+                    {pkg.features.map((f, fi) => (
+                      <li key={fi} className={f.included ? '' : styles.featureExcluded}>
+                        {isEdit && (
+                          <button
+                            className={styles.toggleFeatureBtn}
+                            onClick={() => {
+                              const items = [...packages!.items]
+                              const features = [...items[i].features]
+                              features[fi] = { ...features[fi], included: !features[fi].included }
+                              items[i] = { ...items[i], features }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                            type="button"
+                            title={f.included ? 'Als nicht enthalten markieren' : 'Als enthalten markieren'}
+                          >
+                            {f.included ? '✓' : '✗'}
+                          </button>
+                        )}
+                        {!isEdit && (
+                          <span className={f.included ? styles.featureCheck : styles.featureCross}>
+                            {f.included ? '✓' : '✗'}
+                          </span>
+                        )}
+                        <Editable
+                          tag="span"
+                          className={styles.featureText}
+                          value={f.text}
+                          onSave={(v) => {
+                            const items = [...packages!.items]
+                            const features = [...items[i].features]
+                            features[fi] = { ...features[fi], text: v }
+                            items[i] = { ...items[i], features }
+                            updateDraft('packages', { ...packages!, items })
+                          }}
+                        />
                         {isEdit && (
                           <button
                             className={styles.removeFeatureBtn}
@@ -468,20 +534,40 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                             type="button"
                           >&times;</button>
                         )}
-                        {f.text}
                       </li>
                     ))}
                   </ul>
                   {isEdit && (
-                    <button
-                      className={styles.addFeatureBtn}
-                      onClick={() => {
-                        const items = [...packages!.items]
-                        items[i] = { ...items[i], features: [...items[i].features, { text: 'Neues Feature', included: true }] }
-                        updateDraft('packages', { ...packages!, items })
-                      }}
-                      type="button"
-                    >+ Feature</button>
+                    <div className={styles.packageActions}>
+                      <button
+                        className={styles.addFeatureBtn}
+                        onClick={() => {
+                          const items = [...packages!.items]
+                          items[i] = { ...items[i], features: [...items[i].features, { text: 'Neues Feature', included: true }] }
+                          updateDraft('packages', { ...packages!, items })
+                        }}
+                        type="button"
+                      >+ Feature</button>
+                      {packages!.items.length > 1 && (
+                        <select
+                          className={styles.copyFeaturesSelect}
+                          value=""
+                          onChange={(e) => {
+                            const sourceIdx = parseInt(e.target.value, 10)
+                            if (isNaN(sourceIdx)) return
+                            const items = [...packages!.items]
+                            const sourceFeatures = items[sourceIdx].features.map(f => ({ ...f }))
+                            items[i] = { ...items[i], features: sourceFeatures }
+                            updateDraft('packages', { ...packages!, items })
+                          }}
+                        >
+                          <option value="">Features kopieren von...</option>
+                          {packages!.items.map((p, pi) => pi !== i ? (
+                            <option key={pi} value={pi}>{p.name}</option>
+                          ) : null)}
+                        </select>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -503,48 +589,78 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       {(timeline || isEdit) && (
         <section className={styles.section}>
           <div className={styles.container}>
-            <div className={styles.sectionTag}>Ablauf</div>
-            <Editable
-              tag="h2"
-              className={styles.sectionHeadline}
-              value={timeline?.headline || 'So läuft das Projekt ab'}
-              onSave={(v) => updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })}
-            />
-            <div className={styles.timelineTrack}>
-              {(timeline?.steps || []).map((step, i) => (
-                <div key={i} className={styles.timelineStep}>
-                  <RemoveButton onClick={() => {
-                    const steps = timeline!.steps.filter((_, idx) => idx !== i)
-                    updateDraft('timeline', { ...timeline!, steps })
-                  }} />
-                  <div className={styles.timelineIcon}>{step.icon || '📌'}</div>
-                  <Editable
-                    tag="h4"
-                    className={styles.timelineLabel}
-                    value={step.label}
-                    onSave={(v) => {
-                      const steps = [...timeline!.steps]
-                      steps[i] = { ...steps[i], label: v }
-                      updateDraft('timeline', { ...timeline!, steps })
-                    }}
-                  />
-                  <Editable
-                    tag="span"
-                    className={styles.timelineTime}
-                    value={step.timeframe}
-                    onSave={(v) => {
-                      const steps = [...timeline!.steps]
-                      steps[i] = { ...steps[i], timeframe: v }
-                      updateDraft('timeline', { ...timeline!, steps })
-                    }}
-                  />
-                </div>
-              ))}
+            <div className={styles.sectionTag}>
+              Ablauf
+              {isEdit && (
+                <button
+                  className={styles.sectionToggleBtn}
+                  onClick={() => setTimelineHidden(!timelineHidden)}
+                  type="button"
+                >
+                  {timelineHidden ? '👁 Einblenden' : '👁 Ausblenden'}
+                </button>
+              )}
             </div>
-            <AddButton label="Schritt hinzufügen" onClick={() => {
-              const steps = [...(timeline?.steps || []), { label: 'Neuer Schritt', timeframe: 'Woche X', icon: '📌' }]
-              updateDraft('timeline', { ...(timeline || { headline: 'So läuft das Projekt ab' }), steps })
-            }} />
+            {(!isEdit || !timelineHidden) && (
+              <>
+                <Editable
+                  tag="h2"
+                  className={styles.sectionHeadline}
+                  value={timeline?.headline || 'So läuft das Projekt ab'}
+                  onSave={(v) => updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })}
+                />
+                <div className={styles.timelineTrack}>
+                  {(timeline?.steps || []).map((step, i) => (
+                    <div key={i} className={styles.timelineStep}>
+                      <RemoveButton onClick={() => {
+                        const steps = timeline!.steps.filter((_, idx) => idx !== i)
+                        updateDraft('timeline', { ...timeline!, steps })
+                      }} />
+                      {isEdit ? (
+                        <div
+                          className={`${styles.timelineIcon} ${styles.timelineIconEditable}`}
+                          onClick={() => {
+                            const emoji = prompt('Emoji für diesen Schritt:', step.icon || '📌')
+                            if (emoji !== null) {
+                              const steps = [...timeline!.steps]
+                              steps[i] = { ...steps[i], icon: emoji }
+                              updateDraft('timeline', { ...timeline!, steps })
+                            }
+                          }}
+                          title="Klicken zum Ändern"
+                        >{step.icon || '📌'}</div>
+                      ) : (
+                        <div className={styles.timelineIcon}>{step.icon || '📌'}</div>
+                      )}
+                      <Editable
+                        tag="h4"
+                        className={styles.timelineLabel}
+                        value={step.label}
+                        onSave={(v) => {
+                          const steps = [...timeline!.steps]
+                          steps[i] = { ...steps[i], label: v }
+                          updateDraft('timeline', { ...timeline!, steps })
+                        }}
+                      />
+                      <Editable
+                        tag="span"
+                        className={styles.timelineTime}
+                        value={step.timeframe}
+                        onSave={(v) => {
+                          const steps = [...timeline!.steps]
+                          steps[i] = { ...steps[i], timeframe: v }
+                          updateDraft('timeline', { ...timeline!, steps })
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <AddButton label="Schritt hinzufügen" onClick={() => {
+                  const steps = [...(timeline?.steps || []), { label: 'Neuer Schritt', timeframe: 'Woche X', icon: '📌' }]
+                  updateDraft('timeline', { ...(timeline || { headline: 'So läuft das Projekt ab' }), steps })
+                }} />
+              </>
+            )}
           </div>
         </section>
       )}
@@ -642,16 +758,29 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
 
           {displayRefs.length > 0 && (
             <div className={styles.refsGrid}>
-              {displayRefs.map((ref) => (
-                <div key={ref.id} className={styles.refCard}>
+              {displayRefs.map((ref, refIdx) => (
+                <div
+                  key={ref.id}
+                  className={`${styles.refCard} ${isEdit ? styles.refCardDraggable : ''} ${dragRefIdx === refIdx ? styles.refCardDragging : ''}`}
+                  draggable={isEdit}
+                  onDragStart={() => handleRefDragStart(refIdx)}
+                  onDragOver={(e) => handleRefDragOver(e, refIdx)}
+                  onDragEnd={handleRefDragEnd}
+                >
                   <div className={styles.refImage}>
-                    <span>{ref.name}</span>
+                    {ref.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={ref.imageUrl} alt={ref.name} className={styles.refImageImg} />
+                    ) : (
+                      <span>{ref.name}</span>
+                    )}
                   </div>
                   <div className={styles.refInfo}>
                     <div className={styles.sectionTag}>{ref.name}</div>
                     <h3>{ref.description}</h3>
                     <p>{ref.tags.join(' / ')}</p>
                   </div>
+                  {isEdit && <div className={styles.dragHandle}>⠿</div>}
                 </div>
               ))}
             </div>
@@ -713,14 +842,31 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       {/* CTA + CONTACT */}
       <section className={styles.ctaSection}>
         <div className={styles.container}>
-          <h2 className={styles.ctaHeadline}>Welche Option zündet?</h2>
-          <p className={styles.ctaText}>
-            Lass uns in einem kurzen Gespräch die Details besprechen und den Projektstart planen.
-          </p>
+          <Editable
+            tag="h2"
+            className={styles.ctaHeadline}
+            value={hero.ctaHeadline || 'Welche Option zündet?'}
+            onSave={(v) => updateDraft('hero', { ...hero, ctaHeadline: v })}
+          />
+          <Editable
+            tag="p"
+            className={styles.ctaText}
+            value={hero.ctaText || 'Lass uns in einem kurzen Gespräch die Details besprechen und den Projektstart planen.'}
+            onSave={(v) => updateDraft('hero', { ...hero, ctaText: v })}
+          />
           <div className={styles.contactCard}>
-            <div className={styles.contactAvatar}>
-              {draft.contact.name.split(' ').map(n => n[0]).join('')}
-            </div>
+            {draft.contact.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={draft.contact.avatarUrl}
+                alt={draft.contact.name}
+                className={styles.contactAvatarImg}
+              />
+            ) : (
+              <div className={styles.contactAvatar}>
+                {draft.contact.name.split(' ').map(n => n[0]).join('')}
+              </div>
+            )}
             <div className={styles.contactInfo}>
               <h3>{draft.contact.name}</h3>
               <div className={styles.contactRole}>{draft.contact.role} · Pulpmedia</div>

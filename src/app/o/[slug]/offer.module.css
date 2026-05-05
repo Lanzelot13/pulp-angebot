@@ -345,16 +345,33 @@
 .packageFeatures li {
   font-size: 13px;
   color: #ccc;
-  padding: 8px 0 8px 28px;
+  padding: 8px 0;
   position: relative;
   line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.packageFeatures li::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
+.featureCheck {
   color: #FF1900;
   font-weight: 700;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+.featureCross {
+  color: #555;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+.featureExcluded {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+.featureText {
+  flex: 1;
 }
 
 /* === TIMELINE === */
@@ -642,18 +659,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: none;
   background: #ff4444;
   color: #fff;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
-  margin-right: 6px;
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.5;
   transition: opacity 0.15s;
+  margin-left: auto;
 }
 .removeFeatureBtn:hover { opacity: 1; }
 
@@ -729,4 +746,109 @@
   font-style: italic;
   font-size: 14px;
   margin-top: 16px;
+}
+
+/* === TOGGLE FEATURE BUTTON === */
+.toggleFeatureBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #FF1900;
+  background: transparent;
+  color: #FF1900;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.toggleFeatureBtn:hover {
+  background: #FF1900;
+  color: #fff;
+}
+
+/* === PACKAGE ACTIONS === */
+.packageActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.copyFeaturesSelect {
+  font-size: 11px;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f9f9f9;
+  color: #333;
+  cursor: pointer;
+}
+
+/* === SECTION TOGGLE === */
+.sectionToggleBtn {
+  background: none;
+  border: 1px solid #ddd;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: 12px;
+  color: #666;
+  transition: background 0.15s;
+}
+.sectionToggleBtn:hover { background: #f5f5f5; }
+
+/* === TIMELINE ICON EDITABLE === */
+.timelineIconEditable {
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.timelineIconEditable:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(255, 25, 0, 0.2);
+}
+
+/* === CONTACT AVATAR IMAGE === */
+.contactAvatarImg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* === REF IMAGE IMG === */
+.refImageImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* === DRAG AND DROP (references) === */
+.refCardDraggable {
+  cursor: grab;
+  position: relative;
+}
+.refCardDraggable:active { cursor: grabbing; }
+.refCardDragging {
+  opacity: 0.4;
+}
+.dragHandle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  pointer-events: none;
 }

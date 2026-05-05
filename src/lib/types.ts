@@ -4,6 +4,8 @@ export interface HeroSection {
   title: string
   subtitle: string
   headerImage?: string | null
+  ctaHeadline?: string
+  ctaText?: string
 }
 
 export interface UnderstandingCard {
@@ -38,6 +40,7 @@ export interface PackageItem {
   description: string
   price: number | null
   features: PackageFeature[]
+  highlighted?: boolean
 }
 
 export interface PackagesSection {
