@@ -4,7 +4,7 @@ import { OfferPage } from './OfferPage'
 
 interface PageProps {
   params: { slug: string }
-  searchParams: { clean?: string; edit?: string }
+  searchParams: { clean?: string; edit?: string; version?: string }
 }
 
 export default async function Page({ params, searchParams }: PageProps) {
@@ -14,6 +14,39 @@ export default async function Page({ params, searchParams }: PageProps) {
   })
 
   if (!offer) notFound()
+
+  // If a specific version is requested, load from version snapshot
+  if (searchParams.version) {
+    const versionNum = parseInt(searchParams.version, 10)
+    const offerVersion = await prisma.offerVersion.findFirst({
+      where: { offerId: offer.id, version: versionNum },
+    })
+
+    if (offerVersion && offerVersion.data) {
+      const versionData = offerVersion.data as Record<string, unknown>
+      const versionOffer = { ...offer, ...versionData, version: versionNum }
+
+      // Resolve references and channels from the snapshot
+      const refIds = (versionData.referenceIds as string[]) || offer.referenceIds || []
+      const chIds = (versionData.channelIds as string[]) || offer.channelIds || []
+
+      const references = refIds.length > 0
+        ? await prisma.reference.findMany({ where: { id: { in: refIds } }, orderBy: { sortOrder: 'asc' } })
+        : []
+      const channels = chIds.length > 0
+        ? await prisma.channel.findMany({ where: { id: { in: chIds } }, orderBy: { sortOrder: 'asc' } })
+        : []
+
+      return (
+        <OfferPage
+          offer={JSON.parse(JSON.stringify(versionOffer))}
+          references={JSON.parse(JSON.stringify(references))}
+          channels={JSON.parse(JSON.stringify(channels))}
+          mode="view"
+        />
+      )
+    }
+  }
 
   // Resolve references and channels
   const references = offer.referenceIds.length > 0

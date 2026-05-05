@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { IconEdit, IconTrash } from '../Icons'
 import styles from '../admin.module.css'
 
 interface Reference {
@@ -81,7 +82,7 @@ export default function ReferencesPage() {
       </div>
 
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>🏢 Alle Referenzen</div>
+        <div className={styles.sectionTitle}>Alle Referenzen</div>
         <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={openCreate}>+ Neue Referenz</button>
       </div>
 
@@ -109,14 +110,18 @@ export default function ReferencesPage() {
                 <td>{r.sortOrder}</td>
                 <td>
                   <div className={styles.actions}>
-                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`} onClick={() => openEdit(r)}>✏️</button>
-                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setDeleting(r.id)}>🗑</button>
+                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`} onClick={() => openEdit(r)}>
+                      <IconEdit size={14} />
+                    </button>
+                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setDeleting(r.id)}>
+                      <IconTrash size={14} />
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {refs.length === 0 && (
-              <tr><td colSpan={5} className={styles.emptyState}><div className={styles.emptyIcon}>🏢</div><div className={styles.emptyText}>Noch keine Referenzen</div></td></tr>
+              <tr><td colSpan={5} className={styles.emptyState}><div className={styles.emptyText}>Noch keine Referenzen</div></td></tr>
             )}
           </tbody>
         </table>

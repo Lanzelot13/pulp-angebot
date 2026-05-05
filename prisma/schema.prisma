@@ -93,8 +93,8 @@ model Reference {
 
 model Channel {
   id        String   @id @default(cuid())
-  name      String                // "LinkedIn"
-  icon      String?               // emoji or icon name
-  url       String?               // optional link
+  name      String                // "efko Instagram", "Zipfer Facebook"
+  platform  String   @default("") // "instagram", "facebook", "linkedin", etc. (auto-detected from URL)
+  url       String                // "https://www.instagram.com/efkoat/"
   sortOrder Int      @default(0)
 }

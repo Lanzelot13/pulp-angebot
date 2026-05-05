@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { IconEdit, IconTrash } from '../Icons'
 import styles from '../admin.module.css'
 
 interface Contact {
@@ -72,7 +73,7 @@ export default function ContactsPage() {
       </div>
 
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>👤 Alle Kontakte</div>
+        <div className={styles.sectionTitle}>Alle Kontakte</div>
         <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={openCreate}>+ Neue Person</button>
       </div>
 
@@ -98,14 +99,18 @@ export default function ContactsPage() {
                 <td><code className={styles.slug}>{c.slug}</code></td>
                 <td>
                   <div className={styles.actions}>
-                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`} onClick={() => openEdit(c)}>✏️ Bearbeiten</button>
-                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setDeleting(c.slug)}>🗑 Löschen</button>
+                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`} onClick={() => openEdit(c)}>
+                      <IconEdit size={14} />
+                    </button>
+                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setDeleting(c.slug)}>
+                      <IconTrash size={14} />
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {contacts.length === 0 && (
-              <tr><td colSpan={6} className={styles.emptyState}><div className={styles.emptyIcon}>👤</div><div className={styles.emptyText}>Noch keine Kontakte</div></td></tr>
+              <tr><td colSpan={6} className={styles.emptyState}><div className={styles.emptyText}>Noch keine Kontakte</div></td></tr>
             )}
           </tbody>
         </table>

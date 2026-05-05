@@ -697,10 +697,10 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
           {displayChannels.length > 0 && (
             <div className={styles.channelsRow}>
               {displayChannels.map((ch) => (
-                <div key={ch.id} className={styles.channelTag}>
+                <a key={ch.id} href={ch.url} target="_blank" rel="noopener" className={styles.channelTag}>
                   <span className={styles.channelDot} />
                   {ch.name}
-                </div>
+                </a>
               ))}
             </div>
           )}

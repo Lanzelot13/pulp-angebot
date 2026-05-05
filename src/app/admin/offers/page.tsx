@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { IconEye, IconEdit, IconLink, IconCheck, IconClock, IconExternalLink } from '../Icons'
 import styles from '../admin.module.css'
 
 interface OfferRow {
@@ -131,25 +132,25 @@ export default function OffersPage() {
                       <a
                         href={`/o/${o.slug}`}
                         target="_blank"
-                        className={styles.linkIcon}
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                         title="Kundenansicht"
                       >
-                        👁
+                        <IconEye size={14} />
                       </a>
                       <a
                         href={`/o/${o.slug}?edit=${o.editToken}`}
                         target="_blank"
-                        className={styles.linkIcon}
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                         title="Editor öffnen"
                       >
-                        ✏️
+                        <IconEdit size={14} />
                       </a>
                       <button
-                        className={styles.linkIcon}
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                         onClick={() => copyLink(o.slug)}
                         title="Kunden-Link kopieren"
                       >
-                        {copied === o.slug ? '✅' : '🔗'}
+                        {copied === o.slug ? <IconCheck size={14} color="#22c55e" /> : <IconLink size={14} />}
                       </button>
                     </div>
                   </td>
@@ -166,13 +167,22 @@ export default function OffersPage() {
                           <div style={{ color: '#888', fontSize: 13 }}>Laden...</div>
                         )}
                         {versions[o.id]?.map((v, i) => (
-                          <div key={v.id} className={styles.versionItem}>
+                          <a
+                            key={v.id}
+                            href={`/o/${o.slug}?version=${v.version}`}
+                            target="_blank"
+                            className={styles.versionItem}
+                            style={{ textDecoration: 'none', color: 'inherit' }}
+                          >
                             <span className={`${styles.versionDot} ${i === 0 ? styles.versionDotCurrent : ''}`} />
                             <span>v{v.version}</span>
                             <span className={styles.versionMeta}>
                               {v.changedBy} · {formatDateTime(v.createdAt)}
                             </span>
-                          </div>
+                            <span style={{ marginLeft: 'auto', color: '#FF1900', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              Öffnen <IconExternalLink size={11} color="#FF1900" />
+                            </span>
+                          </a>
                         ))}
                       </div>
                     </td>
@@ -183,7 +193,6 @@ export default function OffersPage() {
             {offers.length === 0 && (
               <tr>
                 <td colSpan={8} className={styles.emptyState}>
-                  <div className={styles.emptyIcon}>📄</div>
                   <div className={styles.emptyText}>Noch keine Angebote erstellt</div>
                 </td>
               </tr>

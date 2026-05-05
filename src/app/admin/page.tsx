@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AdminShell } from './AdminShell'
+import { IconFileText, IconUser, IconBuilding, IconShare2, IconClock, IconEye, IconEdit, IconLink } from './Icons'
 import styles from './admin.module.css'
 
 interface Stats {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Dashboard</h1>
         <div className={styles.pageSub}>
-          📅 {new Date().toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          {new Date().toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </div>
 
@@ -65,7 +66,7 @@ export default function DashboardPage() {
               {stats ? `${stats.offers.DRAFT || 0} Draft · ${stats.offers.PRICED || 0} Priced · ${stats.offers.ACCEPTED || 0} Accepted` : '...'}
             </div>
           </div>
-          <div className={`${styles.statIcon} ${styles.iconRed}`}>📄</div>
+          <div className={`${styles.statIcon} ${styles.iconRed}`}><IconFileText size={24} /></div>
         </div>
         <div className={styles.statCard}>
           <div>
@@ -73,7 +74,7 @@ export default function DashboardPage() {
             <div className={styles.statNumber}>{stats?.contacts ?? '–'}</div>
             <div className={styles.statDetail}>Pulpies</div>
           </div>
-          <div className={`${styles.statIcon} ${styles.iconBlue}`}>👤</div>
+          <div className={`${styles.statIcon} ${styles.iconBlue}`}><IconUser size={24} /></div>
         </div>
         <div className={styles.statCard}>
           <div>
@@ -81,7 +82,7 @@ export default function DashboardPage() {
             <div className={styles.statNumber}>{stats?.references ?? '–'}</div>
             <div className={styles.statDetail}>Projekte</div>
           </div>
-          <div className={`${styles.statIcon} ${styles.iconGreen}`}>🏢</div>
+          <div className={`${styles.statIcon} ${styles.iconGreen}`}><IconBuilding size={24} /></div>
         </div>
         <div className={styles.statCard}>
           <div>
@@ -89,37 +90,37 @@ export default function DashboardPage() {
             <div className={styles.statNumber}>{stats?.channels ?? '–'}</div>
             <div className={styles.statDetail}>Social Media</div>
           </div>
-          <div className={`${styles.statIcon} ${styles.iconPurple}`}>📱</div>
+          <div className={`${styles.statIcon} ${styles.iconPurple}`}><IconShare2 size={24} /></div>
         </div>
       </div>
 
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>📝 Schnellzugriff</div>
+        <div className={styles.sectionTitle}>Schnellzugriff</div>
       </div>
       <div className={styles.quickGrid}>
         <a href="/admin/offers" className={styles.quickCard}>
-          <div className={styles.quickIcon}>📄</div>
+          <div className={styles.quickIcon}><IconFileText size={24} /></div>
           <div className={styles.quickLabel}>
             <strong>Alle Angebote</strong>
             <small>Übersicht aller Angebote</small>
           </div>
         </a>
         <a href="/admin/contacts" className={styles.quickCard}>
-          <div className={styles.quickIcon}>👤</div>
+          <div className={styles.quickIcon}><IconUser size={24} /></div>
           <div className={styles.quickLabel}>
             <strong>Ansprechpersonen</strong>
             <small>Kontakte verwalten</small>
           </div>
         </a>
         <a href="/admin/references" className={styles.quickCard}>
-          <div className={styles.quickIcon}>🏢</div>
+          <div className={styles.quickIcon}><IconBuilding size={24} /></div>
           <div className={styles.quickLabel}>
             <strong>Referenzen</strong>
             <small>Kundenprojekte verwalten</small>
           </div>
         </a>
         <a href="/admin/channels" className={styles.quickCard}>
-          <div className={styles.quickIcon}>📱</div>
+          <div className={styles.quickIcon}><IconShare2 size={24} /></div>
           <div className={styles.quickLabel}>
             <strong>Kanäle</strong>
             <small>Social Media Kanäle</small>
@@ -128,7 +129,7 @@ export default function DashboardPage() {
       </div>
 
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>🕐 Letzte Angebote</div>
+        <div className={styles.sectionTitle}>Letzte Angebote</div>
         <a href="/admin/offers" className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}>
           Alle anzeigen →
         </a>

@@ -2,16 +2,18 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { SocialIcon, IconEdit, IconTrash, IconExternalLink } from '../Icons'
 import styles from '../admin.module.css'
 
 interface Channel {
   id: string
   name: string
-  icon: string | null
+  platform: string
+  url: string
   sortOrder: number
 }
 
-const empty = { name: '', icon: '', sortOrder: 0 }
+const empty = { name: '', url: '', sortOrder: 0 }
 
 export default function ChannelsPage() {
   const [channels, setChannels] = useState<Channel[]>([])
@@ -31,22 +33,21 @@ export default function ChannelsPage() {
   useEffect(() => { load() }, [load])
 
   const openCreate = () => { setEditing(null); setForm(empty); setModalOpen(true) }
-  const openEdit = (c: Channel) => { setEditing(c); setForm({ name: c.name, icon: c.icon || '', sortOrder: c.sortOrder }); setModalOpen(true) }
+  const openEdit = (c: Channel) => { setEditing(c); setForm({ name: c.name, url: c.url, sortOrder: c.sortOrder }); setModalOpen(true) }
 
   const handleSave = async () => {
     setSaving(true)
-    const data = { ...form, icon: form.icon || null }
     if (editing) {
       await fetch(`/api/admin/channels/${editing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(form),
       })
     } else {
       await fetch('/api/admin/channels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(form),
       })
     }
     setSaving(false)
@@ -64,11 +65,11 @@ export default function ChannelsPage() {
     <AdminShell>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Kanäle</h1>
-        <div className={styles.pageSub}>Social Media Kanäle</div>
+        <div className={styles.pageSub}>Kundenkanäle auf Social Media Plattformen</div>
       </div>
 
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>📱 Alle Kanäle</div>
+        <div className={styles.sectionTitle}>Alle Kanäle</div>
         <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={openCreate}>+ Neuer Kanal</button>
       </div>
 
@@ -76,8 +77,10 @@ export default function ChannelsPage() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Icon</th>
+              <th style={{ width: 40 }}></th>
+              <th>Titel</th>
+              <th>URL</th>
+              <th>Plattform</th>
               <th>Reihenfolge</th>
               <th>Aktionen</th>
             </tr>
@@ -85,19 +88,32 @@ export default function ChannelsPage() {
           <tbody>
             {channels.map(c => (
               <tr key={c.id}>
+                <td style={{ textAlign: 'center' }}>
+                  <SocialIcon url={c.url} size={20} color="#888" />
+                </td>
                 <td><strong>{c.name}</strong></td>
-                <td>{c.icon || '–'}</td>
+                <td>
+                  <a href={c.url} target="_blank" rel="noopener" style={{ color: '#FF1900', textDecoration: 'none', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {c.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                    <IconExternalLink size={12} color="#FF1900" />
+                  </a>
+                </td>
+                <td><span className={styles.tag}>{c.platform || '–'}</span></td>
                 <td>{c.sortOrder}</td>
                 <td>
                   <div className={styles.actions}>
-                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`} onClick={() => openEdit(c)}>✏️</button>
-                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setDeleting(c.id)}>🗑</button>
+                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`} onClick={() => openEdit(c)}>
+                      <IconEdit size={14} />
+                    </button>
+                    <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setDeleting(c.id)}>
+                      <IconTrash size={14} />
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {channels.length === 0 && (
-              <tr><td colSpan={4} className={styles.emptyState}><div className={styles.emptyIcon}>📱</div><div className={styles.emptyText}>Noch keine Kanäle</div></td></tr>
+              <tr><td colSpan={6} className={styles.emptyState}><div className={styles.emptyText}>Noch keine Kanäle</div></td></tr>
             )}
           </tbody>
         </table>
@@ -112,12 +128,18 @@ export default function ChannelsPage() {
             </div>
             <div className={styles.modalBody}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Kanalname</label>
-                <input className={styles.formInput} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. Instagram" />
+                <label className={styles.formLabel}>Titel</label>
+                <input className={styles.formInput} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. efko Instagram, Zipfer Facebook" />
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Icon (Emoji)</label>
-                <input className={styles.formInput} value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="z.B. 📸" />
+                <label className={styles.formLabel}>URL</label>
+                <input className={styles.formInput} value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://www.instagram.com/efkoat/" />
+                {form.url && (
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#888' }}>
+                    <SocialIcon url={form.url} size={16} color="#888" />
+                    Plattform wird automatisch erkannt
+                  </div>
+                )}
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Reihenfolge</label>

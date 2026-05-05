@@ -87,19 +87,18 @@ async function main() {
   }
   console.log(`✓ ${references.length} references seeded`)
 
-  // ===== CHANNELS =====
+  // ===== CHANNELS (customer social media accounts) =====
   const channels = [
-    { name: 'LinkedIn', icon: '💼', sortOrder: 1 },
-    { name: 'Instagram', icon: '📸', sortOrder: 2 },
-    { name: 'YouTube', icon: '▶️', sortOrder: 3 },
-    { name: 'TikTok', icon: '🎵', sortOrder: 4 },
-    { name: 'Facebook', icon: '👍', sortOrder: 5 },
-    { name: 'X (Twitter)', icon: '𝕏', sortOrder: 6 },
-    { name: 'Pinterest', icon: '📌', sortOrder: 7 },
-    { name: 'Threads', icon: '🧵', sortOrder: 8 },
-    { name: 'Website', icon: '🌐', sortOrder: 9 },
-    { name: 'Newsletter', icon: '📧', sortOrder: 10 },
-    { name: 'Podcast', icon: '🎙️', sortOrder: 11 },
+    { name: 'efko Instagram', url: 'https://www.instagram.com/efkoat/', platform: 'instagram', sortOrder: 1 },
+    { name: 'efko Facebook', url: 'https://www.facebook.com/efko.at/', platform: 'facebook', sortOrder: 2 },
+    { name: 'Zipfer Instagram', url: 'https://www.instagram.com/zipferbier/', platform: 'instagram', sortOrder: 3 },
+    { name: 'Zipfer Facebook', url: 'https://www.facebook.com/Zipfer/', platform: 'facebook', sortOrder: 4 },
+    { name: 'TGW LinkedIn', url: 'https://www.linkedin.com/company/tgw-logistics/', platform: 'linkedin', sortOrder: 5 },
+    { name: 'TGW YouTube', url: 'https://www.youtube.com/@TGWLogistics', platform: 'youtube', sortOrder: 6 },
+    { name: 'Husqvarna Instagram', url: 'https://www.instagram.com/husqvarna_at/', platform: 'instagram', sortOrder: 7 },
+    { name: 'Weber Instagram', url: 'https://www.instagram.com/weber_at/', platform: 'instagram', sortOrder: 8 },
+    { name: 'Rosenbauer LinkedIn', url: 'https://www.linkedin.com/company/rosenbauer/', platform: 'linkedin', sortOrder: 9 },
+    { name: 'Rosenbauer YouTube', url: 'https://www.youtube.com/@RosenbauerGroup', platform: 'youtube', sortOrder: 10 },
   ]
 
   await prisma.channel.deleteMany()
