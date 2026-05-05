@@ -25,7 +25,10 @@ export default function ContactsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/admin/contacts').then(r => r.json()).then(setContacts)
+    fetch('/api/admin/contacts')
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { if (Array.isArray(d)) setContacts(d) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => { load() }, [load])

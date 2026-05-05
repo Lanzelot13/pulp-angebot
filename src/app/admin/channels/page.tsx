@@ -22,7 +22,10 @@ export default function ChannelsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/admin/channels').then(r => r.json()).then(setChannels)
+    fetch('/api/admin/channels')
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { if (Array.isArray(d)) setChannels(d) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => { load() }, [load])

@@ -33,8 +33,9 @@ export default function OffersPage() {
 
   useEffect(() => {
     fetch('/api/admin/offers')
-      .then((r) => r.json())
-      .then(setOffers)
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => { if (Array.isArray(d)) setOffers(d) })
+      .catch(() => {})
   }, [])
 
   const toggleVersions = useCallback(
@@ -46,8 +47,10 @@ export default function OffersPage() {
       setExpandedId(offerId)
       if (!versions[offerId]) {
         const res = await fetch(`/api/admin/offers/${offerId}/versions`)
-        const data = await res.json()
-        setVersions((v) => ({ ...v, [offerId]: data }))
+        if (res.ok) {
+          const data = await res.json()
+          setVersions((v) => ({ ...v, [offerId]: Array.isArray(data) ? data : [] }))
+        }
       }
     },
     [expandedId, versions]

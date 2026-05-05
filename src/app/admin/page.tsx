@@ -27,10 +27,14 @@ export default function DashboardPage() {
   const [recentOffers, setRecentOffers] = useState<OfferRow[]>([])
 
   useEffect(() => {
-    fetch('/api/admin/stats').then(r => r.json()).then(setStats)
-    fetch('/api/admin/offers').then(r => r.json()).then((data: OfferRow[]) => {
-      setRecentOffers(data.slice(0, 5))
-    })
+    fetch('/api/admin/stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setStats(d) })
+      .catch(() => {})
+    fetch('/api/admin/offers')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: OfferRow[]) => setRecentOffers(Array.isArray(data) ? data.slice(0, 5) : []))
+      .catch(() => {})
   }, [])
 
   const formatDate = (d: string) =>

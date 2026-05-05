@@ -25,7 +25,10 @@ export default function ReferencesPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/admin/references').then(r => r.json()).then(setRefs)
+    fetch('/api/admin/references')
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { if (Array.isArray(d)) setRefs(d) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => { load() }, [load])
