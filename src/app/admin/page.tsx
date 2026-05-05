@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AdminShell } from './AdminShell'
-import { IconFileText, IconUser, IconBuilding, IconShare2, IconClock, IconEye, IconEdit, IconLink } from './Icons'
+import { IconFileText, IconUser, IconBuilding, IconShare2 } from './Icons'
 import styles from './admin.module.css'
 
 interface Stats {

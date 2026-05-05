@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
-import { IconEye, IconEdit, IconLink, IconCheck, IconClock, IconExternalLink } from '../Icons'
+import { IconEye, IconEdit, IconLink, IconCheck, IconExternalLink } from '../Icons'
 import styles from '../admin.module.css'
 
 interface OfferRow {
