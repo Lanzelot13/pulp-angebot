@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: body.name,
       description: body.description || '',
+      url: body.url || null,
       tags: body.tags || [],
       imageUrl: body.imageUrl || null,
       sortOrder: body.sortOrder || 0,

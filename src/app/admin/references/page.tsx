@@ -2,19 +2,20 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
-import { IconEdit, IconTrash } from '../Icons'
+import { IconEdit, IconTrash, IconExternalLink } from '../Icons'
 import styles from '../admin.module.css'
 
 interface Reference {
   id: string
   name: string
   description: string
+  url: string | null
   tags: string[]
   imageUrl: string | null
   sortOrder: number
 }
 
-const empty = { name: '', description: '', tags: [] as string[], imageUrl: null as string | null, sortOrder: 0 }
+const empty = { name: '', description: '', url: null as string | null, tags: [] as string[], imageUrl: null as string | null, sortOrder: 0 }
 
 export default function ReferencesPage() {
   const [refs, setRefs] = useState<Reference[]>([])
@@ -42,7 +43,7 @@ export default function ReferencesPage() {
   }
   const openEdit = (r: Reference) => {
     setEditing(r)
-    setForm({ name: r.name, description: r.description, tags: r.tags, imageUrl: r.imageUrl, sortOrder: r.sortOrder })
+    setForm({ name: r.name, description: r.description, url: r.url, tags: r.tags, imageUrl: r.imageUrl, sortOrder: r.sortOrder })
     setTagsStr(r.tags.join(', '))
     setModalOpen(true)
   }
@@ -92,6 +93,7 @@ export default function ReferencesPage() {
             <tr>
               <th>Name</th>
               <th>Beschreibung</th>
+              <th>Website</th>
               <th>Tags</th>
               <th>Reihenfolge</th>
               <th>Aktionen</th>
@@ -102,6 +104,14 @@ export default function ReferencesPage() {
               <tr key={r.id}>
                 <td><strong>{r.name}</strong></td>
                 <td>{r.description}</td>
+                <td>
+                  {r.url && (
+                    <a href={r.url} target="_blank" rel="noopener" style={{ color: '#FF1900', textDecoration: 'none', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {r.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                      <IconExternalLink size={12} color="#FF1900" />
+                    </a>
+                  )}
+                </td>
                 <td>
                   <div className={styles.tagList}>
                     {r.tags.map(t => <span key={t} className={styles.tag}>{t}</span>)}
@@ -121,7 +131,7 @@ export default function ReferencesPage() {
               </tr>
             ))}
             {refs.length === 0 && (
-              <tr><td colSpan={5} className={styles.emptyState}><div className={styles.emptyText}>Noch keine Referenzen</div></td></tr>
+              <tr><td colSpan={6} className={styles.emptyState}><div className={styles.emptyText}>Noch keine Referenzen</div></td></tr>
             )}
           </tbody>
         </table>
@@ -142,6 +152,10 @@ export default function ReferencesPage() {
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Beschreibung</label>
                 <textarea className={styles.formInput} style={{ minHeight: 80, resize: 'vertical' }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Kurze Projektbeschreibung" />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Website-URL</label>
+                <input className={styles.formInput} value={form.url || ''} onChange={e => setForm(f => ({ ...f, url: e.target.value || null }))} placeholder="https://www.tgw-group.com" />
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Tags (kommagetrennt)</label>

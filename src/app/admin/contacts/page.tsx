@@ -142,6 +142,16 @@ export default function ContactsPage() {
                 <input className={styles.formInput} value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="+43 ..." />
               </div>
               <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Foto-URL (wird im Angebots-Footer angezeigt)</label>
+                <input className={styles.formInput} value={form.avatarUrl || ''} onChange={e => setField('avatarUrl', e.target.value || '')} placeholder="https://..." />
+                {form.avatarUrl && (
+                  <div style={{ marginTop: 8 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.avatarUrl} alt="Vorschau" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #eee' }} />
+                  </div>
+                )}
+              </div>
+              <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Slug (für API-Zuordnung)</label>
                 <input className={styles.formInput} value={form.slug} onChange={e => setField('slug', e.target.value)} placeholder="z.B. paul, robert" />
               </div>

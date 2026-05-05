@@ -86,6 +86,7 @@ model Reference {
   id          String   @id @default(cuid())
   name        String                // "TGW Logistics"
   description String                // "Videoproduktion für TGW Logistics"
+  url         String?               // "https://www.tgw-group.com" (Website-Link)
   imageUrl    String?
   tags        String[]              // ["Videoproduktion", "Industrie"]
   sortOrder   Int      @default(0)
