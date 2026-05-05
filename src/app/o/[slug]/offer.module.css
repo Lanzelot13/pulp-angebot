@@ -190,7 +190,6 @@
 .logoImg {
   height: 40px;
   width: auto;
-  filter: invert(1);
 }
 .heroMeta {
   text-align: right;
