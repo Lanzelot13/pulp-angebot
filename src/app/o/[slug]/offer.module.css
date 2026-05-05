@@ -106,8 +106,35 @@
   background: #fffde7;
   border-bottom: 1px solid #fff9c4;
   font-size: 13px;
+  position: sticky;
+  top: 48px;
+  z-index: 998;
 }
 .statusLabel { font-weight: 600; }
+.statusSelect {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+}
+.copyLinkBtn {
+  margin-left: auto;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.copyLinkBtn:hover { background: #f5f5f5; }
 .statusPill {
   display: inline-flex;
   align-items: center;
@@ -320,14 +347,42 @@
 .packageVat { font-size: 12px; color: #888; margin-bottom: 16px; }
 .draftBadge {
   display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  background: #FF1900;
-  color: #fff;
-  padding: 3px 10px;
-  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  font-style: italic;
   margin-bottom: 12px;
-  width: fit-content;
+  padding: 8px 0;
+}
+.draftPriceHint {
+  font-size: 11px;
+  color: #999;
+  font-style: italic;
+  margin-bottom: 12px;
+  padding: 4px 0;
+}
+.priceInput {
+  font-family: 'Anton', sans-serif;
+  font-size: 32px;
+  border: none;
+  border-bottom: 2px dashed #FF1900;
+  background: transparent;
+  color: inherit;
+  width: 120px;
+  text-align: right;
+  outline: none;
+  padding: 0 4px;
+}
+.priceInput::placeholder {
+  color: #555;
+  font-size: 14px;
+  font-family: 'Roboto', sans-serif;
+}
+.priceCurrency {
+  font-family: 'Anton', sans-serif;
+  font-size: 20px;
+  margin-left: 4px;
+  opacity: 0.6;
 }
 .packageDesc {
   font-size: 14px;
@@ -829,6 +884,16 @@
 }
 
 /* === DRAG AND DROP (references) === */
+.refCardClickable {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.refCardClickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
 .refCardDraggable {
   cursor: grab;
   position: relative;

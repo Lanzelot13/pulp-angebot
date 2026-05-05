@@ -251,14 +251,42 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       {isEdit && (
         <div className={styles.statusBar}>
           <span className={styles.statusLabel}>Status:</span>
-          <span className={`${styles.statusPill} ${styles[`status${draft.status}`]}`}>
-            {draft.status}
-          </span>
+          <select
+            className={styles.statusSelect}
+            value={draft.status}
+            onChange={async (e) => {
+              const newStatus = e.target.value
+              // Update status via the status API
+              await fetch(`/api/offers/${draft.id}/status?edit=${draft.editToken}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+              })
+              setDraft(prev => ({ ...prev, status: newStatus as typeof prev.status }))
+              setSavedOffer(prev => ({ ...prev, status: newStatus as typeof prev.status }))
+              showToast(`Status → ${newStatus}`)
+            }}
+          >
+            <option value="DRAFT">DRAFT</option>
+            <option value="PRICED">PRICED</option>
+            <option value="ACCEPTED">ACCEPTED</option>
+          </select>
           <span className={styles.statusHint}>
-            {draft.status === 'DRAFT' && 'Optionen ohne Preise – zur Abstimmung mit dem Kunden'}
+            {draft.status === 'DRAFT' && 'Optionen ohne Preise – Projekt wird besprochen'}
             {draft.status === 'PRICED' && 'Preise sichtbar – Kunde entscheidet'}
             {draft.status === 'ACCEPTED' && 'Kunde hat sich entschieden'}
           </span>
+          <button
+            className={styles.copyLinkBtn}
+            onClick={() => {
+              const url = `${window.location.origin}/o/${draft.slug}`
+              navigator.clipboard.writeText(url)
+              showToast('Kundenlink kopiert!')
+            }}
+            type="button"
+          >
+            🔗 Kundenlink kopieren
+          </button>
         </div>
       )}
 
@@ -269,14 +297,13 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/pulp-logo.svg" alt="Pulpmedia" className={styles.logoImg} />
             <div className={styles.heroMeta}>
-              <strong>Angebot{' '}
-                <Editable
-                  tag="span"
-                  className=""
-                  value={draft.offerNumber || draft.slug}
-                  onSave={(v) => updateDraft('offerNumber', v)}
-                />
-              </strong><br />
+              <Editable
+                tag="strong"
+                className=""
+                value={draft.offerNumber || `Angebot ${draft.slug}`}
+                onSave={(v) => updateDraft('offerNumber', v)}
+              />
+              <br />
               {formatDate(draft.createdAt)}<br />
               {draft.validUntil && <>Gültig bis {formatDate(draft.validUntil)}</>}
             </div>
@@ -465,15 +492,61 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                       updateDraft('packages', { ...packages!, items })
                     }}
                   />
-                  {packages?.showPrices && pkg.price !== null ? (
+                  {draft.status !== 'DRAFT' && pkg.price !== null ? (
                     <>
-                      <div className={styles.packagePrice}>{formatPrice(pkg.price)}</div>
+                      {isEdit ? (
+                        <div className={styles.packagePrice}>
+                          <input
+                            type="number"
+                            className={styles.priceInput}
+                            value={pkg.price || ''}
+                            onChange={(e) => {
+                              const items = [...packages!.items]
+                              items[i] = { ...items[i], price: e.target.value ? Number(e.target.value) : null }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                            placeholder="0"
+                          />
+                          <span className={styles.priceCurrency}>€</span>
+                        </div>
+                      ) : (
+                        <div className={styles.packagePrice}>{formatPrice(pkg.price)}</div>
+                      )}
                       <div className={styles.packageVat}>zzgl. 20% USt.</div>
+                    </>
+                  ) : draft.status === 'DRAFT' ? (
+                    <>
+                      {isEdit && (
+                        <div className={styles.draftPriceHint}>
+                          Preis wird sichtbar wenn Status → PRICED
+                        </div>
+                      )}
+                      {!isEdit && (
+                        <div className={styles.draftBadge}>
+                          Preis nach gemeinsamer Abstimmung
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
-                      <div className={styles.draftBadge}>DRAFT – Preis folgt</div>
-                      <div className={styles.packagePriceHidden}>Preis nach Abstimmung</div>
+                      {isEdit ? (
+                        <div className={styles.packagePrice}>
+                          <input
+                            type="number"
+                            className={styles.priceInput}
+                            value={''}
+                            onChange={(e) => {
+                              const items = [...packages!.items]
+                              items[i] = { ...items[i], price: e.target.value ? Number(e.target.value) : null }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                            placeholder="Preis eingeben"
+                          />
+                          <span className={styles.priceCurrency}>€</span>
+                        </div>
+                      ) : (
+                        <div className={styles.packagePriceHidden}>Auf Anfrage</div>
+                      )}
                     </>
                   )}
                   <Editable
@@ -758,31 +831,47 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
 
           {displayRefs.length > 0 && (
             <div className={styles.refsGrid}>
-              {displayRefs.map((ref, refIdx) => (
-                <div
-                  key={ref.id}
-                  className={`${styles.refCard} ${isEdit ? styles.refCardDraggable : ''} ${dragRefIdx === refIdx ? styles.refCardDragging : ''}`}
-                  draggable={isEdit}
-                  onDragStart={() => handleRefDragStart(refIdx)}
-                  onDragOver={(e) => handleRefDragOver(e, refIdx)}
-                  onDragEnd={handleRefDragEnd}
-                >
-                  <div className={styles.refImage}>
-                    {ref.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ref.imageUrl} alt={ref.name} className={styles.refImageImg} />
-                    ) : (
-                      <span>{ref.name}</span>
-                    )}
+              {displayRefs.map((ref, refIdx) => {
+                const refUrl = (ref as Reference & { url?: string }).url
+                const cardClass = `${styles.refCard} ${isEdit ? styles.refCardDraggable : ''} ${!isEdit && refUrl ? styles.refCardClickable : ''} ${dragRefIdx === refIdx ? styles.refCardDragging : ''}`
+                const inner = (
+                  <>
+                    <div className={styles.refImage}>
+                      {ref.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ref.imageUrl} alt={ref.name} className={styles.refImageImg} />
+                      ) : (
+                        <span>{ref.name}</span>
+                      )}
+                    </div>
+                    <div className={styles.refInfo}>
+                      <div className={styles.sectionTag}>{ref.name}</div>
+                      <h3>{ref.description}</h3>
+                      <p>{ref.tags.join(' / ')}</p>
+                    </div>
+                    {isEdit && <div className={styles.dragHandle}>⠿</div>}
+                  </>
+                )
+                if (!isEdit && refUrl) {
+                  return (
+                    <a key={ref.id} href={refUrl} target="_blank" rel="noopener" className={cardClass}>
+                      {inner}
+                    </a>
+                  )
+                }
+                return (
+                  <div
+                    key={ref.id}
+                    className={cardClass}
+                    draggable={isEdit}
+                    onDragStart={() => handleRefDragStart(refIdx)}
+                    onDragOver={(e) => handleRefDragOver(e, refIdx)}
+                    onDragEnd={handleRefDragEnd}
+                  >
+                    {inner}
                   </div>
-                  <div className={styles.refInfo}>
-                    <div className={styles.sectionTag}>{ref.name}</div>
-                    <h3>{ref.description}</h3>
-                    <p>{ref.tags.join(' / ')}</p>
-                  </div>
-                  {isEdit && <div className={styles.dragHandle}>⠿</div>}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
           {displayRefs.length === 0 && isEdit && (
