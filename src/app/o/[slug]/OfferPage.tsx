@@ -18,7 +18,11 @@ interface OfferPageProps {
 }
 
 export function OfferPage({ offer: initialOffer, references: initialRefs, channels: initialChannels, mode }: OfferPageProps) {
-  const [offer, setOffer] = useState(initialOffer)
+  // Saved state (from server)
+  const [savedOffer, setSavedOffer] = useState(initialOffer)
+  // Local draft state (edited in-browser, instant)
+  const [draft, setDraft] = useState(initialOffer)
+  const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -29,40 +33,72 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
 
   const isEdit = mode === 'edit'
 
-  // Load all available references and channels for the picker
+  // Load all available refs/channels once
   useEffect(() => {
     if (!isEdit) return
     fetch('/api/references').then(r => r.json()).then(setAllReferences)
     fetch('/api/channels').then(r => r.json()).then(setAllChannels)
   }, [isEdit])
 
-  // Parse JSON sections
-  const hero = (offer.hero as unknown as HeroSection) || { title: '', subtitle: '' }
-  const understanding = (offer.understanding as unknown as UnderstandingSection) || null
-  const services = (offer.services as unknown as ServicesSection) || null
-  const packages = (offer.packages as unknown as PackagesSection) || null
-  const timeline = (offer.timeline as unknown as TimelineSection) || null
-  const stats = (offer.stats as unknown as StatItem[]) || []
-  const legal = (offer.legal as unknown as LegalSection) || null
+  // Parse JSON sections from draft
+  const hero = (draft.hero as unknown as HeroSection) || { title: '', subtitle: '' }
+  const understanding = (draft.understanding as unknown as UnderstandingSection) || null
+  const services = (draft.services as unknown as ServicesSection) || null
+  const packages = (draft.packages as unknown as PackagesSection) || null
+  const timeline = (draft.timeline as unknown as TimelineSection) || null
+  const stats = (draft.stats as unknown as StatItem[]) || []
+  const legal = (draft.legal as unknown as LegalSection) || null
+
+  // References/channels shown: use draft IDs to filter allReferences
+  const displayRefs = isEdit
+    ? allReferences.filter(r => (draft.referenceIds || []).includes(r.id))
+    : initialRefs
+  const displayChannels = isEdit
+    ? allChannels.filter(c => (draft.channelIds || []).includes(c.id))
+    : initialChannels
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }, [])
 
-  // Save a section update to the API
-  const saveSection = useCallback(async (field: string, value: unknown) => {
+  // Update a field in the local draft (instant, no API call)
+  const updateDraft = useCallback((field: string, value: unknown) => {
+    setDraft(prev => ({ ...prev, [field]: value } as OfferWithContact))
+    setDirty(true)
+  }, [])
+
+  // SAVE: send all changed fields to API
+  const handleSave = useCallback(async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/offers/${offer.id}?edit=${offer.editToken}`, {
+      // Collect changed fields
+      const changes: Record<string, unknown> = { changedBy: 'editor' }
+      const fields = ['hero', 'understanding', 'services', 'packages', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds'] as const
+      for (const f of fields) {
+        if (JSON.stringify(draft[f]) !== JSON.stringify(savedOffer[f])) {
+          changes[f] = draft[f]
+        }
+      }
+
+      if (Object.keys(changes).length <= 1) {
+        // Only changedBy, nothing actually changed
+        setDirty(false)
+        setSaving(false)
+        return
+      }
+
+      const res = await fetch(`/api/offers/${draft.id}?edit=${draft.editToken}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value, changedBy: 'editor' }),
+        body: JSON.stringify(changes),
       })
       if (res.ok) {
         const updated = await res.json()
-        setOffer(updated)
-        showToast('✓ Gespeichert')
+        setSavedOffer(updated)
+        setDraft(updated)
+        setDirty(false)
+        showToast('Gespeichert!')
       } else {
         showToast('Fehler beim Speichern')
       }
@@ -70,7 +106,14 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       showToast('Netzwerkfehler')
     }
     setSaving(false)
-  }, [offer.id, offer.editToken, showToast])
+  }, [draft, savedOffer, showToast])
+
+  // CANCEL: revert to saved state
+  const handleCancel = useCallback(() => {
+    setDraft(savedOffer)
+    setDirty(false)
+    showToast('Änderungen verworfen')
+  }, [savedOffer, showToast])
 
   const formatDate = (d: string | Date | null) => {
     if (!d) return ''
@@ -85,7 +128,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     }).format(price)
   }
 
-  // Editable text helper
+  // Editable text helper — writes to local draft only
   const Editable = ({ value, onSave, tag = 'span', className = '' }: {
     value: string
     onSave: (newVal: string) => void
@@ -112,7 +155,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     )
   }
 
-  // Add button component
+  // Add button
   const AddButton = ({ label, onClick }: { label: string; onClick: () => void }) => {
     if (!isEdit) return null
     return (
@@ -122,7 +165,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     )
   }
 
-  // Remove button component
+  // Remove button
   const RemoveButton = ({ onClick }: { onClick: () => void }) => {
     if (!isEdit) return null
     return (
@@ -132,35 +175,60 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
         type="button"
         title="Entfernen"
       >
-        ×
+        &times;
       </button>
     )
   }
 
-  // Toggle reference
-  const toggleReference = async (refId: string) => {
-    const current = offer.referenceIds || []
+  // Toggle reference (local)
+  const toggleReference = (refId: string) => {
+    const current = draft.referenceIds || []
     const updated = current.includes(refId)
       ? current.filter((id: string) => id !== refId)
       : [...current, refId]
-    await saveSection('referenceIds', updated)
+    updateDraft('referenceIds', updated)
   }
 
-  // Toggle channel
-  const toggleChannel = async (chId: string) => {
-    const current = offer.channelIds || []
+  // Toggle channel (local)
+  const toggleChannel = (chId: string) => {
+    const current = draft.channelIds || []
     const updated = current.includes(chId)
       ? current.filter((id: string) => id !== chId)
       : [...current, chId]
-    await saveSection('channelIds', updated)
+    updateDraft('channelIds', updated)
   }
 
   return (
     <div className={styles.page}>
-      {/* Edit banner */}
+      {/* Edit banner with Save/Cancel */}
       {isEdit && (
         <div className={styles.editBanner}>
-          ✏️ Editor-Modus — Klick auf Texte zum Bearbeiten{saving ? ' · Speichert...' : ''}
+          <span className={styles.editBannerText}>
+            ✏️ Editor-Modus
+          </span>
+          {dirty && (
+            <div className={styles.editActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={handleCancel}
+                disabled={saving}
+                type="button"
+              >
+                Abbrechen
+              </button>
+              <button
+                className={styles.saveBtn}
+                onClick={handleSave}
+                disabled={saving}
+                type="button"
+              >
+                {saving ? 'Speichert...' : 'Speichern'}
+              </button>
+            </div>
+          )}
+          {!dirty && (
+            <span className={styles.editSaved}>Alle Änderungen gespeichert</span>
+          )}
         </div>
       )}
 
@@ -168,13 +236,13 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       {isEdit && (
         <div className={styles.statusBar}>
           <span className={styles.statusLabel}>Status:</span>
-          <span className={`${styles.statusPill} ${styles[`status${offer.status}`]}`}>
-            {offer.status}
+          <span className={`${styles.statusPill} ${styles[`status${draft.status}`]}`}>
+            {draft.status}
           </span>
           <span className={styles.statusHint}>
-            {offer.status === 'DRAFT' && 'Optionen ohne Preise – zur Abstimmung mit dem Kunden'}
-            {offer.status === 'PRICED' && 'Preise sichtbar – Kunde entscheidet'}
-            {offer.status === 'ACCEPTED' && 'Kunde hat sich entschieden'}
+            {draft.status === 'DRAFT' && 'Optionen ohne Preise – zur Abstimmung mit dem Kunden'}
+            {draft.status === 'PRICED' && 'Preise sichtbar – Kunde entscheidet'}
+            {draft.status === 'ACCEPTED' && 'Kunde hat sich entschieden'}
           </span>
         </div>
       )}
@@ -183,11 +251,11 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       <section className={styles.hero}>
         <div className={styles.container}>
           <div className={styles.heroTop}>
-            <div className={styles.logo}>PULP<span>*</span></div>
+            <img src="/pulp-logo.svg" alt="Pulpmedia" className={styles.logoImg} />
             <div className={styles.heroMeta}>
-              <strong>Angebot {offer.offerNumber || offer.slug}</strong><br />
-              {formatDate(offer.createdAt)}<br />
-              {offer.validUntil && <>Gültig bis {formatDate(offer.validUntil)}</>}
+              <strong>Angebot {draft.offerNumber || draft.slug}</strong><br />
+              {formatDate(draft.createdAt)}<br />
+              {draft.validUntil && <>Gültig bis {formatDate(draft.validUntil)}</>}
             </div>
           </div>
           <div className={styles.sectionTag}>Angebot</div>
@@ -195,22 +263,22 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             tag="h1"
             className={styles.heroTitle}
             value={hero.title}
-            onSave={(v) => saveSection('hero', { ...hero, title: v })}
+            onSave={(v) => updateDraft('hero', { ...hero, title: v })}
           />
           <Editable
             tag="p"
             className={styles.heroSubtitle}
             value={hero.subtitle}
-            onSave={(v) => saveSection('hero', { ...hero, subtitle: v })}
+            onSave={(v) => updateDraft('hero', { ...hero, subtitle: v })}
           />
           <div className={styles.heroInfo}>
             <div className={styles.heroInfoItem}>
               <label>Kunde</label>
-              <span>{offer.clientCompany}</span>
+              <span>{draft.clientCompany}</span>
             </div>
             <div className={styles.heroInfoItem}>
               <label>Projekt</label>
-              <span>{offer.projectName}</span>
+              <span>{draft.projectName}</span>
             </div>
           </div>
         </div>
@@ -225,13 +293,13 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               tag="h2"
               className={styles.sectionHeadline}
               value={understanding?.headline || 'Headline hier eingeben'}
-              onSave={(v) => saveSection('understanding', { ...(understanding || { headline: '', text: '', cards: [] }), headline: v })}
+              onSave={(v) => updateDraft('understanding', { ...(understanding || { headline: '', text: '', cards: [] }), headline: v })}
             />
             <Editable
               tag="p"
               className={styles.bodyText}
               value={understanding?.text || 'Beschreibung hier eingeben'}
-              onSave={(v) => saveSection('understanding', { ...(understanding || { headline: '', text: '', cards: [] }), text: v })}
+              onSave={(v) => updateDraft('understanding', { ...(understanding || { headline: '', text: '', cards: [] }), text: v })}
             />
             {(understanding?.cards || []).length > 0 && (
               <div className={styles.cardsGrid}>
@@ -239,7 +307,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                   <div key={i} className={styles.card}>
                     <RemoveButton onClick={() => {
                       const cards = understanding!.cards.filter((_, idx) => idx !== i)
-                      saveSection('understanding', { ...understanding!, cards })
+                      updateDraft('understanding', { ...understanding!, cards })
                     }} />
                     <Editable
                       tag="h3"
@@ -248,7 +316,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                       onSave={(v) => {
                         const cards = [...understanding!.cards]
                         cards[i] = { ...cards[i], title: v }
-                        saveSection('understanding', { ...understanding!, cards })
+                        updateDraft('understanding', { ...understanding!, cards })
                       }}
                     />
                     <Editable
@@ -258,7 +326,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                       onSave={(v) => {
                         const cards = [...understanding!.cards]
                         cards[i] = { ...cards[i], text: v }
-                        saveSection('understanding', { ...understanding!, cards })
+                        updateDraft('understanding', { ...understanding!, cards })
                       }}
                     />
                   </div>
@@ -267,7 +335,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             )}
             <AddButton label="Karte hinzufügen" onClick={() => {
               const cards = [...(understanding?.cards || []), { title: 'Neue Karte', text: 'Beschreibung' }]
-              saveSection('understanding', { ...(understanding || { headline: '', text: '' }), cards })
+              updateDraft('understanding', { ...(understanding || { headline: '', text: '' }), cards })
             }} />
           </div>
         </section>
@@ -284,7 +352,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               tag="h2"
               className={styles.sectionHeadline}
               value={services?.headline || 'Leistungen'}
-              onSave={(v) => saveSection('services', { ...(services || { headline: '', items: [] }), headline: v })}
+              onSave={(v) => updateDraft('services', { ...(services || { headline: '', items: [] }), headline: v })}
             />
             {(services?.items || []).map((item, i) => (
               <div key={i} className={styles.serviceItem}>
@@ -292,7 +360,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                 <div className={styles.serviceContent}>
                   <RemoveButton onClick={() => {
                     const items = services!.items.filter((_, idx) => idx !== i)
-                    saveSection('services', { ...services!, items })
+                    updateDraft('services', { ...services!, items })
                   }} />
                   <Editable
                     tag="h3"
@@ -301,7 +369,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const items = [...services!.items]
                       items[i] = { ...items[i], title: v }
-                      saveSection('services', { ...services!, items })
+                      updateDraft('services', { ...services!, items })
                     }}
                   />
                   <Editable
@@ -311,7 +379,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const items = [...services!.items]
                       items[i] = { ...items[i], description: v }
-                      saveSection('services', { ...services!, items })
+                      updateDraft('services', { ...services!, items })
                     }}
                   />
                   {item.optional && <span className={styles.optionalBadge}>Optional</span>}
@@ -320,7 +388,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             ))}
             <AddButton label="Leistung hinzufügen" onClick={() => {
               const items = [...(services?.items || []), { title: 'Neue Leistung', description: 'Beschreibung der Leistung', optional: false }]
-              saveSection('services', { ...(services || { headline: 'Leistungen' }), items })
+              updateDraft('services', { ...(services || { headline: 'Leistungen' }), items })
             }} />
           </div>
         </section>
@@ -331,18 +399,20 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
         <section className={styles.packagesBg}>
           <div className={styles.container}>
             <div className={styles.sectionTag}>Pakete</div>
-            <Editable
-              tag="h2"
-              className={styles.sectionHeadline}
-              value={packages?.intro ? 'Wählt das Paket, das zu euch passt' : 'Pakete'}
-              onSave={() => {}}
-            />
+            {packages?.intro && (
+              <Editable
+                tag="h2"
+                className={styles.sectionHeadline}
+                value="Wählt das Paket, das zu euch passt"
+                onSave={() => {}}
+              />
+            )}
             {packages?.intro && (
               <Editable
                 tag="p"
                 className={styles.packagesIntro}
                 value={packages.intro}
-                onSave={(v) => saveSection('packages', { ...packages, intro: v })}
+                onSave={(v) => updateDraft('packages', { ...packages, intro: v })}
               />
             )}
             <div className={styles.packagesGrid}>
@@ -350,7 +420,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                 <div key={i} className={`${styles.package} ${i === 1 ? styles.recommended : ''}`}>
                   <RemoveButton onClick={() => {
                     const items = packages!.items.filter((_, idx) => idx !== i)
-                    saveSection('packages', { ...packages!, items })
+                    updateDraft('packages', { ...packages!, items })
                   }} />
                   <Editable
                     tag="div"
@@ -359,7 +429,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const items = [...packages!.items]
                       items[i] = { ...items[i], name: v }
-                      saveSection('packages', { ...packages!, items })
+                      updateDraft('packages', { ...packages!, items })
                     }}
                   />
                   {packages?.showPrices && pkg.price !== null ? (
@@ -380,7 +450,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const items = [...packages!.items]
                       items[i] = { ...items[i], description: v }
-                      saveSection('packages', { ...packages!, items })
+                      updateDraft('packages', { ...packages!, items })
                     }}
                   />
                   <ul className={styles.packageFeatures}>
@@ -393,10 +463,10 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                               const items = [...packages!.items]
                               const features = items[i].features.filter((_, idx) => idx !== fi)
                               items[i] = { ...items[i], features }
-                              saveSection('packages', { ...packages!, items })
+                              updateDraft('packages', { ...packages!, items })
                             }}
                             type="button"
-                          >×</button>
+                          >&times;</button>
                         )}
                         {f.text}
                       </li>
@@ -408,7 +478,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                       onClick={() => {
                         const items = [...packages!.items]
                         items[i] = { ...items[i], features: [...items[i].features, { text: 'Neues Feature', included: true }] }
-                        saveSection('packages', { ...packages!, items })
+                        updateDraft('packages', { ...packages!, items })
                       }}
                       type="button"
                     >+ Feature</button>
@@ -423,7 +493,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                 price: null,
                 features: [{ text: 'Feature 1', included: true }]
               }]
-              saveSection('packages', { ...(packages || { intro: '', showPrices: false }), items })
+              updateDraft('packages', { ...(packages || { intro: '', showPrices: false }), items })
             }} />
           </div>
         </section>
@@ -438,14 +508,14 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               tag="h2"
               className={styles.sectionHeadline}
               value={timeline?.headline || 'So läuft das Projekt ab'}
-              onSave={(v) => saveSection('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })}
+              onSave={(v) => updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })}
             />
             <div className={styles.timelineTrack}>
               {(timeline?.steps || []).map((step, i) => (
                 <div key={i} className={styles.timelineStep}>
                   <RemoveButton onClick={() => {
                     const steps = timeline!.steps.filter((_, idx) => idx !== i)
-                    saveSection('timeline', { ...timeline!, steps })
+                    updateDraft('timeline', { ...timeline!, steps })
                   }} />
                   <div className={styles.timelineIcon}>{step.icon || '📌'}</div>
                   <Editable
@@ -455,7 +525,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const steps = [...timeline!.steps]
                       steps[i] = { ...steps[i], label: v }
-                      saveSection('timeline', { ...timeline!, steps })
+                      updateDraft('timeline', { ...timeline!, steps })
                     }}
                   />
                   <Editable
@@ -465,7 +535,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const steps = [...timeline!.steps]
                       steps[i] = { ...steps[i], timeframe: v }
-                      saveSection('timeline', { ...timeline!, steps })
+                      updateDraft('timeline', { ...timeline!, steps })
                     }}
                   />
                 </div>
@@ -473,7 +543,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             </div>
             <AddButton label="Schritt hinzufügen" onClick={() => {
               const steps = [...(timeline?.steps || []), { label: 'Neuer Schritt', timeframe: 'Woche X', icon: '📌' }]
-              saveSection('timeline', { ...(timeline || { headline: 'So läuft das Projekt ab' }), steps })
+              updateDraft('timeline', { ...(timeline || { headline: 'So läuft das Projekt ab' }), steps })
             }} />
           </div>
         </section>
@@ -492,7 +562,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                 <div key={i} className={styles.statCard}>
                   <RemoveButton onClick={() => {
                     const newStats = stats.filter((_, idx) => idx !== i)
-                    saveSection('stats', newStats)
+                    updateDraft('stats', newStats)
                   }} />
                   <Editable
                     tag="div"
@@ -501,7 +571,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const newStats = [...stats]
                       newStats[i] = { ...newStats[i], number: v }
-                      saveSection('stats', newStats)
+                      updateDraft('stats', newStats)
                     }}
                   />
                   <Editable
@@ -511,7 +581,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const newStats = [...stats]
                       newStats[i] = { ...newStats[i], label: v }
-                      saveSection('stats', newStats)
+                      updateDraft('stats', newStats)
                     }}
                   />
                   <Editable
@@ -521,7 +591,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     onSave={(v) => {
                       const newStats = [...stats]
                       newStats[i] = { ...newStats[i], detail: v }
-                      saveSection('stats', newStats)
+                      updateDraft('stats', newStats)
                     }}
                   />
                 </div>
@@ -529,7 +599,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             </div>
             <AddButton label="Kennzahl hinzufügen" onClick={() => {
               const newStats = [...stats, { number: '0+', label: 'Label', detail: 'Detail' }]
-              saveSection('stats', newStats)
+              updateDraft('stats', newStats)
             }} />
           </div>
         </section>
@@ -543,7 +613,6 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
           <div className={styles.sectionTag}>Ausgewählte Referenzen</div>
           <h2 className={styles.sectionHeadline}>Projekte, die begeistern</h2>
 
-          {/* Picker in Edit Mode */}
           {isEdit && (
             <div className={styles.pickerToggle}>
               <button
@@ -551,7 +620,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                 onClick={() => setPickerOpen(pickerOpen === 'references' ? null : 'references')}
                 type="button"
               >
-                {pickerOpen === 'references' ? '▼ Referenzen auswählen' : '► Referenzen auswählen'} ({(offer.referenceIds || []).length} gewählt)
+                {pickerOpen === 'references' ? '▼' : '►'} Referenzen auswählen ({(draft.referenceIds || []).length} gewählt)
               </button>
               {pickerOpen === 'references' && (
                 <div className={styles.pickerPanel}>
@@ -559,7 +628,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     <label key={ref.id} className={styles.pickerItem}>
                       <input
                         type="checkbox"
-                        checked={(offer.referenceIds || []).includes(ref.id)}
+                        checked={(draft.referenceIds || []).includes(ref.id)}
                         onChange={() => toggleReference(ref.id)}
                       />
                       <span>{ref.name}</span>
@@ -571,9 +640,9 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             </div>
           )}
 
-          {initialRefs.length > 0 && (
+          {displayRefs.length > 0 && (
             <div className={styles.refsGrid}>
-              {initialRefs.map((ref) => (
+              {displayRefs.map((ref) => (
                 <div key={ref.id} className={styles.refCard}>
                   <div className={styles.refImage}>
                     <span>{ref.name}</span>
@@ -587,8 +656,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               ))}
             </div>
           )}
-          {initialRefs.length === 0 && !isEdit && null}
-          {initialRefs.length === 0 && isEdit && (
+          {displayRefs.length === 0 && isEdit && (
             <p className={styles.emptyHint}>Noch keine Referenzen zugeordnet. Klicke oben auf &quot;Referenzen auswählen&quot;.</p>
           )}
         </div>
@@ -600,7 +668,6 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
           <div className={styles.sectionTag}>Kanäle, die wir betreuen</div>
           <h2 className={styles.sectionHeadline}>Wo eure Marke lebt</h2>
 
-          {/* Picker in Edit Mode */}
           {isEdit && (
             <div className={styles.pickerToggle}>
               <button
@@ -608,7 +675,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                 onClick={() => setPickerOpen(pickerOpen === 'channels' ? null : 'channels')}
                 type="button"
               >
-                {pickerOpen === 'channels' ? '▼ Kanäle auswählen' : '► Kanäle auswählen'} ({(offer.channelIds || []).length} gewählt)
+                {pickerOpen === 'channels' ? '▼' : '►'} Kanäle auswählen ({(draft.channelIds || []).length} gewählt)
               </button>
               {pickerOpen === 'channels' && (
                 <div className={styles.pickerPanel}>
@@ -616,7 +683,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                     <label key={ch.id} className={styles.pickerItem}>
                       <input
                         type="checkbox"
-                        checked={(offer.channelIds || []).includes(ch.id)}
+                        checked={(draft.channelIds || []).includes(ch.id)}
                         onChange={() => toggleChannel(ch.id)}
                       />
                       <span>{ch.name}</span>
@@ -627,9 +694,9 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
             </div>
           )}
 
-          {initialChannels.length > 0 && (
+          {displayChannels.length > 0 && (
             <div className={styles.channelsRow}>
-              {initialChannels.map((ch) => (
+              {displayChannels.map((ch) => (
                 <div key={ch.id} className={styles.channelTag}>
                   <span className={styles.channelDot} />
                   {ch.name}
@@ -637,7 +704,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               ))}
             </div>
           )}
-          {initialChannels.length === 0 && isEdit && (
+          {displayChannels.length === 0 && isEdit && (
             <p className={styles.emptyHint}>Noch keine Kanäle zugeordnet. Klicke oben auf &quot;Kanäle auswählen&quot;.</p>
           )}
         </div>
@@ -646,27 +713,22 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       {/* CTA + CONTACT */}
       <section className={styles.ctaSection}>
         <div className={styles.container}>
-          <Editable
-            tag="h2"
-            className={styles.ctaHeadline}
-            value="Welche Option zündet?"
-            onSave={() => {}}
-          />
+          <h2 className={styles.ctaHeadline}>Welche Option zündet?</h2>
           <p className={styles.ctaText}>
             Lass uns in einem kurzen Gespräch die Details besprechen und den Projektstart planen.
           </p>
           <div className={styles.contactCard}>
             <div className={styles.contactAvatar}>
-              {offer.contact.name.split(' ').map(n => n[0]).join('')}
+              {draft.contact.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div className={styles.contactInfo}>
-              <h3>{offer.contact.name}</h3>
-              <div className={styles.contactRole}>{offer.contact.role} · Pulpmedia</div>
+              <h3>{draft.contact.name}</h3>
+              <div className={styles.contactRole}>{draft.contact.role} · Pulpmedia</div>
               <div className={styles.contactLinks}>
                 <span>Tel</span>{' '}
-                <a href={`tel:${offer.contact.phone}`}>{offer.contact.phone}</a>
+                <a href={`tel:${draft.contact.phone}`}>{draft.contact.phone}</a>
                 <span>Mail</span>{' '}
-                <a href={`mailto:${offer.contact.email}`}>{offer.contact.email}</a>
+                <a href={`mailto:${draft.contact.email}`}>{draft.contact.email}</a>
               </div>
             </div>
           </div>
