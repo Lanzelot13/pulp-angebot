@@ -1,8 +1,6 @@
 // Lightweight SVG outline icons for admin UI (similar to Lucide/Feather style)
 // Each icon is 20x20 with stroke-based rendering
 
-const s = { width: 20, height: 20, fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-
 export function IconDashboard({ size = 20, color = 'currentColor' }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
