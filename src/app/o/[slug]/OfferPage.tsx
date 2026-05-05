@@ -30,7 +30,9 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
   const [allReferences, setAllReferences] = useState<Reference[]>([])
   const [allChannels, setAllChannels] = useState<Channel[]>([])
   const [pickerOpen, setPickerOpen] = useState<'references' | 'channels' | null>(null)
-  const [timelineHidden, setTimelineHidden] = useState(false)
+  const [timelineHidden, setTimelineHidden] = useState(
+    !!((initialOffer.timeline as unknown as TimelineSection)?.hidden)
+  )
 
   const isEdit = mode === 'edit'
 
@@ -659,7 +661,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
       )}
 
       {/* ABLAUF */}
-      {(timeline || isEdit) && (
+      {(timeline || isEdit) && (isEdit || !timeline?.hidden) && (
         <section className={styles.section}>
           <div className={styles.container}>
             <div className={styles.sectionTag}>
@@ -667,7 +669,11 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               {isEdit && (
                 <button
                   className={styles.sectionToggleBtn}
-                  onClick={() => setTimelineHidden(!timelineHidden)}
+                  onClick={() => {
+                    const newHidden = !timelineHidden
+                    setTimelineHidden(newHidden)
+                    updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), hidden: newHidden })
+                  }}
                   type="button"
                 >
                   {timelineHidden ? '👁 Einblenden' : '👁 Ausblenden'}

@@ -58,6 +58,7 @@ export interface TimelineStep {
 export interface TimelineSection {
   headline: string
   steps: TimelineStep[]
+  hidden?: boolean
 }
 
 export interface StatItem {
