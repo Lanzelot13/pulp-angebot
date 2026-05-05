@@ -552,11 +552,14 @@
   background: #eee;
   transform: translateY(-1px);
 }
-.channelDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #FF1900;
+.channelTagDraggable {
+  cursor: grab;
+}
+.channelTagDraggable:active {
+  cursor: grabbing;
+}
+.channelTagDragging {
+  opacity: 0.4;
 }
 
 /* === CTA === */

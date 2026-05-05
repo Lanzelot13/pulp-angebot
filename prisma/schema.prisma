@@ -50,6 +50,7 @@ model Offer {
   stats         Json?       // [{ number, label, detail }]
   referenceIds  String[]    // IDs from Reference table
   channelIds    String[]    // IDs from Channel table
+  channelsHidden Boolean    @default(false)
   legal         Json?       // { paymentTerms }
 
   // Version tracking
