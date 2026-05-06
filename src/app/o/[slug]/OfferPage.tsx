@@ -79,7 +79,7 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     try {
       // Collect changed fields
       const changes: Record<string, unknown> = { changedBy: 'editor' }
-      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds', 'channelsHidden'] as const
+      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
       for (const f of fields) {
         if (JSON.stringify(draft[f]) !== JSON.stringify(savedOffer[f])) {
           changes[f] = draft[f]
@@ -229,6 +229,32 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
     setDragChIdx(idx)
   }
   const handleChDragEnd = () => setDragChIdx(null)
+
+  // Drag-and-drop for services
+  const [dragSvcIdx, setDragSvcIdx] = useState<number | null>(null)
+  const handleSvcDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (dragSvcIdx === null || dragSvcIdx === idx || !services) return
+    const items = [...services.items]
+    const [moved] = items.splice(dragSvcIdx, 1)
+    items.splice(idx, 0, moved)
+    updateDraft('services', { ...services, items })
+    setDragSvcIdx(idx)
+  }
+
+  // Drag-and-drop for package features
+  const [dragFeature, setDragFeature] = useState<{ pkg: number; idx: number } | null>(null)
+  const handleFeatureDragOver = (e: React.DragEvent, pkgIdx: number, featureIdx: number) => {
+    e.preventDefault()
+    if (!dragFeature || dragFeature.pkg !== pkgIdx || dragFeature.idx === featureIdx) return
+    const items = [...packages!.items]
+    const features = [...items[pkgIdx].features]
+    const [moved] = features.splice(dragFeature.idx, 1)
+    features.splice(featureIdx, 0, moved)
+    items[pkgIdx] = { ...items[pkgIdx], features }
+    updateDraft('packages', { ...packages!, items })
+    setDragFeature({ pkg: pkgIdx, idx: featureIdx })
+  }
 
   // Social network icon SVGs (Pulpmedia red)
   const ChannelIcon = ({ platform }: { platform: string }) => {
@@ -453,7 +479,14 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               onSave={(v) => updateDraft('services', { ...(services || { headline: '', items: [] }), headline: v })}
             />
             {(services?.items || []).map((item, i) => (
-              <div key={i} className={styles.serviceItem}>
+              <div
+                key={i}
+                className={`${styles.serviceItem} ${isEdit ? styles.serviceItemDraggable : ''} ${dragSvcIdx === i ? styles.serviceItemDragging : ''}`}
+                draggable={isEdit}
+                onDragStart={isEdit ? () => setDragSvcIdx(i) : undefined}
+                onDragOver={isEdit ? (e) => handleSvcDragOver(e, i) : undefined}
+                onDragEnd={isEdit ? () => setDragSvcIdx(null) : undefined}
+              >
                 <div className={styles.serviceNumber}>{String(i + 1).padStart(2, '0')}</div>
                 <div className={styles.serviceContent}>
                   <RemoveButton onClick={() => {
@@ -613,7 +646,14 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                   />
                   <ul className={styles.packageFeatures}>
                     {pkg.features.map((f, fi) => (
-                      <li key={fi} className={f.included ? '' : styles.featureExcluded}>
+                      <li
+                        key={fi}
+                        className={`${f.included ? '' : styles.featureExcluded} ${isEdit ? styles.featureDraggable : ''} ${dragFeature?.pkg === i && dragFeature?.idx === fi ? styles.featureDragging : ''}`}
+                        draggable={isEdit}
+                        onDragStart={isEdit ? () => setDragFeature({ pkg: i, idx: fi }) : undefined}
+                        onDragOver={isEdit ? (e) => handleFeatureDragOver(e, i, fi) : undefined}
+                        onDragEnd={isEdit ? () => setDragFeature(null) : undefined}
+                      >
                         {isEdit && (
                           <button
                             className={styles.toggleFeatureBtn}
@@ -1068,7 +1108,12 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
           </div>
           {(!isEdit || !channelsHidden) && (
             <>
-              <h2 className={styles.sectionHeadline}>Wo eure Marke lebt</h2>
+              <Editable
+                tag="h2"
+                className={styles.sectionHeadline}
+                value={draft.channelsHeadline || 'Wo Markenliebe lebt'}
+                onSave={(v) => updateDraft('channelsHeadline', v)}
+              />
 
               {isEdit && (
                 <div className={styles.pickerToggle}>

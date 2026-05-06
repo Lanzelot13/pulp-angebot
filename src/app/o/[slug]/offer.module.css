@@ -285,6 +285,15 @@
   padding: 28px 0;
   border-bottom: 1px solid #e0e0e0;
 }
+.serviceItemDraggable {
+  cursor: grab;
+}
+.serviceItemDraggable:active {
+  cursor: grabbing;
+}
+.serviceItemDragging {
+  opacity: 0.4;
+}
 .serviceNumber {
   font-family: 'Anton', sans-serif;
   font-size: 36px;
@@ -450,6 +459,15 @@
 }
 .featureText {
   flex: 1;
+}
+.featureDraggable {
+  cursor: grab;
+}
+.featureDraggable:active {
+  cursor: grabbing;
+}
+.featureDragging {
+  opacity: 0.4;
 }
 
 /* === TIMELINE === */
