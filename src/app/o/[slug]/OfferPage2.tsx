@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import type { Offer, Contact, Reference, Channel } from '@prisma/client'
 import type {
   HeroSection, UnderstandingSection, ServicesSection,
-  PackagesSection, AddOnItem, TimelineSection, StatItem, LegalSection,
+  PackagesSection, TimelineSection, StatItem, LegalSection,
 } from '@/lib/types'
 import styles from './offer2.module.css'
 
@@ -1083,7 +1083,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         </div>
         <div style={{ textAlign: 'right' }}>
           <div className={styles.footerClaim}>
-            Don't make ads. <span className={styles.footerClaimLove}>Make love.</span>
+            Don&apos;t make ads. <span className={styles.footerClaimLove}>Make love.</span>
           </div>
         </div>
       </div>
