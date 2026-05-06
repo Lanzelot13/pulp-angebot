@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import type { Offer, Contact, Reference, Channel } from '@prisma/client'
 import type {
   HeroSection, UnderstandingSection, ServicesSection,
-  PackagesSection, TimelineSection, StatItem, LegalSection,
+  PackagesSection, AddOnItem, TimelineSection, StatItem, LegalSection,
 } from '@/lib/types'
 import styles from './offer.module.css'
 
@@ -480,7 +480,21 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                       updateDraft('services', { ...services!, items })
                     }}
                   />
-                  {item.optional && <span className={styles.optionalBadge}>Optional</span>}
+                  {isEdit ? (
+                    <button
+                      className={`${styles.optionalToggle} ${item.optional ? styles.optionalToggleActive : ''}`}
+                      onClick={() => {
+                        const items = [...services!.items]
+                        items[i] = { ...items[i], optional: !items[i].optional }
+                        updateDraft('services', { ...services!, items })
+                      }}
+                      type="button"
+                    >
+                      {item.optional ? '✓ Optional' : 'Als optional markieren'}
+                    </button>
+                  ) : (
+                    item.optional && <span className={styles.optionalBadge}>Optional</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -692,6 +706,116 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
               }]
               updateDraft('packages', { ...(packages || { intro: '', showPrices: false }), items })
             }} />
+
+            {/* ADD-ONS */}
+            {(isEdit || (!packages?.addOnsHidden && (packages?.addOns || []).length > 0)) && (
+              <>
+                <div className={styles.addOnsHeader}>
+                  <h3 className={styles.addOnsHeadline}>Optionale Add-Ons</h3>
+                  {isEdit && (
+                    <button
+                      className={styles.sectionToggleBtn}
+                      onClick={() => {
+                        const newHidden = !packages?.addOnsHidden
+                        updateDraft('packages', { ...packages!, addOnsHidden: newHidden })
+                      }}
+                      type="button"
+                    >
+                      {packages?.addOnsHidden ? '👁 Einblenden' : '👁 Ausblenden'}
+                    </button>
+                  )}
+                </div>
+                {(!isEdit || !packages?.addOnsHidden) && (
+                  <>
+                    <p className={styles.addOnsIntro}>Zu jedem Paket flexibel dazubuchbar.</p>
+                    <div className={styles.addOnsGrid}>
+                      {(packages?.addOns || []).map((addon: AddOnItem, ai: number) => (
+                        <div key={ai} className={styles.addOnCard}>
+                          <RemoveButton onClick={() => {
+                            const addOns = (packages?.addOns || []).filter((_: AddOnItem, idx: number) => idx !== ai)
+                            updateDraft('packages', { ...packages!, addOns })
+                          }} />
+                          <Editable
+                            tag="div"
+                            className={styles.addOnName}
+                            value={addon.name}
+                            onSave={(v) => {
+                              const addOns = [...(packages?.addOns || [])]
+                              addOns[ai] = { ...addOns[ai], name: v }
+                              updateDraft('packages', { ...packages!, addOns })
+                            }}
+                          />
+                          {draft.status !== 'DRAFT' && addon.price !== null ? (
+                            <>
+                              {isEdit ? (
+                                <div className={styles.addOnPrice}>
+                                  <input
+                                    type="number"
+                                    className={styles.priceInput}
+                                    value={addon.price || ''}
+                                    onChange={(e) => {
+                                      const addOns = [...(packages?.addOns || [])]
+                                      addOns[ai] = { ...addOns[ai], price: e.target.value ? Number(e.target.value) : null }
+                                      updateDraft('packages', { ...packages!, addOns })
+                                    }}
+                                    placeholder="0"
+                                  />
+                                  <span className={styles.priceCurrency}>€</span>
+                                </div>
+                              ) : (
+                                <div className={styles.addOnPrice}>{formatPrice(addon.price)}</div>
+                              )}
+                              <div className={styles.packageVat}>zzgl. 20% USt.</div>
+                            </>
+                          ) : draft.status === 'DRAFT' ? (
+                            isEdit ? (
+                              <div className={styles.draftPriceHint}>Preis bei PRICED sichtbar</div>
+                            ) : (
+                              <div className={styles.draftBadge}>Preis auf Anfrage</div>
+                            )
+                          ) : (
+                            isEdit ? (
+                              <div className={styles.addOnPrice}>
+                                <input
+                                  type="number"
+                                  className={styles.priceInput}
+                                  value={''}
+                                  onChange={(e) => {
+                                    const addOns = [...(packages?.addOns || [])]
+                                    addOns[ai] = { ...addOns[ai], price: e.target.value ? Number(e.target.value) : null }
+                                    updateDraft('packages', { ...packages!, addOns })
+                                  }}
+                                  placeholder="Preis eingeben"
+                                />
+                                <span className={styles.priceCurrency}>€</span>
+                              </div>
+                            ) : (
+                              <div className={styles.packagePriceHidden}>Auf Anfrage</div>
+                            )
+                          )}
+                          <Editable
+                            tag="p"
+                            className={styles.addOnDesc}
+                            value={addon.description}
+                            onSave={(v) => {
+                              const addOns = [...(packages?.addOns || [])]
+                              addOns[ai] = { ...addOns[ai], description: v }
+                              updateDraft('packages', { ...packages!, addOns })
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {isEdit && (
+                      <AddButton label="Add-On hinzufügen" onClick={() => {
+                        const addOns = [...(packages?.addOns || []), { name: 'Neues Add-On', description: 'Beschreibung', price: null }]
+                        updateDraft('packages', { ...packages!, addOns })
+                      }} />
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         </section>
       )}
@@ -957,6 +1081,17 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
                   </button>
                   {pickerOpen === 'channels' && (
                     <div className={styles.pickerPanel}>
+                      <label className={styles.pickerItem} style={{ fontWeight: 600, borderBottom: '1px solid #eee', paddingBottom: 6, marginBottom: 4 }}>
+                        <input
+                          type="checkbox"
+                          checked={allChannels.length > 0 && allChannels.every(ch => (draft.channelIds || []).includes(ch.id))}
+                          onChange={() => {
+                            const allSelected = allChannels.every(ch => (draft.channelIds || []).includes(ch.id))
+                            updateDraft('channelIds', allSelected ? [] : allChannels.map(ch => ch.id))
+                          }}
+                        />
+                        <span>Alle auswählen</span>
+                      </label>
                       {allChannels.map((ch) => (
                         <label key={ch.id} className={styles.pickerItem}>
                           <input

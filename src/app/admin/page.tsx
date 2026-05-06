@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AdminShell } from './AdminShell'
-import { IconFileText, IconUser, IconBuilding, IconShare2 } from './Icons'
+import { IconFileText, IconUser, IconBuilding, IconShare2, IconEye, IconEdit, IconLink, IconCheck } from './Icons'
 import styles from './admin.module.css'
 
 interface Stats {
@@ -14,18 +14,28 @@ interface Stats {
 
 interface OfferRow {
   id: string
+  slug: string
   clientCompany: string
   projectName: string
   offerNumber: string | null
   status: string
   version: number
   createdAt: string
+  editToken: string
   contact: { name: string }
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentOffers, setRecentOffers] = useState<OfferRow[]>([])
+  const [copied, setCopied] = useState<string | null>(null)
+
+  const copyLink = (slug: string) => {
+    const url = `${window.location.origin}/o/${slug}`
+    navigator.clipboard.writeText(url)
+    setCopied(slug)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -142,6 +152,7 @@ export default function DashboardPage() {
               <th>Projekt</th>
               <th>Status</th>
               <th>Erstellt</th>
+              <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
@@ -151,11 +162,38 @@ export default function DashboardPage() {
                 <td>{o.projectName}</td>
                 <td><span className={`${styles.statusPill} ${statusClass(o.status)}`}>{o.status}</span></td>
                 <td>{formatDate(o.createdAt)}</td>
+                <td>
+                  <div className={styles.actions}>
+                    <a
+                      href={`/o/${o.slug}`}
+                      target="_blank"
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      title="Kundenansicht"
+                    >
+                      <IconEye size={14} />
+                    </a>
+                    <a
+                      href={`/o/${o.slug}?edit=${o.editToken}`}
+                      target="_blank"
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      title="Editor öffnen"
+                    >
+                      <IconEdit size={14} />
+                    </a>
+                    <button
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      onClick={() => copyLink(o.slug)}
+                      title="Kunden-Link kopieren"
+                    >
+                      {copied === o.slug ? <IconCheck size={14} color="#22c55e" /> : <IconLink size={14} />}
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {recentOffers.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: '#888', padding: 40 }}>
+                <td colSpan={5} style={{ textAlign: 'center', color: '#888', padding: 40 }}>
                   Noch keine Angebote erstellt
                 </td>
               </tr>

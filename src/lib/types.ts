@@ -43,10 +43,18 @@ export interface PackageItem {
   highlighted?: boolean
 }
 
+export interface AddOnItem {
+  name: string
+  description: string
+  price: number | null
+}
+
 export interface PackagesSection {
   intro: string
   showPrices: boolean
   items: PackageItem[]
+  addOns?: AddOnItem[]
+  addOnsHidden?: boolean
 }
 
 export interface TimelineStep {
