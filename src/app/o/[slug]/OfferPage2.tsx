@@ -47,7 +47,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
   // Scroll animations
   useEffect(() => {
-    const els = document.querySelectorAll(`.${styles.reveal}`)
+    const els = document.querySelectorAll(`.${rev}`)
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -68,6 +68,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   const packages = (draft.packages as unknown as PackagesSection) || null
   const timeline = (draft.timeline as unknown as TimelineSection) || null
   const stats = (draft.stats as unknown as StatItem[]) || []
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const legal = (draft.legal as unknown as LegalSection) || null
 
   // References/channels shown: ordered by their IDs array (preserves drag order)
@@ -267,10 +268,13 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   const handleRefDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault()
     if (dragRefIdx === null || dragRefIdx === idx) return
-    const ids = [...(draft.referenceIds || [])]
-    const [moved] = ids.splice(dragRefIdx, 1)
-    ids.splice(idx, 0, moved)
-    updateDraft('referenceIds', ids)
+    setDraft(prev => {
+      const ids = [...(prev.referenceIds || [])]
+      const [moved] = ids.splice(dragRefIdx, 1)
+      ids.splice(idx, 0, moved)
+      return { ...prev, referenceIds: ids } as OfferWithContact
+    })
+    setDirty(true)
     setDragRefIdx(idx)
   }
   const handleRefDragEnd = () => setDragRefIdx(null)
@@ -280,10 +284,13 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   const handleChDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault()
     if (dragChIdx === null || dragChIdx === idx) return
-    const ids = [...(draft.channelIds || [])]
-    const [moved] = ids.splice(dragChIdx, 1)
-    ids.splice(idx, 0, moved)
-    updateDraft('channelIds', ids)
+    setDraft(prev => {
+      const ids = [...(prev.channelIds || [])]
+      const [moved] = ids.splice(dragChIdx, 1)
+      ids.splice(idx, 0, moved)
+      return { ...prev, channelIds: ids } as OfferWithContact
+    })
+    setDirty(true)
     setDragChIdx(idx)
   }
   const handleChDragEnd = () => setDragChIdx(null)
@@ -299,6 +306,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   if (stats.length > 0 || isEdit) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
   sectionNumbers.references = String(++sectionNum).padStart(2, '0')
   if ((displayChannels.length > 0 || isEdit) && !channelsHidden) sectionNumbers.channels = String(++sectionNum).padStart(2, '0')
+
+  // In edit mode, skip reveal animation (opacity:0) so all elements are visible
+  const rev = isEdit ? styles.revealEdit : styles.reveal
 
   // Drag-and-drop for services
   const [dragSvcIdx, setDragSvcIdx] = useState<number | null>(null)
@@ -497,7 +507,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* HERO */}
       <section className={styles.hero}>
-        <div className={`${styles.reveal}`} data-delay="0">
+        <div className={`${rev}`} data-delay="0">
           <div className={styles.heroIcon}>
             <PixelHeartIcon />
           </div>
@@ -549,25 +559,25 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {/* UNDERSTANDING */}
       {(understanding || isEdit) && (
         <section className={styles.section}>
-          <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="100">
+          <div className={`${rev} ${styles.sectionLabel}`} data-delay="100">
             {sectionNumbers.understanding} — Kundenverständnis
           </div>
           <Editable
             tag="h2"
-            className={`${styles.sectionHeadline} ${styles.reveal}`}
+            className={`${styles.sectionHeadline} ${rev}`}
             value={understanding?.headline || 'Wir verstehen euer Geschäft'}
             onSave={(v) => updateDraft('understanding', { ...(understanding || { headline: '', text: '', cards: [] }), headline: v })}
           />
           <Editable
             tag="p"
-            className={`${styles.understandingText} ${styles.reveal}`}
+            className={`${styles.understandingText} ${rev}`}
             value={understanding?.text || 'Beschreibung hier eingeben'}
             onSave={(v) => updateDraft('understanding', { ...(understanding || { headline: '', text: '', cards: [] }), text: v })}
           />
-          {(understanding?.cards || []).length > 0 && (
+          {((understanding?.cards || []).length > 0 || isEdit) && (
             <div className={styles.understandingCards}>
-              {understanding!.cards.map((card, i) => (
-                <div key={i} className={`${styles.understandingCard} ${styles.reveal}`} data-delay={100 + i * 50}>
+              {(understanding?.cards || []).map((card, i) => (
+                <div key={i} className={`${styles.understandingCard} ${rev}`} data-delay={100 + i * 50}>
                   <RemoveButton onClick={() => {
                     const cards = understanding!.cards.filter((_, idx) => idx !== i)
                     updateDraft('understanding', { ...understanding!, cards })
@@ -625,12 +635,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {/* SERVICES */}
       {(services || isEdit) && (
         <section className={styles.section}>
-          <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
+          <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.services} — Leistungsübersicht
           </div>
           <Editable
             tag="h2"
-            className={`${styles.sectionHeadline} ${styles.reveal}`}
+            className={`${styles.sectionHeadline} ${rev}`}
             value={services?.headline || 'Leistungen'}
             onSave={(v) => updateDraft('services', { ...(services || { headline: '', items: [] }), headline: v })}
           />
@@ -638,7 +648,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             {(services?.items || []).map((item, i) => (
               <div
                 key={i}
-                className={`${styles.serviceItem} ${styles.reveal} ${isEdit ? styles.serviceItemDraggable : ''} ${dragSvcIdx === i ? styles.serviceItemDragging : ''}`}
+                className={`${styles.serviceItem} ${rev} ${isEdit ? styles.serviceItemDraggable : ''} ${dragSvcIdx === i ? styles.serviceItemDragging : ''}`}
                 data-delay={100 + i * 50}
                 draggable={isEdit}
                 onDragStart={isEdit ? () => handleSvcDragStart(i) : undefined}
@@ -687,26 +697,26 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {(packages || isEdit) && (
         <section className={styles.packagesBg}>
           <div className={styles.section}>
-            <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
+            <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
               {sectionNumbers.packages} — Pakete
             </div>
             <Editable
               tag="h2"
-              className={`${styles.sectionHeadline} ${styles.reveal}`}
+              className={`${styles.sectionHeadline} ${rev}`}
               value={packages?.headline || 'Wählt das Paket, das zu euch passt'}
               onSave={(v) => updateDraft('packages', { ...(packages || { headline: '', items: [], intro: '' }), headline: v })}
             />
             {packages?.intro && (
               <Editable
                 tag="p"
-                className={`${styles.packagesIntro} ${styles.reveal}`}
+                className={`${styles.packagesIntro} ${rev}`}
                 value={packages.intro}
                 onSave={(v) => updateDraft('packages', { ...packages, intro: v })}
               />
             )}
             <div className={styles.packagesGrid}>
               {(packages?.items || []).map((pkg, i) => (
-                <div key={i} className={`${styles.packageCard} ${styles.reveal} ${pkg.highlighted ? styles.packageHighlighted : ''}`} data-delay={100 + i * 100}>
+                <div key={i} className={`${styles.packageCard} ${rev}`} data-delay={100 + i * 100}>
                   <RemoveButton onClick={() => {
                     const items = packages!.items.filter((_, idx) => idx !== i)
                     updateDraft('packages', { ...packages!, items })
@@ -885,10 +895,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       )}
 
       {/* TIMELINE */}
-      {(timeline || isEdit) && (isEdit || !timeline?.hidden) && (
-        <section className={styles.section}>
-          <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-            {sectionNumbers.timeline} — Ablauf
+      {(timeline || isEdit) && (!timelineHidden || isEdit) && (
+        <section className={styles.section} style={isEdit && timelineHidden ? { opacity: 0.4 } : undefined}>
+          <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
+            {sectionNumbers.timeline || '—'} — Ablauf {isEdit && timelineHidden && '(ausgeblendet)'}
             {isEdit && (
               <button onClick={() => {
                 const newHidden = !timelineHidden
@@ -899,65 +909,61 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               </button>
             )}
           </div>
-          {(!isEdit || !timelineHidden) && (
-            <>
-              <Editable tag="h2" className={`${styles.sectionHeadline} ${styles.reveal}`} value={timeline?.headline || 'So läuft das Projekt ab'} onSave={(v) => updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })} />
-              <div className={styles.timelineSteps}>
-                {(timeline?.steps || []).map((step, i) => (
-                  <div key={i} className={`${styles.timelineStep} ${styles.reveal}`} data-delay={100 + i * 100}>
-                    <RemoveButton onClick={() => {
-                      const steps = timeline!.steps.filter((_, idx) => idx !== i)
+          <Editable tag="h2" className={`${styles.sectionHeadline} ${rev}`} value={timeline?.headline || 'So läuft das Projekt ab'} onSave={(v) => updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })} />
+          <div className={styles.timelineSteps}>
+            {(timeline?.steps || []).map((step, i) => (
+              <div key={i} className={`${styles.timelineStep} ${rev}`} data-delay={100 + i * 100}>
+                <RemoveButton onClick={() => {
+                  const steps = timeline!.steps.filter((_, idx) => idx !== i)
+                  updateDraft('timeline', { ...timeline!, steps })
+                }} />
+                <div className={styles.timelineLeft}>
+                  <div className={styles.timelineNumber}>{String(i + 1).padStart(2, '0')}</div>
+                  <Editable tag="span" className={styles.timelineTimeframe} value={step.timeframe} onSave={(v) => {
+                    const steps = [...timeline!.steps]
+                    steps[i] = { ...steps[i], timeframe: v }
+                    updateDraft('timeline', { ...timeline!, steps })
+                  }} />
+                </div>
+                <div className={styles.timelineRight}>
+                  <Editable tag="h3" className="" value={step.label} onSave={(v) => {
+                    const steps = [...timeline!.steps]
+                    steps[i] = { ...steps[i], label: v }
+                    updateDraft('timeline', { ...timeline!, steps })
+                  }} />
+                  {(step.description || isEdit) && (
+                    <Editable tag="p" className="" value={step.description || ''} onSave={(v) => {
+                      const steps = [...timeline!.steps]
+                      steps[i] = { ...steps[i], description: v }
                       updateDraft('timeline', { ...timeline!, steps })
                     }} />
-                    <div className={styles.timelineLeft}>
-                      <div className={styles.timelineNumber}>{String(i + 1).padStart(2, '0')}</div>
-                      <Editable tag="span" className={styles.timelineTimeframe} value={step.timeframe} onSave={(v) => {
-                        const steps = [...timeline!.steps]
-                        steps[i] = { ...steps[i], timeframe: v }
-                        updateDraft('timeline', { ...timeline!, steps })
-                      }} />
-                    </div>
-                    <div className={styles.timelineRight}>
-                      <Editable tag="h3" className="" value={step.label} onSave={(v) => {
-                        const steps = [...timeline!.steps]
-                        steps[i] = { ...steps[i], label: v }
-                        updateDraft('timeline', { ...timeline!, steps })
-                      }} />
-                      {step.description && (
-                        <Editable tag="p" className="" value={step.description} onSave={(v) => {
-                          const steps = [...timeline!.steps]
-                          steps[i] = { ...steps[i], description: v }
-                          updateDraft('timeline', { ...timeline!, steps })
-                        }} />
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
-              <AddButton label="Schritt hinzufügen" onClick={() => {
-                const steps = [...(timeline?.steps || []), { label: 'Neuer Schritt', timeframe: 'Woche X', icon: '' }]
-                updateDraft('timeline', { ...(timeline || { headline: '' }), steps })
-              }} />
-            </>
-          )}
+            ))}
+          </div>
+          <AddButton label="Schritt hinzufügen" onClick={() => {
+            const steps = [...(timeline?.steps || []), { label: 'Neuer Schritt', timeframe: 'Woche X', description: 'Beschreibung' }]
+            updateDraft('timeline', { ...(timeline || { headline: '' }), steps })
+          }} />
         </section>
       )}
 
       {/* STATS */}
       {(stats.length > 0 || isEdit) && (
         <section className={styles.section}>
-          <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
+          <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.stats} — Warum Pulpmedia
           </div>
           <Editable
             tag="h2"
-            className={`${styles.sectionHeadline} ${styles.reveal}`}
+            className={`${styles.sectionHeadline} ${rev}`}
             value="Zahlen, die für sich sprechen"
             onSave={() => {}}
           />
           <div className={styles.statsGrid}>
             {stats.map((stat, i) => (
-              <div key={i} className={`${styles.statItem} ${styles.reveal}`} data-delay={200 + i * 100}>
+              <div key={i} className={`${styles.statItem} ${rev}`} data-delay={200 + i * 100}>
                 <RemoveButton onClick={() => {
                   const newStats = stats.filter((_, idx) => idx !== i)
                   updateDraft('stats', newStats)
@@ -1010,12 +1016,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* REFERENCES */}
       <section className={styles.section}>
-        <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
+        <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
           {sectionNumbers.references} — Referenzen
         </div>
         <Editable
           tag="h2"
-          className={`${styles.sectionHeadline} ${styles.reveal}`}
+          className={`${styles.sectionHeadline} ${rev}`}
           value="Projekte, die begeistern"
           onSave={() => {}}
         />
@@ -1042,7 +1048,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         {displayRefs.length > 0 && (
           <div className={styles.referencesGrid}>
             {displayRefs.map((ref, refIdx) => (
-              <div key={ref.id} className={`${styles.referenceCard} ${styles.reveal} ${isEdit ? styles.referenceCardDraggable : ''} ${dragRefIdx === refIdx ? styles.referenceCardDragging : ''}`} data-delay={200 + refIdx * 100} draggable={isEdit} onDragStart={() => handleRefDragStart(refIdx)} onDragOver={(e) => handleRefDragOver(e, refIdx)} onDragEnd={handleRefDragEnd}>
+              <div key={ref.id} className={`${styles.referenceCard} ${rev} ${isEdit ? styles.referenceCardDraggable : ''} ${dragRefIdx === refIdx ? styles.referenceCardDragging : ''}`} data-delay={200 + refIdx * 100} draggable={isEdit} onDragStart={() => handleRefDragStart(refIdx)} onDragOver={(e) => handleRefDragOver(e, refIdx)} onDragEnd={handleRefDragEnd}>
                 {ref.imageUrl && <img src={ref.imageUrl} alt={ref.name} className={styles.referenceImg} />}
                 <div className={styles.referenceOverlay}>
                   <div className={styles.referenceName}>{ref.name}</div>
@@ -1063,10 +1069,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       </section>
 
       {/* CHANNELS */}
-      {(displayChannels.length > 0 || isEdit) && (isEdit || !channelsHidden) && (
-        <section className={styles.section}>
-          <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-            {sectionNumbers.channels} — Kanäle
+      {(displayChannels.length > 0 || isEdit) && (!channelsHidden || isEdit) && (
+        <section className={styles.section} style={isEdit && channelsHidden ? { opacity: 0.4 } : undefined}>
+          <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
+            {sectionNumbers.channels || '—'} — Kanäle {isEdit && channelsHidden && '(ausgeblendet)'}
             {isEdit && (
               <button onClick={() => {
                 const newHidden = !channelsHidden
@@ -1077,9 +1083,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               </button>
             )}
           </div>
-          {(!isEdit || !channelsHidden) && (
+          {(!channelsHidden || isEdit) && (
             <>
-              <Editable tag="h2" className={`${styles.sectionHeadline} ${styles.reveal}`} value={draft.channelsHeadline || 'Wo Markenliebe lebt'} onSave={(v) => updateDraft('channelsHeadline', v)} />
+              <Editable tag="h2" className={`${styles.sectionHeadline} ${rev}`} value={draft.channelsHeadline || 'Wo Markenliebe lebt'} onSave={(v) => updateDraft('channelsHeadline', v)} />
 
               {isEdit && (
                 <div style={{ marginBottom: '2rem' }}>
@@ -1109,7 +1115,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               {displayChannels.length > 0 && (
                 <div className={styles.channelsList}>
                   {displayChannels.map((ch, chIdx) => (
-                    <div key={ch.id} className={`${styles.channelTag} ${styles.reveal} ${isEdit ? styles.channelTagDraggable : ''} ${dragChIdx === chIdx ? styles.channelTagDragging : ''}`} data-delay={200 + chIdx * 100} draggable={isEdit} onDragStart={() => handleChDragStart(chIdx)} onDragOver={(e) => handleChDragOver(e, chIdx)} onDragEnd={handleChDragEnd}>
+                    <div key={ch.id} className={`${styles.channelTag} ${rev} ${isEdit ? styles.channelTagDraggable : ''} ${dragChIdx === chIdx ? styles.channelTagDragging : ''}`} data-delay={200 + chIdx * 100} draggable={isEdit} onDragStart={() => handleChDragStart(chIdx)} onDragOver={(e) => handleChDragOver(e, chIdx)} onDragEnd={handleChDragEnd}>
                       <ChannelIcon platform={ch.platform} />
                       {ch.name}
                     </div>
@@ -1127,7 +1133,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {/* CTA + CONTACT */}
       <section className={styles.ctaContactSection}>
         <div className={styles.ctaContactLeft}>
-          <div className={`${styles.reveal}`} data-delay="0">
+          <div className={`${rev}`} data-delay="0">
             <div className={styles.ctaIcon}>
               <HornHandIcon />
             </div>
@@ -1135,31 +1141,29 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             <Editable tag="p" className={styles.ctaText} value={hero.ctaText || 'Lass uns in einem kurzen Gespräch die Details besprechen und den Projektstart planen.'} onSave={(v) => updateDraft('hero', { ...hero, ctaText: v })} />
           </div>
         </div>
-        <div className={styles.ctaContactRight}>
-          <div className={`${styles.reveal}`} data-delay="0">
+        <div className={`${styles.ctaContactRight} ${rev}`} data-delay="0">
+          <div className={styles.contactLabel}>Dein Ansprechpartner</div>
+          <div className={styles.contactRow}>
             {draft.contact.avatarUrl ? (
-              <img src={draft.contact.avatarUrl} alt={draft.contact.name} className={styles.contactPhoto} style={{ width: '160px', height: '160px' }} />
+              <img src={draft.contact.avatarUrl} alt={draft.contact.name} className={styles.contactPhoto} />
             ) : (
               <div className={styles.contactPhotoPlaceholder}>{draft.contact.name.split(' ').map(n => n[0]).join('')}</div>
             )}
-          </div>
-          <div className={`${styles.reveal}`} data-delay="100">
-            <div className={styles.contactDetails}>
-              <div className={styles.contactLabel}>Dein Ansprechpartner</div>
-              <h3 style={{ fontFamily: 'Anton', fontSize: '2rem', textTransform: 'uppercase', color: '#fff' }}>{draft.contact.name}</h3>
+            <div>
+              <h3 style={{ fontFamily: 'Anton', fontSize: '1.6rem', textTransform: 'uppercase', color: '#fff', lineHeight: 1.1 }}>{draft.contact.name}</h3>
               <div className={styles.contactRole}>{draft.contact.role} · Pulpmedia</div>
-              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', fontSize: '0.9rem' }}>
-                <div>
-                  <span style={{ color: 'rgba(255,255,255,0.6)' }}>Tel</span>
-                  <br />
-                  <a href={`tel:${draft.contact.phone}`} className={styles.contactLink}>{draft.contact.phone}</a>
-                </div>
-                <div>
-                  <span style={{ color: 'rgba(255,255,255,0.6)' }}>Mail</span>
-                  <br />
-                  <a href={`mailto:${draft.contact.email}`} className={styles.contactLink}>{draft.contact.email}</a>
-                </div>
-              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem' }}>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Tel</span>
+              <br />
+              <a href={`tel:${draft.contact.phone}`} className={styles.contactLink}>{draft.contact.phone}</a>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mail</span>
+              <br />
+              <a href={`mailto:${draft.contact.email}`} className={styles.contactLink}>{draft.contact.email}</a>
             </div>
           </div>
         </div>
@@ -1186,8 +1190,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {/* LEGAL FOOTER */}
       <div className={styles.legalFooter}>
         <div className={styles.legalText}>
-          {legal?.paymentTerms && <>Zahlung: {legal.paymentTerms} · </>}
-          {draft.validUntil && <>Gültig bis {formatDate(draft.validUntil)}</>}
+          Alle Preise verstehen sich exkl. USt. Zahlbar innerhalb von 14 Tagen nach Rechnungslegung.
         </div>
         <div className={styles.legalLinks}>
           <a href="https://pulpmedia.at/AGB" target="_blank" rel="noopener">AGB</a>
