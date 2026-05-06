@@ -11,6 +11,7 @@ export interface HeroSection {
 export interface UnderstandingCard {
   title: string
   text: string
+  icon?: string
 }
 
 export interface UnderstandingSection {
@@ -75,6 +76,7 @@ export interface StatItem {
   number: string
   label: string
   detail: string
+  icon?: string
 }
 
 export interface LegalSection {

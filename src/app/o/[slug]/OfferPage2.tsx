@@ -71,11 +71,16 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   const legal = (draft.legal as unknown as LegalSection) || null
 
   // References/channels shown: ordered by their IDs array (preserves drag order)
+  // In edit mode, fallback to initialRefs/initialChannels while allReferences/allChannels are loading
   const displayRefs = isEdit
-    ? (draft.referenceIds || []).map(id => allReferences.find(r => r.id === id)).filter(Boolean) as Reference[]
+    ? (draft.referenceIds || []).map(id =>
+        allReferences.find(r => r.id === id) || initialRefs.find(r => r.id === id)
+      ).filter(Boolean) as Reference[]
     : (initialOffer.referenceIds || []).map(id => initialRefs.find(r => r.id === id)).filter(Boolean) as Reference[]
   const displayChannels = isEdit
-    ? (draft.channelIds || []).map(id => allChannels.find(c => c.id === id)).filter(Boolean) as Channel[]
+    ? (draft.channelIds || []).map(id =>
+        allChannels.find(c => c.id === id) || initialChannels.find(c => c.id === id)
+      ).filter(Boolean) as Channel[]
     : (initialOffer.channelIds || []).map(id => initialChannels.find(c => c.id === id)).filter(Boolean) as Channel[]
 
   const showToast = useCallback((msg: string) => {
@@ -149,6 +154,41 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     }).format(price)
   }
 
+  // Helper function to render text with red markup (*word* → red)
+  const renderRedMarkup = (text: string) => {
+    if (!text) return ''
+    const parts = text.split(/(\*[^*]+\*)/)
+    return parts.map((part, i) => {
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <span key={i} style={{ color: '#FF1900' }}>{part.slice(1, -1)}</span>
+      }
+      return <span key={i}>{part}</span>
+    })
+  }
+
+  // Helper function to render icons by name
+  const renderIcon = (name: string | undefined, size?: number) => {
+    void size // size reserved for future use
+    switch (name) {
+      case 'pixel_heart':
+        return <PixelHeartIcon />
+      case 'blume':
+        return <BlummeIcon />
+      case 'blitz':
+        return <BlitzIcon />
+      case 'smiley':
+        return <SmileyIcon />
+      case 'explosion':
+        return <ExplosionIcon />
+      case 'skull':
+        return <SkullIcon />
+      case 'horn_hand':
+        return <HornHandIcon />
+      default:
+        return <PixelHeartIcon />
+    }
+  }
+
   // Editable text helper — writes to local draft only
   const Editable = ({ value, onSave, tag = 'span', className = '', style }: {
     value: string
@@ -159,7 +199,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   }) => {
     if (!isEdit) {
       const Tag = tag as keyof JSX.IntrinsicElements
-      return <Tag className={className} style={style}>{value}</Tag>
+      return <Tag className={className} style={style}>{renderRedMarkup(value)}</Tag>
     }
     return (
       <div
@@ -173,7 +213,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           if (newVal !== value) onSave(newVal)
         }}
       >
-        {value}
+        {value || <span className={styles.editablePlaceholder}>Klick zum Bearbeiten</span>}
       </div>
     )
   }
@@ -247,6 +287,18 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     setDragChIdx(idx)
   }
   const handleChDragEnd = () => setDragChIdx(null)
+
+  // Compute dynamic section numbering based on visible sections
+  let sectionNum = 0
+  const sectionNumbers: Record<string, string> = {}
+  // Understanding always shows in edit or if data exists
+  if (understanding || isEdit) sectionNumbers.understanding = String(++sectionNum).padStart(2, '0')
+  if (services || isEdit) sectionNumbers.services = String(++sectionNum).padStart(2, '0')
+  if (packages || isEdit) sectionNumbers.packages = String(++sectionNum).padStart(2, '0')
+  if ((timeline || isEdit) && !timelineHidden) sectionNumbers.timeline = String(++sectionNum).padStart(2, '0')
+  if (stats.length > 0 || isEdit) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
+  sectionNumbers.references = String(++sectionNum).padStart(2, '0')
+  if ((displayChannels.length > 0 || isEdit) && !channelsHidden) sectionNumbers.channels = String(++sectionNum).padStart(2, '0')
 
   // Drag-and-drop for services
   const [dragSvcIdx, setDragSvcIdx] = useState<number | null>(null)
@@ -435,7 +487,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <span className={styles.navX}>×</span>
           <span className={styles.navClient}>{draft.clientCompany}</span>
         </div>
-        <span className={styles.navNumber}>{draft.offerNumber || `Angebot ${draft.slug}`}</span>
+        <Editable
+          tag="span"
+          className={styles.navNumber}
+          value={draft.offerNumber || `Angebot ${draft.slug}`}
+          onSave={(v) => updateDraft('offerNumber', v)}
+        />
       </nav>
 
       {/* HERO */}
@@ -493,7 +550,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {(understanding || isEdit) && (
         <section className={styles.section}>
           <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="100">
-            01 — Kundenverständnis
+            {sectionNumbers.understanding} — Kundenverständnis
           </div>
           <Editable
             tag="h2"
@@ -516,11 +573,24 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     updateDraft('understanding', { ...understanding!, cards })
                   }} />
                   <div className={styles.cardIcon}>
-                    {i === 0 && <PixelHeartIcon />}
-                    {i === 1 && <BlummeIcon />}
-                    {i === 2 && <BlitzIcon />}
-                    {i === 3 && <SmileyIcon />}
+                    {renderIcon(card.icon || 'pixel_heart')}
                   </div>
+                  {isEdit && (
+                    <button
+                      onClick={() => {
+                        const icons = ['pixel_heart', 'blume', 'blitz', 'smiley', 'explosion', 'skull', 'horn_hand']
+                        const nextIcon = icons[(icons.indexOf(card.icon || 'pixel_heart') + 1) % icons.length]
+                        const cards = [...understanding!.cards]
+                        cards[i] = { ...cards[i], icon: nextIcon }
+                        updateDraft('understanding', { ...understanding!, cards })
+                      }}
+                      style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#FF1900', padding: '0.2rem 0.4rem', fontSize: '0.6rem', cursor: 'pointer', borderRadius: '2px' }}
+                      type="button"
+                      title="Icon wechseln"
+                    >
+                      🔄
+                    </button>
+                  )}
                   <Editable
                     tag="h3"
                     className=""
@@ -556,7 +626,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {(services || isEdit) && (
         <section className={styles.section}>
           <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-            02 — Leistungsübersicht
+            {sectionNumbers.services} — Leistungsübersicht
           </div>
           <Editable
             tag="h2"
@@ -618,7 +688,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         <section className={styles.packagesBg}>
           <div className={styles.section}>
             <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-              03 — Pakete
+              {sectionNumbers.packages} — Pakete
             </div>
             <Editable
               tag="h2"
@@ -636,10 +706,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             )}
             <div className={styles.packagesGrid}>
               {(packages?.items || []).map((pkg, i) => (
-                <div key={i} className={`${styles.packageCard} ${styles.reveal} ${pkg.highlighted || i === 1 ? styles.packageHighlighted : ''}`} data-delay={100 + i * 100}>
-                  {(pkg.highlighted || i === 1) && (
-                    <div className={styles.packageBadge}>EMPFOHLEN</div>
-                  )}
+                <div key={i} className={`${styles.packageCard} ${styles.reveal} ${pkg.highlighted ? styles.packageHighlighted : ''}`} data-delay={100 + i * 100}>
                   <RemoveButton onClick={() => {
                     const items = packages!.items.filter((_, idx) => idx !== i)
                     updateDraft('packages', { ...packages!, items })
@@ -821,7 +888,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {(timeline || isEdit) && (isEdit || !timeline?.hidden) && (
         <section className={styles.section}>
           <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-            04 — Ablauf
+            {sectionNumbers.timeline} — Ablauf
             {isEdit && (
               <button onClick={() => {
                 const newHidden = !timelineHidden
@@ -880,9 +947,14 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {(stats.length > 0 || isEdit) && (
         <section className={styles.section}>
           <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-            05 — Warum Pulpmedia
+            {sectionNumbers.stats} — Warum Pulpmedia
           </div>
-          <h2 className={`${styles.sectionHeadline} ${styles.reveal}`} data-delay="100">Zahlen, die für sich sprechen</h2>
+          <Editable
+            tag="h2"
+            className={`${styles.sectionHeadline} ${styles.reveal}`}
+            value="Zahlen, die für sich sprechen"
+            onSave={() => {}}
+          />
           <div className={styles.statsGrid}>
             {stats.map((stat, i) => (
               <div key={i} className={`${styles.statItem} ${styles.reveal}`} data-delay={200 + i * 100}>
@@ -891,10 +963,26 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   updateDraft('stats', newStats)
                 }} />
                 <div className={styles.statIcon}>
-                  {i === 0 && <ExplosionIcon />}
-                  {i === 1 && <SkullIcon />}
-                  {i === 2 && <ExplosionIcon />}
+                  {renderIcon(stat.icon || 'explosion')}
                 </div>
+                {isEdit && (
+                  <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                    <button
+                      onClick={() => {
+                        const newStats = [...stats]
+                        const icons = ['explosion', 'skull', 'blume', 'blitz', 'smiley', 'pixel_heart', 'horn_hand']
+                        const nextIcon = icons[(icons.indexOf(stat.icon || 'explosion') + 1) % icons.length]
+                        newStats[i] = { ...newStats[i], icon: nextIcon }
+                        updateDraft('stats', newStats)
+                      }}
+                      style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#FF1900', padding: '0.3rem 0.6rem', fontSize: '0.7rem', cursor: 'pointer', borderRadius: '2px' }}
+                      type="button"
+                      title="Icon wechseln"
+                    >
+                      🔄
+                    </button>
+                  </div>
+                )}
                 <Editable tag="div" className={styles.statNumber} value={stat.number} onSave={(v) => {
                   const newStats = [...stats]
                   newStats[i] = { ...newStats[i], number: v }
@@ -923,9 +1011,14 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {/* REFERENCES */}
       <section className={styles.section}>
         <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-          06 — Referenzen
+          {sectionNumbers.references} — Referenzen
         </div>
-        <h2 className={`${styles.sectionHeadline} ${styles.reveal}`} data-delay="100">Projekte, die begeistern</h2>
+        <Editable
+          tag="h2"
+          className={`${styles.sectionHeadline} ${styles.reveal}`}
+          value="Projekte, die begeistern"
+          onSave={() => {}}
+        />
 
         {isEdit && (
           <div style={{ marginBottom: '2rem' }}>
@@ -973,7 +1066,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {(displayChannels.length > 0 || isEdit) && (isEdit || !channelsHidden) && (
         <section className={styles.section}>
           <div className={`${styles.reveal} ${styles.sectionLabel}`} data-delay="0">
-            07 — Kanäle
+            {sectionNumbers.channels} — Kanäle
             {isEdit && (
               <button onClick={() => {
                 const newHidden = !channelsHidden
@@ -1031,41 +1124,41 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         </section>
       )}
 
-      {/* CTA */}
-      <section className={styles.ctaSection}>
-        <div className={`${styles.reveal}`} data-delay="0">
-          <div className={styles.ctaIcon}>
-            <HornHandIcon />
+      {/* CTA + CONTACT */}
+      <section className={styles.ctaContactSection}>
+        <div className={styles.ctaContactLeft}>
+          <div className={`${styles.reveal}`} data-delay="0">
+            <div className={styles.ctaIcon}>
+              <HornHandIcon />
+            </div>
+            <Editable tag="h2" className={styles.ctaHeadline} value={hero.ctaHeadline || 'Bereit durchzustarten?'} onSave={(v) => updateDraft('hero', { ...hero, ctaHeadline: v })} />
+            <Editable tag="p" className={styles.ctaText} value={hero.ctaText || 'Lass uns in einem kurzen Gespräch die Details besprechen und den Projektstart planen.'} onSave={(v) => updateDraft('hero', { ...hero, ctaText: v })} />
           </div>
-          <Editable tag="h2" className={styles.ctaHeadline} value={hero.ctaHeadline || 'Bereit durchzustarten?'} onSave={(v) => updateDraft('hero', { ...hero, ctaHeadline: v })} />
-          <Editable tag="p" className={styles.ctaText} value={hero.ctaText || 'Lass uns in einem kurzen Gespräch die Details besprechen und den Projektstart planen.'} onSave={(v) => updateDraft('hero', { ...hero, ctaText: v })} />
         </div>
-      </section>
-
-      {/* CONTACT */}
-      <section className={styles.contactSection}>
-        <div className={`${styles.reveal}`} data-delay="0">
-          {draft.contact.avatarUrl ? (
-            <img src={draft.contact.avatarUrl} alt={draft.contact.name} className={styles.contactPhoto} style={{ width: '160px', height: '160px' }} />
-          ) : (
-            <div className={styles.contactPhotoPlaceholder}>{draft.contact.name.split(' ').map(n => n[0]).join('')}</div>
-          )}
-        </div>
-        <div className={`${styles.reveal}`} data-delay="100">
-          <div className={styles.contactDetails}>
-            <div className={styles.contactLabel}>Dein Ansprechpartner</div>
-            <h3 style={{ fontFamily: 'Anton', fontSize: '2rem', textTransform: 'uppercase', color: '#fff' }}>{draft.contact.name}</h3>
-            <div className={styles.contactRole}>{draft.contact.role} · Pulpmedia</div>
-            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', fontSize: '0.9rem' }}>
-              <div>
-                <span style={{ color: 'rgba(255,255,255,0.6)' }}>Tel</span>
-                <br />
-                <a href={`tel:${draft.contact.phone}`} className={styles.contactLink}>{draft.contact.phone}</a>
-              </div>
-              <div>
-                <span style={{ color: 'rgba(255,255,255,0.6)' }}>Mail</span>
-                <br />
-                <a href={`mailto:${draft.contact.email}`} className={styles.contactLink}>{draft.contact.email}</a>
+        <div className={styles.ctaContactRight}>
+          <div className={`${styles.reveal}`} data-delay="0">
+            {draft.contact.avatarUrl ? (
+              <img src={draft.contact.avatarUrl} alt={draft.contact.name} className={styles.contactPhoto} style={{ width: '160px', height: '160px' }} />
+            ) : (
+              <div className={styles.contactPhotoPlaceholder}>{draft.contact.name.split(' ').map(n => n[0]).join('')}</div>
+            )}
+          </div>
+          <div className={`${styles.reveal}`} data-delay="100">
+            <div className={styles.contactDetails}>
+              <div className={styles.contactLabel}>Dein Ansprechpartner</div>
+              <h3 style={{ fontFamily: 'Anton', fontSize: '2rem', textTransform: 'uppercase', color: '#fff' }}>{draft.contact.name}</h3>
+              <div className={styles.contactRole}>{draft.contact.role} · Pulpmedia</div>
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', fontSize: '0.9rem' }}>
+                <div>
+                  <span style={{ color: 'rgba(255,255,255,0.6)' }}>Tel</span>
+                  <br />
+                  <a href={`tel:${draft.contact.phone}`} className={styles.contactLink}>{draft.contact.phone}</a>
+                </div>
+                <div>
+                  <span style={{ color: 'rgba(255,255,255,0.6)' }}>Mail</span>
+                  <br />
+                  <a href={`mailto:${draft.contact.email}`} className={styles.contactLink}>{draft.contact.email}</a>
+                </div>
               </div>
             </div>
           </div>
@@ -1075,13 +1168,15 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       {/* FOOTER BRAND */}
       <div className={styles.footerBrand}>
         <div className={styles.footerLeft}>
-          <PulpmediaLogoWhite />
+          <div>
+            <PulpmediaLogoWhite />
+          </div>
           <div className={styles.footerAddress}>
             Linzer Straße 1, 4040 Linz · Keisslergasse 1-3, 1140 Wien<br />
             UID: ATU62936737 · FN 284945M
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div className={styles.footerRight}>
           <div className={styles.footerClaim}>
             Don&apos;t make ads. <span className={styles.footerClaimLove}>Make love.</span>
           </div>
