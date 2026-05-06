@@ -12,6 +12,7 @@ interface OfferRow {
   projectName: string
   offerNumber: string | null
   status: string
+  template: 'TEMPLATE1' | 'TEMPLATE2'
   version: number
   editToken: string
   createdAt: string
@@ -57,6 +58,17 @@ export default function OffersPage() {
     [expandedId, versions]
   )
 
+  const changeTemplate = async (offerId: string, template: 'TEMPLATE1' | 'TEMPLATE2') => {
+    const res = await fetch(`/api/admin/offers/${offerId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template }),
+    })
+    if (res.ok) {
+      setOffers(prev => prev.map(o => o.id === offerId ? { ...o, template } : o))
+    }
+  }
+
   const copyLink = (slug: string) => {
     const url = `${window.location.origin}/o/${slug}`
     navigator.clipboard.writeText(url)
@@ -91,6 +103,7 @@ export default function OffersPage() {
               <th style={{ width: 30 }}></th>
               <th>Kunde / Projekt</th>
               <th>Angebotsnr.</th>
+              <th>Template</th>
               <th>Status</th>
               <th>Version</th>
               <th>Kontakt</th>
@@ -117,6 +130,16 @@ export default function OffersPage() {
                     <span style={{ fontSize: 13, color: '#888' }}>{o.projectName}</span>
                   </td>
                   <td>{o.offerNumber || '–'}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={o.template || 'TEMPLATE1'}
+                      onChange={(e) => changeTemplate(o.id, e.target.value as 'TEMPLATE1' | 'TEMPLATE2')}
+                      className={styles.templateSelect}
+                    >
+                      <option value="TEMPLATE1">Template 1</option>
+                      <option value="TEMPLATE2">Template 2</option>
+                    </select>
+                  </td>
                   <td>
                     <span className={`${styles.statusPill} ${statusClass(o.status)}`}>
                       {o.status}
@@ -157,7 +180,7 @@ export default function OffersPage() {
                 </tr>
                 {expandedId === o.id && (
                   <tr key={`${o.id}-versions`}>
-                    <td colSpan={8} style={{ padding: 0 }}>
+                    <td colSpan={9} style={{ padding: 0 }}>
                       <div className={styles.versionsPanel}>
                         <h4>Versionshistorie</h4>
                         {versions[o.id]?.length === 0 && (
@@ -192,7 +215,7 @@ export default function OffersPage() {
             ))}
             {offers.length === 0 && (
               <tr>
-                <td colSpan={8} className={styles.emptyState}>
+                <td colSpan={9} className={styles.emptyState}>
                   <div className={styles.emptyText}>Noch keine Angebote erstellt</div>
                 </td>
               </tr>

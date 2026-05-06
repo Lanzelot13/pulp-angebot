@@ -50,6 +50,7 @@ export interface AddOnItem {
 }
 
 export interface PackagesSection {
+  headline?: string
   intro: string
   showPrices: boolean
   items: PackageItem[]
@@ -59,6 +60,7 @@ export interface PackagesSection {
 
 export interface TimelineStep {
   label: string
+  description?: string
   timeframe: string
   icon?: string
 }
@@ -79,6 +81,8 @@ export interface LegalSection {
   paymentTerms: string
 }
 
+export type OfferTemplate = 'TEMPLATE1' | 'TEMPLATE2'
+
 // === API request/response types ===
 
 export interface CreateOfferRequest {
@@ -98,6 +102,7 @@ export interface CreateOfferRequest {
   referenceIds?: string[]
   channelIds?: string[]
   legal?: LegalSection
+  template?: OfferTemplate
 }
 
 export interface UpdateOfferRequest {
@@ -116,4 +121,5 @@ export interface UpdateOfferRequest {
   channelIds?: string[]
   legal?: LegalSection
   changedBy?: string
+  template?: OfferTemplate
 }

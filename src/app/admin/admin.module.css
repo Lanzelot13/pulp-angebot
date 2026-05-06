@@ -273,6 +273,20 @@
 .statusAccepted { background: #e3f2fd; color: #1565c0; }
 .statusAccepted::before { background: #2196f3; }
 
+/* === TEMPLATE SELECT === */
+.templateSelect {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+}
+.templateSelect:hover { border-color: #FF1900; }
+.templateSelect:focus { outline: none; border-color: #FF1900; box-shadow: 0 0 0 2px rgba(255,25,0,0.1); }
+
 /* === VERSION BADGE === */
 .versionBadge {
   font-size: 11px;

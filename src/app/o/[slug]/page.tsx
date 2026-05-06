@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { OfferPage } from './OfferPage'
+import { OfferPage2 } from './OfferPage2'
 
 interface PageProps {
   params: { slug: string }
@@ -37,8 +38,10 @@ export default async function Page({ params, searchParams }: PageProps) {
         ? await prisma.channel.findMany({ where: { id: { in: chIds } }, orderBy: { sortOrder: 'asc' } })
         : []
 
+      const tpl = (offer as unknown as { template?: string }).template
+      const TemplateComponent = tpl === 'TEMPLATE2' ? OfferPage2 : OfferPage
       return (
-        <OfferPage
+        <TemplateComponent
           offer={JSON.parse(JSON.stringify(versionOffer))}
           references={JSON.parse(JSON.stringify(references))}
           channels={JSON.parse(JSON.stringify(channels))}
@@ -68,8 +71,10 @@ export default async function Page({ params, searchParams }: PageProps) {
   const editToken = searchParams.edit
   const isEdit = !isClean && editToken === offer.editToken
 
+  const tpl2 = (offer as unknown as { template?: string }).template
+  const TemplateComponent = tpl2 === 'TEMPLATE2' ? OfferPage2 : OfferPage
   return (
-    <OfferPage
+    <TemplateComponent
       offer={JSON.parse(JSON.stringify(offer))}
       references={JSON.parse(JSON.stringify(references))}
       channels={JSON.parse(JSON.stringify(channels))}
