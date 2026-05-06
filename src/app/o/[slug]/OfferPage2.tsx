@@ -797,7 +797,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     </>
                   ) : draft.status === 'DRAFT' ? (
                     <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '2rem' }}>
-                      Preis wird sichtbar bei Status PRICED
+                      Preis nach gemeinsamer Abstimmung
                     </div>
                   ) : (
                     <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '2rem' }}>
@@ -911,7 +911,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                               <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>zzgl. 20% USt.</div>
                             </>
                           ) : draft.status === 'DRAFT' ? (
-                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Preis bei Status PRICED</div>
+                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Preis nach gemeinsamer Abstimmung</div>
                           ) : (
                             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Auf Anfrage</div>
                           )}
@@ -1095,7 +1095,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         {displayRefs.length > 0 && (
           <div className={styles.referencesGrid}>
             {displayRefs.map((ref, refIdx) => (
-              <div key={ref.id} className={`${styles.referenceCard} ${rev} ${isEdit ? styles.referenceCardDraggable : ''} ${dragRefIdx === refIdx ? styles.referenceCardDragging : ''}`} data-delay={200 + refIdx * 100} draggable={isEdit} onDragStart={() => handleRefDragStart(refIdx)} onDragOver={(e) => handleRefDragOver(e, refIdx)} onDragEnd={handleRefDragEnd}>
+              <div key={ref.id} className={`${styles.referenceCard} ${rev} ${isEdit ? styles.referenceCardDraggable : ''} ${dragRefIdx === refIdx ? styles.referenceCardDragging : ''}`} data-delay={200 + refIdx * 100} {...(isEdit ? { draggable: true, onDragStart: () => handleRefDragStart(refIdx), onDragOver: (e: React.DragEvent) => handleRefDragOver(e, refIdx), onDragEnd: handleRefDragEnd } : {})}>
                 {!isEdit && ref.url ? (
                   <a href={ref.url} target="_blank" rel="noopener noreferrer" className={styles.referenceLink}>
                     {ref.imageUrl && <img src={ref.imageUrl} alt={ref.name} className={styles.referenceImg} />}
@@ -1179,9 +1179,18 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               {displayChannels.length > 0 && (
                 <div className={styles.channelsList}>
                   {displayChannels.map((ch, chIdx) => (
-                    <div key={ch.id} className={`${styles.channelTag} ${rev} ${isEdit ? styles.channelTagDraggable : ''} ${dragChIdx === chIdx ? styles.channelTagDragging : ''}`} data-delay={200 + chIdx * 100} draggable={isEdit} onDragStart={() => handleChDragStart(chIdx)} onDragOver={(e) => handleChDragOver(e, chIdx)} onDragEnd={handleChDragEnd}>
-                      <ChannelIcon platform={ch.platform} />
-                      {ch.name}
+                    <div key={ch.id} className={`${styles.channelTag} ${rev} ${isEdit ? styles.channelTagDraggable : ''} ${dragChIdx === chIdx ? styles.channelTagDragging : ''}`} data-delay={200 + chIdx * 100} {...(isEdit ? { draggable: true, onDragStart: () => handleChDragStart(chIdx), onDragOver: (e: React.DragEvent) => handleChDragOver(e, chIdx), onDragEnd: handleChDragEnd } : {})}>
+                      {!isEdit && ch.url ? (
+                        <a href={ch.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'inherit', textDecoration: 'none' }}>
+                          <ChannelIcon platform={ch.platform} />
+                          {ch.name}
+                        </a>
+                      ) : (
+                        <>
+                          <ChannelIcon platform={ch.platform} />
+                          {ch.name}
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
