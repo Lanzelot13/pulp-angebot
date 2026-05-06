@@ -242,7 +242,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         type="button"
         title="Entfernen"
       >
-        🗑️
+        🗑️ Entfernen
       </button>
     )
   }
@@ -874,10 +874,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                 <div style={{ marginTop: '4rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className={styles.addOnsHeadline}>Optionale Add-Ons</h3>
                   {isEdit && (
-                    <button onClick={() => {
+                    <button className={styles.toggleBtn} onClick={() => {
                       const newHidden = !packages?.addOnsHidden
                       updateDraft('packages', { ...packages!, addOnsHidden: newHidden })
-                    }} style={{ background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>
+                    }}>
                       {packages?.addOnsHidden ? '👁 Einblenden' : '👁 Ausblenden'}
                     </button>
                   )}
@@ -943,11 +943,11 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.timeline || '—'} — Ablauf {isEdit && timelineHidden && '(ausgeblendet)'}
             {isEdit && (
-              <button onClick={() => {
+              <button className={styles.toggleBtn} style={{ marginLeft: '1rem' }} onClick={() => {
                 const newHidden = !timelineHidden
                 setTimelineHidden(newHidden)
                 updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), hidden: newHidden })
-              }} style={{ background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', fontSize: '0.75rem', marginLeft: '1rem' }}>
+              }}>
                 {timelineHidden ? '👁 Einblenden' : '👁 Ausblenden'}
               </button>
             )}
@@ -1138,11 +1138,11 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.channels || '—'} — Kanäle {isEdit && channelsHidden && '(ausgeblendet)'}
             {isEdit && (
-              <button onClick={() => {
+              <button className={styles.toggleBtn} style={{ marginLeft: '1rem' }} onClick={() => {
                 const newHidden = !channelsHidden
                 setChannelsHidden(newHidden)
                 updateDraft('channelsHidden', newHidden)
-              }} style={{ background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', fontSize: '0.75rem', marginLeft: '1rem' }}>
+              }}>
                 {channelsHidden ? '👁 Einblenden' : '👁 Ausblenden'}
               </button>
             )}
