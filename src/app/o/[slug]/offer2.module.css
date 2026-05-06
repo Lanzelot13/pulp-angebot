@@ -249,6 +249,7 @@
   gap: 1.5rem;
   align-items: flex-start;
   transition: background 0.3s;
+  position: relative;
 }
 
 .serviceItem:hover { background: rgba(255,25,0,0.03); }
@@ -313,6 +314,7 @@
   padding: 3rem 2rem;
   position: relative;
   transition: border-color 0.4s, transform 0.4s, box-shadow 0.4s;
+  overflow: hidden;
 }
 
 .packageCard:hover {
@@ -433,6 +435,7 @@
   padding: 2.5rem 0;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   gap: 2rem;
+  position: relative;
 }
 
 .timelineStep:first-child { border-top: 1px solid rgba(255,255,255,0.06); }
@@ -486,6 +489,7 @@
   text-align: center;
   padding: 3rem 1.5rem;
   border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
 }
 
 .statIcon {
@@ -637,6 +641,10 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 2.5rem;
+  border-radius: 2px;
 }
 
 .contactRow {
@@ -894,6 +902,60 @@
 .editablePlaceholder {
   color: rgba(255,255,255,0.2);
   font-style: italic;
+}
+
+/* Remove button */
+.removeBtn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  z-index: 5;
+  line-height: 1;
+}
+.removeBtn:hover { opacity: 1; }
+
+/* Add button */
+.addBtn {
+  display: inline-block;
+  margin-top: 1.5rem;
+  background: transparent;
+  color: #FF1900;
+  border: 1px solid #FF1900;
+  padding: 0.5rem 1.2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.2s;
+}
+.addBtn:hover { background: rgba(255,25,0,0.1); }
+
+/* Picker button */
+.pickerBtn {
+  background: transparent;
+  color: #FF1900;
+  border: 1px solid #FF1900;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* Add-Ons headline */
+.addOnsHeadline {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 0;
 }
 
 /* RESPONSIVE */

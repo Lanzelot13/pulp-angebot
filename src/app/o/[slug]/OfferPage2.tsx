@@ -211,7 +211,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         suppressContentEditableWarning
         onBlur={(e) => {
           const newVal = e.currentTarget.textContent || ''
-          if (newVal !== value) onSave(newVal)
+          if (newVal !== value && newVal !== 'Klick zum Bearbeiten') onSave(newVal)
+        }}
+        onFocus={(e) => {
+          if (!value) e.currentTarget.textContent = ''
         }}
       >
         {value || <span className={styles.editablePlaceholder}>Klick zum Bearbeiten</span>}
@@ -239,7 +242,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         type="button"
         title="Entfernen"
       >
-        &times;
+        🗑️
       </button>
     )
   }
@@ -323,6 +326,24 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     setDragSvcIdx(idx)
   }
   const handleSvcDragEnd = () => setDragSvcIdx(null)
+
+  // Drag-and-drop for timeline
+  const [dragTimeIdx, setDragTimeIdx] = useState<number | null>(null)
+  const handleTimeDragStart = (idx: number) => setDragTimeIdx(idx)
+  const handleTimeDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (dragTimeIdx === null || dragTimeIdx === idx) return
+    setDraft(prev => {
+      const tl = (prev.timeline as unknown as TimelineSection) || { headline: '', steps: [] }
+      const steps = [...tl.steps]
+      const [moved] = steps.splice(dragTimeIdx, 1)
+      steps.splice(idx, 0, moved)
+      return { ...prev, timeline: { ...tl, steps } as unknown } as OfferWithContact
+    })
+    setDirty(true)
+    setDragTimeIdx(idx)
+  }
+  const handleTimeDragEnd = () => setDragTimeIdx(null)
 
   // Drag-and-drop for package features
   const [dragFeature, setDragFeature] = useState<{ pkg: number; idx: number } | null>(null)
@@ -605,6 +626,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     tag="h3"
                     className=""
                     value={card.title}
+                    style={{ fontFamily: 'Anton', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.3rem' }}
                     onSave={(v) => {
                       const cards = [...understanding!.cards]
                       cards[i] = { ...cards[i], title: v }
@@ -665,6 +687,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     tag="h3"
                     className=""
                     value={item.title}
+                    style={{ fontFamily: 'Anton', fontSize: '1.1rem', textTransform: 'uppercase', marginBottom: '0.3rem' }}
                     onSave={(v) => {
                       const items = [...services!.items]
                       items[i] = { ...items[i], title: v }
@@ -681,7 +704,21 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       updateDraft('services', { ...services!, items })
                     }}
                   />
-                  {item.optional && <span className={styles.serviceOptional}>Optional</span>}
+                  {isEdit && (
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', marginTop: '0.5rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!item.optional}
+                        onChange={() => {
+                          const items = [...services!.items]
+                          items[i] = { ...items[i], optional: !items[i].optional }
+                          updateDraft('services', { ...services!, items })
+                        }}
+                      />
+                      Optional
+                    </label>
+                  )}
+                  {!isEdit && item.optional && <span className={styles.serviceOptional}>Optional</span>}
                 </div>
               </div>
             ))}
@@ -829,7 +866,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             {(isEdit || (!packages?.addOnsHidden && (packages?.addOns || []).length > 0)) && (
               <>
                 <div style={{ marginTop: '4rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 className={styles.sectionHeadline} style={{ marginBottom: 0 }}>Optionale Add-Ons</h3>
+                  <h3 className={styles.addOnsHeadline}>Optionale Add-Ons</h3>
                   {isEdit && (
                     <button onClick={() => {
                       const newHidden = !packages?.addOnsHidden
@@ -912,11 +949,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <Editable tag="h2" className={`${styles.sectionHeadline} ${rev}`} value={timeline?.headline || 'So läuft das Projekt ab'} onSave={(v) => updateDraft('timeline', { ...(timeline || { headline: '', steps: [] }), headline: v })} />
           <div className={styles.timelineSteps}>
             {(timeline?.steps || []).map((step, i) => (
-              <div key={i} className={`${styles.timelineStep} ${rev}`} data-delay={100 + i * 100}>
-                <RemoveButton onClick={() => {
-                  const steps = timeline!.steps.filter((_, idx) => idx !== i)
-                  updateDraft('timeline', { ...timeline!, steps })
-                }} />
+              <div key={i} className={`${styles.timelineStep} ${rev}`} data-delay={100 + i * 100} draggable={isEdit} onDragStart={isEdit ? () => handleTimeDragStart(i) : undefined} onDragOver={isEdit ? (e) => handleTimeDragOver(e, i) : undefined} onDragEnd={isEdit ? handleTimeDragEnd : undefined}>
                 <div className={styles.timelineLeft}>
                   <div className={styles.timelineNumber}>{String(i + 1).padStart(2, '0')}</div>
                   <Editable tag="span" className={styles.timelineTimeframe} value={step.timeframe} onSave={(v) => {
@@ -926,7 +959,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   }} />
                 </div>
                 <div className={styles.timelineRight}>
-                  <Editable tag="h3" className="" value={step.label} onSave={(v) => {
+                  <Editable tag="h3" className="" value={step.label} style={{ fontFamily: 'Anton', fontSize: '1.2rem', textTransform: 'uppercase' }} onSave={(v) => {
                     const steps = [...timeline!.steps]
                     steps[i] = { ...steps[i], label: v }
                     updateDraft('timeline', { ...timeline!, steps })
@@ -939,6 +972,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     }} />
                   )}
                 </div>
+                <RemoveButton onClick={() => {
+                  const steps = timeline!.steps.filter((_, idx) => idx !== i)
+                  updateDraft('timeline', { ...timeline!, steps })
+                }} />
               </div>
             ))}
           </div>
@@ -1142,7 +1179,6 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           </div>
         </div>
         <div className={`${styles.ctaContactRight} ${rev}`} data-delay="0">
-          <div className={styles.contactLabel}>Dein Ansprechpartner</div>
           <div className={styles.contactRow}>
             {draft.contact.avatarUrl ? (
               <img src={draft.contact.avatarUrl} alt={draft.contact.name} className={styles.contactPhoto} />
@@ -1150,7 +1186,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               <div className={styles.contactPhotoPlaceholder}>{draft.contact.name.split(' ').map(n => n[0]).join('')}</div>
             )}
             <div>
-              <h3 style={{ fontFamily: 'Anton', fontSize: '1.6rem', textTransform: 'uppercase', color: '#fff', lineHeight: 1.1 }}>{draft.contact.name}</h3>
+              <h3 style={{ fontFamily: 'Anton', fontSize: '1.6rem', textTransform: 'uppercase', color: '#fff', lineHeight: 1.1, marginBottom: '0.1rem' }}>{draft.contact.name}</h3>
               <div className={styles.contactRole}>{draft.contact.role} · Pulpmedia</div>
             </div>
           </div>
@@ -1176,7 +1212,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             <PulpmediaLogoWhite />
           </div>
           <div className={styles.footerAddress}>
-            Linzer Straße 1, 4040 Linz · Keisslergasse 1-3, 1140 Wien<br />
+            Linzer Straße 1, 4040 Linz, Österreich<br />
             UID: ATU62936737 · FN 284945M
           </div>
         </div>
