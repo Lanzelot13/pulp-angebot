@@ -54,13 +54,13 @@ export function OfferPage({ offer: initialOffer, references: initialRefs, channe
   const stats = (draft.stats as unknown as StatItem[]) || []
   const legal = (draft.legal as unknown as LegalSection) || null
 
-  // References/channels shown: use draft IDs to filter allReferences
+  // References/channels shown: ordered by their IDs array (preserves drag order)
   const displayRefs = isEdit
-    ? allReferences.filter(r => (draft.referenceIds || []).includes(r.id))
-    : initialRefs
+    ? (draft.referenceIds || []).map(id => allReferences.find(r => r.id === id)).filter(Boolean) as Reference[]
+    : (initialOffer.referenceIds || []).map(id => initialRefs.find(r => r.id === id)).filter(Boolean) as Reference[]
   const displayChannels = isEdit
-    ? allChannels.filter(c => (draft.channelIds || []).includes(c.id))
-    : initialChannels
+    ? (draft.channelIds || []).map(id => allChannels.find(c => c.id === id)).filter(Boolean) as Channel[]
+    : (initialOffer.channelIds || []).map(id => initialChannels.find(c => c.id === id)).filter(Boolean) as Channel[]
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
