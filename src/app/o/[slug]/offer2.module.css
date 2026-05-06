@@ -949,6 +949,46 @@
   font-size: 0.85rem;
 }
 
+/* Edit toolbar: side-by-side buttons for icon picker + delete */
+.editToolbar {
+  display: flex;
+  gap: 0.4rem;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+}
+.toolbarBtn {
+  background: rgba(34,34,34,0.9);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.8);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.65rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: border-color 0.2s, background 0.2s;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.toolbarBtn:hover {
+  border-color: #FF1900;
+  background: rgba(255,25,0,0.1);
+}
+.toolbarBtnDanger:hover {
+  border-color: #ff4444;
+  background: rgba(255,68,68,0.15);
+}
+
+/* Reference link (clickable in view mode) */
+.referenceLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+.referenceLink:hover { text-decoration: none; }
+
 /* Add-Ons headline */
 .addOnsHeadline {
   font-family: 'Anton', sans-serif;

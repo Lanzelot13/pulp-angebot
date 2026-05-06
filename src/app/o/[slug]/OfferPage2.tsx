@@ -599,29 +599,35 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             <div className={styles.understandingCards}>
               {(understanding?.cards || []).map((card, i) => (
                 <div key={i} className={`${styles.understandingCard} ${rev}`} data-delay={100 + i * 50}>
-                  <RemoveButton onClick={() => {
-                    const cards = understanding!.cards.filter((_, idx) => idx !== i)
-                    updateDraft('understanding', { ...understanding!, cards })
-                  }} />
+                  {isEdit && (
+                    <div className={styles.editToolbar}>
+                      <button
+                        className={styles.toolbarBtn}
+                        onClick={() => {
+                          const icons = ['pixel_heart', 'blume', 'blitz', 'smiley', 'explosion', 'skull', 'horn_hand']
+                          const nextIcon = icons[(icons.indexOf(card.icon || 'pixel_heart') + 1) % icons.length]
+                          const cards = [...understanding!.cards]
+                          cards[i] = { ...cards[i], icon: nextIcon }
+                          updateDraft('understanding', { ...understanding!, cards })
+                        }}
+                        type="button"
+                        title="Icon wechseln"
+                      >
+                        🔄 Icon
+                      </button>
+                      <button
+                        className={`${styles.toolbarBtn} ${styles.toolbarBtnDanger}`}
+                        onClick={(e) => { e.stopPropagation(); const cards = understanding!.cards.filter((_, idx) => idx !== i); updateDraft('understanding', { ...understanding!, cards }) }}
+                        type="button"
+                        title="Entfernen"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                   <div className={styles.cardIcon}>
                     {renderIcon(card.icon || 'pixel_heart')}
                   </div>
-                  {isEdit && (
-                    <button
-                      onClick={() => {
-                        const icons = ['pixel_heart', 'blume', 'blitz', 'smiley', 'explosion', 'skull', 'horn_hand']
-                        const nextIcon = icons[(icons.indexOf(card.icon || 'pixel_heart') + 1) % icons.length]
-                        const cards = [...understanding!.cards]
-                        cards[i] = { ...cards[i], icon: nextIcon }
-                        updateDraft('understanding', { ...understanding!, cards })
-                      }}
-                      style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#FF1900', padding: '0.2rem 0.4rem', fontSize: '0.6rem', cursor: 'pointer', borderRadius: '2px' }}
-                      type="button"
-                      title="Icon wechseln"
-                    >
-                      🔄
-                    </button>
-                  )}
                   <Editable
                     tag="h3"
                     className=""
@@ -881,7 +887,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     <p style={{ fontSize: '1.05rem', fontWeight: 300, color: 'rgba(255,255,255,0.6)', marginBottom: '2rem' }}>Zu jedem Paket flexibel dazubuchbar.</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                       {(packages?.addOns || []).map((addon, ai) => (
-                        <div key={ai} style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.06)', padding: '2rem' }}>
+                        <div key={ai} style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.06)', padding: '2rem', position: 'relative' }}>
                           <RemoveButton onClick={() => {
                             const addOns = (packages?.addOns || []).filter((_, idx) => idx !== ai)
                             updateDraft('packages', { ...packages!, addOns })
@@ -1001,16 +1007,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <div className={styles.statsGrid}>
             {stats.map((stat, i) => (
               <div key={i} className={`${styles.statItem} ${rev}`} data-delay={200 + i * 100}>
-                <RemoveButton onClick={() => {
-                  const newStats = stats.filter((_, idx) => idx !== i)
-                  updateDraft('stats', newStats)
-                }} />
-                <div className={styles.statIcon}>
-                  {renderIcon(stat.icon || 'explosion')}
-                </div>
                 {isEdit && (
-                  <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                  <div className={styles.editToolbar}>
                     <button
+                      className={styles.toolbarBtn}
                       onClick={() => {
                         const newStats = [...stats]
                         const icons = ['explosion', 'skull', 'blume', 'blitz', 'smiley', 'pixel_heart', 'horn_hand']
@@ -1018,14 +1018,24 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                         newStats[i] = { ...newStats[i], icon: nextIcon }
                         updateDraft('stats', newStats)
                       }}
-                      style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#FF1900', padding: '0.3rem 0.6rem', fontSize: '0.7rem', cursor: 'pointer', borderRadius: '2px' }}
                       type="button"
                       title="Icon wechseln"
                     >
-                      🔄
+                      🔄 Icon
+                    </button>
+                    <button
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnDanger}`}
+                      onClick={(e) => { e.stopPropagation(); const newStats = stats.filter((_, idx) => idx !== i); updateDraft('stats', newStats) }}
+                      type="button"
+                      title="Entfernen"
+                    >
+                      🗑️
                     </button>
                   </div>
                 )}
+                <div className={styles.statIcon}>
+                  {renderIcon(stat.icon || 'explosion')}
+                </div>
                 <Editable tag="div" className={styles.statNumber} value={stat.number} onSave={(v) => {
                   const newStats = [...stats]
                   newStats[i] = { ...newStats[i], number: v }
@@ -1086,16 +1096,33 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <div className={styles.referencesGrid}>
             {displayRefs.map((ref, refIdx) => (
               <div key={ref.id} className={`${styles.referenceCard} ${rev} ${isEdit ? styles.referenceCardDraggable : ''} ${dragRefIdx === refIdx ? styles.referenceCardDragging : ''}`} data-delay={200 + refIdx * 100} draggable={isEdit} onDragStart={() => handleRefDragStart(refIdx)} onDragOver={(e) => handleRefDragOver(e, refIdx)} onDragEnd={handleRefDragEnd}>
-                {ref.imageUrl && <img src={ref.imageUrl} alt={ref.name} className={styles.referenceImg} />}
-                <div className={styles.referenceOverlay}>
-                  <div className={styles.referenceName}>{ref.name}</div>
-                  <div className={styles.referenceDesc}>{ref.description}</div>
-                  <div className={styles.referenceTags}>
-                    {ref.tags.map((tag, ti) => (
-                      <span key={ti} className={styles.referenceTag}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
+                {!isEdit && ref.url ? (
+                  <a href={ref.url} target="_blank" rel="noopener noreferrer" className={styles.referenceLink}>
+                    {ref.imageUrl && <img src={ref.imageUrl} alt={ref.name} className={styles.referenceImg} />}
+                    <div className={styles.referenceOverlay}>
+                      <div className={styles.referenceName}>{ref.name}</div>
+                      <div className={styles.referenceDesc}>{ref.description}</div>
+                      <div className={styles.referenceTags}>
+                        {ref.tags.map((tag, ti) => (
+                          <span key={ti} className={styles.referenceTag}>{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </a>
+                ) : (
+                  <>
+                    {ref.imageUrl && <img src={ref.imageUrl} alt={ref.name} className={styles.referenceImg} />}
+                    <div className={styles.referenceOverlay}>
+                      <div className={styles.referenceName}>{ref.name}</div>
+                      <div className={styles.referenceDesc}>{ref.description}</div>
+                      <div className={styles.referenceTags}>
+                        {ref.tags.map((tag, ti) => (
+                          <span key={ti} className={styles.referenceTag}>{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
