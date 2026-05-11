@@ -16,6 +16,9 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   if (!offer) notFound()
 
+  // Archived offers are not reachable for customers
+  if ((offer as unknown as { archivedAt?: Date | null }).archivedAt) notFound()
+
   // If a specific version is requested, load from version snapshot
   if (searchParams.version) {
     const versionNum = parseInt(searchParams.version, 10)
@@ -86,10 +89,12 @@ export default async function Page({ params, searchParams }: PageProps) {
 export async function generateMetadata({ params }: PageProps) {
   const offer = await prisma.offer.findUnique({
     where: { slug: params.slug },
-    select: { projectName: true, clientCompany: true },
   })
 
   if (!offer) return { title: 'Angebot nicht gefunden' }
+  if ((offer as unknown as { archivedAt?: Date | null }).archivedAt) {
+    return { title: 'Angebot nicht gefunden' }
+  }
 
   return {
     title: `${offer.projectName} | Pulpmedia`,

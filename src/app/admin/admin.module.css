@@ -627,6 +627,114 @@
 .confirmBox p { color: #666; font-size: 14px; margin-bottom: 24px; }
 .confirmActions { display: flex; gap: 10px; justify-content: center; }
 
+/* === FILTER TOGGLE === */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 4px;
+  width: fit-content;
+}
+.filterTab {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #888;
+  font-family: 'Roboto', sans-serif;
+  transition: all 0.15s;
+}
+.filterTab:hover { color: #111; }
+.filterTabActive {
+  background: #111;
+  color: #fff;
+}
+.filterTabActive:hover { color: #fff; }
+
+/* === ARCHIVED ROW === */
+.archivedRow td { opacity: 0.6; }
+.archivedBadge {
+  display: inline-block;
+  background: #f0f0f0;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+/* === MODAL: WIDER VARIANT === */
+.modalWide { width: 640px; }
+
+/* === FORM ROW (two columns) === */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.formRow .formGroup { margin-bottom: 0; }
+
+.formHint {
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.formError {
+  background: #fef0f0;
+  border: 1px solid #f5c0c0;
+  color: #c0392b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* Slug input with URL prefix */
+.slugField {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.slugField:focus-within { border-color: #FF1900; }
+.slugPrefix {
+  background: #fafafa;
+  border-right: 1px solid #ddd;
+  padding: 10px 12px;
+  font-family: monospace;
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.slugInput {
+  flex: 1;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: monospace;
+  background: transparent;
+  color: #111;
+  min-width: 0;
+}
+.slugInput:focus { outline: none; }
+
 /* === EMPTY STATE === */
 .emptyState {
   text-align: center;
