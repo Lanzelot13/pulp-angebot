@@ -798,10 +798,49 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             style={{ background: '#222', color: '#FF1900', border: '1px solid rgba(255,25,0,0.2)', padding: '0.3rem', fontSize: '1.5rem', width: '100%' }}
                           />
                         ) : (
-                          <>{formatPrice(pkg.price)}</>
+                          <>
+                            {formatPrice(pkg.price)}
+                            {pkg.priceUnit && (
+                              <span className={styles.packagePriceUnit}> {pkg.priceUnit}</span>
+                            )}
+                          </>
                         )}
                       </div>
                       <div className={styles.packageVat}>zzgl. 20% USt.</div>
+                      {isEdit && (
+                        <div className={styles.packageMetaEdit}>
+                          <select
+                            value={pkg.priceUnit || ''}
+                            onChange={(e) => {
+                              const items = [...packages!.items]
+                              items[i] = { ...items[i], priceUnit: e.target.value || undefined }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                          >
+                            <option value="">einmalig</option>
+                            <option value="/ Monat">/ Monat</option>
+                            <option value="/ Quartal">/ Quartal</option>
+                            <option value="/ Jahr">/ Jahr</option>
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            value={pkg.termMonths ?? ''}
+                            onChange={(e) => {
+                              const items = [...packages!.items]
+                              const v = e.target.value ? Number(e.target.value) : null
+                              items[i] = { ...items[i], termMonths: v }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                            placeholder="Laufzeit (Monate)"
+                          />
+                        </div>
+                      )}
+                      {pkg.termMonths != null && pkg.termMonths > 0 && (
+                        <div className={styles.packageTerm}>
+                          Laufzeit · {pkg.termMonths} {pkg.termMonths === 1 ? 'Monat' : 'Monate'}
+                        </div>
+                      )}
                     </>
                   ) : draft.status === 'DRAFT' ? (
                     <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '2rem' }}>

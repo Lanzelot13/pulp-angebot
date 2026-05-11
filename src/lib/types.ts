@@ -42,6 +42,11 @@ export interface PackageItem {
   price: number | null
   features: PackageFeature[]
   highlighted?: boolean
+  // Recurring offers: priceUnit shows next to the price ("/ Monat", "/ Jahr"),
+  // termMonths renders a "Laufzeit · X Monate" hint below the price.
+  // Both optional — leave empty for one-off packages.
+  priceUnit?: string
+  termMonths?: number | null
 }
 
 export interface AddOnItem {
