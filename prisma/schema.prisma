@@ -52,6 +52,7 @@ model Offer {
   understanding Json?       // { headline, text, cards[] }
   services      Json?       // { headline, items[] }
   packages      Json?       // { intro, showPrices, items[] }
+  notIncluded   Json?       // { hidden, headline, items[], note }
   timeline      Json?       // { headline, steps[] }
   stats         Json?       // [{ number, label, detail }]
   referenceIds  String[]    // IDs from Reference table

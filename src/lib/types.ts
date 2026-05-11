@@ -59,6 +59,30 @@ export interface PackagesSection {
   addOnsHidden?: boolean
 }
 
+export interface NotIncludedItem {
+  title: string
+}
+
+export interface NotIncludedSection {
+  hidden?: boolean
+  headline: string  // e.g. "Was nicht enthalten ist"
+  items: NotIncludedItem[]
+  note?: string     // closing sentence, e.g. "Diese Posten rechnen wir separat ab..."
+}
+
+export const DEFAULT_NOT_INCLUDED: NotIncludedSection = {
+  hidden: false,
+  headline: 'Was nicht enthalten ist',
+  items: [
+    { title: 'Darsteller:innen-Gagen, Castings und Buyouts' },
+    { title: 'Locations und Drehgenehmigungen' },
+    { title: 'Reisespesen außerhalb von Linz' },
+    { title: 'Sonderausstattung und Sonderanfertigungen' },
+    { title: 'Mediabudget (AdSpend) für bezahlte Werbung' },
+  ],
+  note: 'Diese Posten rechnen wir separat ab oder ihr stellt sie direkt bei.',
+}
+
 export interface TimelineStep {
   label: string
   description?: string
@@ -99,6 +123,7 @@ export interface CreateOfferRequest {
   understanding?: UnderstandingSection
   services?: ServicesSection
   packages?: PackagesSection
+  notIncluded?: NotIncludedSection
   timeline?: TimelineSection
   stats?: StatItem[]
   referenceIds?: string[]
@@ -117,6 +142,7 @@ export interface UpdateOfferRequest {
   understanding?: UnderstandingSection
   services?: ServicesSection
   packages?: PackagesSection
+  notIncluded?: NotIncludedSection
   timeline?: TimelineSection
   stats?: StatItem[]
   referenceIds?: string[]

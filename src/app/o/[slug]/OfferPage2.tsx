@@ -5,7 +5,9 @@ import type { Offer, Contact, Reference, Channel } from '@prisma/client'
 import type {
   HeroSection, UnderstandingSection, ServicesSection,
   PackagesSection, TimelineSection, StatItem, LegalSection,
+  NotIncludedSection,
 } from '@/lib/types'
+import { DEFAULT_NOT_INCLUDED } from '@/lib/types'
 import styles from './offer2.module.css'
 
 type OfferWithContact = Offer & { contact: Contact }
@@ -66,6 +68,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   const understanding = (draft.understanding as unknown as UnderstandingSection) || null
   const services = (draft.services as unknown as ServicesSection) || null
   const packages = (draft.packages as unknown as PackagesSection) || null
+  // notIncluded falls back to defaults when the field is null/undefined (legacy offers).
+  // Defaults render in view mode; in edit mode the user can save them to make them stick.
+  const rawNotIncluded = (draft as unknown as { notIncluded?: NotIncludedSection | null }).notIncluded
+  const notIncluded: NotIncludedSection = rawNotIncluded || DEFAULT_NOT_INCLUDED
   const timeline = (draft.timeline as unknown as TimelineSection) || null
   const stats = (draft.stats as unknown as StatItem[]) || []
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -101,10 +107,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     try {
       // Collect changed fields
       const changes: Record<string, unknown> = { changedBy: 'editor' }
-      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
+      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
       for (const f of fields) {
-        if (JSON.stringify(draft[f]) !== JSON.stringify(savedOffer[f])) {
-          changes[f] = draft[f]
+        const draftValue = (draft as unknown as Record<string, unknown>)[f]
+        const savedValue = (savedOffer as unknown as Record<string, unknown>)[f]
+        if (JSON.stringify(draftValue) !== JSON.stringify(savedValue)) {
+          changes[f] = draftValue
         }
       }
 
@@ -932,6 +940,108 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   </>
                 )}
               </>
+            )}
+
+            {/* NOT INCLUDED — hint box below packages/add-ons */}
+            {(!notIncluded.hidden || isEdit) && (
+              <div
+                className={`${styles.notIncludedBox} ${notIncluded.hidden ? styles.notIncludedHidden : ''} ${rev}`}
+                data-delay="100"
+              >
+                <div className={styles.notIncludedIcon} aria-hidden="true">ⓘ</div>
+                <div className={styles.notIncludedContent}>
+                  {isEdit && (
+                    <div className={styles.notIncludedActions}>
+                      <button
+                        className={styles.toggleBtn}
+                        onClick={() => {
+                          updateDraft('notIncluded', { ...notIncluded, hidden: !notIncluded.hidden })
+                        }}
+                      >
+                        {notIncluded.hidden ? '👁 Einblenden' : '👁 Ausblenden'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Headline (always shown, editable inline) */}
+                  <Editable
+                    tag="strong"
+                    className={styles.notIncludedHeadline}
+                    value={notIncluded.headline}
+                    onSave={(v) => updateDraft('notIncluded', { ...notIncluded, headline: v })}
+                  />
+                  <span className={styles.notIncludedHeadline}>: </span>
+
+                  {/* View mode: items joined with commas, last with "sowie" */}
+                  {!isEdit && (
+                    <span className={styles.notIncludedItems}>
+                      {notIncluded.items.map((item, i) => {
+                        const isLast = i === notIncluded.items.length - 1
+                        const isSecondLast = i === notIncluded.items.length - 2
+                        const sep = isLast ? '.' : isSecondLast ? ' sowie ' : ', '
+                        return (
+                          <span key={i} className={styles.notIncludedItem}>
+                            {item.title}
+                            {sep}
+                          </span>
+                        )
+                      })}
+                    </span>
+                  )}
+
+                  {/* Edit mode: items as chips with delete + add button */}
+                  {isEdit && (
+                    <>
+                      <div className={styles.notIncludedEditList}>
+                        {notIncluded.items.map((item, i) => (
+                          <span key={i} className={styles.notIncludedChip}>
+                            <Editable
+                              tag="span"
+                              className=""
+                              value={item.title}
+                              onSave={(v) => {
+                                const items = [...notIncluded.items]
+                                items[i] = { ...items[i], title: v }
+                                updateDraft('notIncluded', { ...notIncluded, items })
+                              }}
+                            />
+                            <button
+                              className={styles.notIncludedChipDelete}
+                              onClick={() => {
+                                const items = notIncluded.items.filter((_, idx) => idx !== i)
+                                updateDraft('notIncluded', { ...notIncluded, items })
+                              }}
+                              aria-label="Eintrag entfernen"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <button
+                        className={styles.addBtn}
+                        style={{ marginTop: 0 }}
+                        onClick={() => {
+                          const items = [...notIncluded.items, { title: 'Neuer Punkt' }]
+                          updateDraft('notIncluded', { ...notIncluded, items })
+                        }}
+                      >
+                        + Eintrag hinzufügen
+                      </button>
+                    </>
+                  )}
+
+                  {/* Closing note */}
+                  {(notIncluded.note || isEdit) && (
+                    <Editable
+                      tag="span"
+                      className={styles.notIncludedNote}
+                      value={notIncluded.note || ''}
+                      onSave={(v) => updateDraft('notIncluded', { ...notIncluded, note: v })}
+                    />
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </section>

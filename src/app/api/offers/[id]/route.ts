@@ -83,7 +83,7 @@ export async function PATCH(
   const allowedFields = [
     'clientName', 'clientCompany', 'projectName', 'offerNumber',
     'contactSlug', 'hero', 'understanding', 'services', 'packages',
-    'timeline', 'stats', 'referenceIds', 'channelIds', 'channelsHidden', 'channelsHeadline', 'legal', 'template',
+    'notIncluded', 'timeline', 'stats', 'referenceIds', 'channelIds', 'channelsHidden', 'channelsHeadline', 'legal', 'template',
   ]
 
   for (const field of allowedFields) {

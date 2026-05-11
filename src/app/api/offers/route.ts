@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiKey } from '@/lib/auth'
 import { createSlug } from '@/lib/slug'
-import { CreateOfferRequest } from '@/lib/types'
+import { CreateOfferRequest, DEFAULT_NOT_INCLUDED } from '@/lib/types'
 
 // Helper: convert value to Prisma-compatible JSON or DbNull
 function jsonOrNull(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
@@ -80,12 +80,15 @@ export async function POST(request: NextRequest) {
       understanding: jsonOrNull(body.understanding),
       services: jsonOrNull(body.services),
       packages: jsonOrNull(body.packages),
+      // Use provided notIncluded or fall back to standard defaults so every
+      // new offer ships with a sensible "what's not included" section.
+      notIncluded: jsonOrNull(body.notIncluded ?? DEFAULT_NOT_INCLUDED),
       timeline: jsonOrNull(body.timeline),
       stats: jsonOrNull(body.stats),
       referenceIds: body.referenceIds || [],
       channelIds: body.channelIds || [],
       legal: jsonOrNull(body.legal),
-    },
+    } as unknown as Prisma.OfferCreateInput,
     include: { contact: true },
   })
 
