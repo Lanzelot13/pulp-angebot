@@ -107,7 +107,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     try {
       // Collect changed fields
       const changes: Record<string, unknown> = { changedBy: 'editor' }
-      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'legal', 'referenceIds', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
+      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'statsHeadline', 'legal', 'referenceIds', 'referencesHeadline', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
       for (const f of fields) {
         const draftValue = (draft as unknown as Record<string, unknown>)[f]
         const savedValue = (savedOffer as unknown as Record<string, unknown>)[f]
@@ -1150,8 +1150,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <Editable
             tag="h2"
             className={`${styles.sectionHeadline} ${rev}`}
-            value="Zahlen, die für sich sprechen"
-            onSave={() => {}}
+            value={(draft as unknown as { statsHeadline?: string | null }).statsHeadline || 'Zahlen, die für sich sprechen'}
+            onSave={(v) => updateDraft('statsHeadline', v)}
           />
           <div className={styles.statsGrid}>
             {stats.map((stat, i) => (
@@ -1218,8 +1218,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         <Editable
           tag="h2"
           className={`${styles.sectionHeadline} ${rev}`}
-          value="Projekte, die begeistern"
-          onSave={() => {}}
+          value={(draft as unknown as { referencesHeadline?: string | null }).referencesHeadline || 'Projekte, die begeistern'}
+          onSave={(v) => updateDraft('referencesHeadline', v)}
         />
 
         {isEdit && (

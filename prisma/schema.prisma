@@ -59,6 +59,8 @@ model Offer {
   channelIds    String[]    // IDs from Channel table
   channelsHidden   Boolean    @default(false)
   channelsHeadline String?    // Custom headline for channels section
+  statsHeadline    String?    // Custom headline for stats section ("Warum Pulpmedia")
+  referencesHeadline String?  // Custom headline for references section
   legal         Json?       // { paymentTerms }
 
   // Template
