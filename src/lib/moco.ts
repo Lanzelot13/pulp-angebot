@@ -150,8 +150,9 @@ export interface MocoDealCategory {
 }
 
 export interface MocoOfferItem {
-  type: 'item' | 'lump_sum' | 'title' | 'separator'
+  type: 'item' | 'lump_sum' | 'title' | 'separator' | 'description'
   title: string
+  description?: string
   quantity?: number
   unit?: string
   unit_price?: number

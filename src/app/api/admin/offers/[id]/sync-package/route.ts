@@ -58,9 +58,11 @@ export async function POST(
     return NextResponse.json({ error: 'Paket nicht gefunden' }, { status: 404 })
   }
 
-  // Build offer items. Moco requires quantity + unit for every item-row,
-  // even for one-off positions. We use type: 'item' uniformly and only fall
-  // back to title/separator rows for headlines.
+  // Build offer items.
+  //   Position 1: package itself (type=item with title=name and description containing
+  //     the marketing text plus the included features as bullet list)
+  //   Position 2: 'Add-Ons' group header (type=title) — only if add-ons exist
+  //   Position 2.x: each add-on as type=item with its description
   const items: MocoOfferItem[] = []
 
   const isMonthly = pkg.priceUnit === '/ Monat'
@@ -68,39 +70,46 @@ export async function POST(
   const isYearly = pkg.priceUnit === '/ Jahr'
   const isRecurring = isMonthly || isQuarterly || isYearly
 
-  items.push({ type: 'title', title: pkg.name })
+  // Build description text: marketing text + bullet list of included features
+  const includedFeatures = (pkg.features || []).filter((f) => f.included)
+  const descriptionParts: string[] = []
+  if (pkg.description) descriptionParts.push(pkg.description)
+  if (includedFeatures.length > 0) {
+    descriptionParts.push(includedFeatures.map((f) => `✓ ${f.text}`).join('\n'))
+  }
+  const packageDescription = descriptionParts.join('\n\n')
 
+  // Quantity + unit
+  let quantity = 1
+  let unit = 'Pauschale'
   if (isRecurring && pkg.termMonths && pkg.termMonths > 0) {
     const divisor = isMonthly ? 1 : isQuarterly ? 3 : 12
-    const quantity = pkg.termMonths / divisor
-    const unit = isMonthly ? 'Monat' : isQuarterly ? 'Quartal' : 'Jahr'
-    items.push({
-      type: 'item',
-      title: pkg.description || pkg.name,
-      quantity,
-      unit,
-      unit_price: pkg.price ?? 0,
-    })
-  } else {
-    items.push({
-      type: 'item',
-      title: pkg.description || pkg.name,
-      quantity: 1,
-      unit: 'Pauschale',
-      unit_price: pkg.price ?? 0,
-    })
+    quantity = pkg.termMonths / divisor
+    unit = isMonthly ? 'Monat' : isQuarterly ? 'Quartal' : 'Jahr'
   }
 
+  // Position 1: the package
+  items.push({
+    type: 'item',
+    title: pkg.name,
+    description: packageDescription || undefined,
+    quantity,
+    unit,
+    unit_price: pkg.price ?? 0,
+  })
+
+  // Position 2.x: add-ons under a group title
   if (includeAddOns && packages?.addOns?.length) {
     const visibleAddOns = packages.addOns.filter(
       (a: AddOnItem) => a.price !== null && a.price !== undefined
     )
     if (visibleAddOns.length > 0) {
-      items.push({ type: 'separator', title: 'Add-Ons' })
+      items.push({ type: 'title', title: 'Add-Ons' })
       for (const a of visibleAddOns) {
         items.push({
           type: 'item',
-          title: `${a.name}${a.description ? ' — ' + a.description : ''}`,
+          title: a.name,
+          description: a.description || undefined,
           quantity: 1,
           unit: 'Pauschale',
           unit_price: a.price ?? 0,
