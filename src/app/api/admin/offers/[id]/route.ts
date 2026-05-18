@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
-const ALLOWED_STATUS = new Set(['DRAFT', 'PRICED', 'ACCEPTED'])
+const ALLOWED_STATUS = new Set(['DRAFT', 'PRICED', 'ACCEPTED', 'DECLINED'])
 const ALLOWED_TEMPLATE = new Set(['TEMPLATE1', 'TEMPLATE2'])
 
 function normalizeSlug(input: string): string {

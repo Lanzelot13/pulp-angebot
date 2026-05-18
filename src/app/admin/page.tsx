@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { AdminShell } from './AdminShell'
 import { IconFileText, IconUser, IconBuilding, IconShare2, IconEye, IconEdit, IconLink, IconCheck } from './Icons'
 import styles from './admin.module.css'
+import { STATUS_LABELS, STATUS_OPTIONS, type OfferStatus } from '@/lib/types'
 
 interface Stats {
-  offers: { total: number; DRAFT?: number; PRICED?: number; ACCEPTED?: number }
+  offers: { total: number; DRAFT?: number; PRICED?: number; ACCEPTED?: number; DECLINED?: number }
   contacts: number
   references: number
   channels: number
@@ -55,7 +56,15 @@ export default function DashboardPage() {
     if (s === 'DRAFT') return styles.statusDraft
     if (s === 'PRICED') return styles.statusPriced
     if (s === 'ACCEPTED') return styles.statusAccepted
+    if (s === 'DECLINED') return styles.statusDeclined
     return ''
+  }
+  const statusDotColor = (s: OfferStatus) => {
+    if (s === 'DRAFT') return '#ff9800'
+    if (s === 'PRICED') return '#4caf50'
+    if (s === 'ACCEPTED') return '#2196f3'
+    if (s === 'DECLINED') return '#e53935'
+    return '#888'
   }
 
   return (
@@ -70,11 +79,9 @@ export default function DashboardPage() {
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
           <div>
-            <div className={styles.statLabel}>Angebote</div>
+            <div className={styles.statLabel}>Angebote (aktiv)</div>
             <div className={styles.statNumber}>{stats?.offers.total ?? '–'}</div>
-            <div className={styles.statDetail}>
-              {stats ? `${stats.offers.DRAFT || 0} Draft · ${stats.offers.PRICED || 0} Priced · ${stats.offers.ACCEPTED || 0} Accepted` : '...'}
-            </div>
+            <div className={styles.statDetail}>über alle Status</div>
           </div>
           <div className={`${styles.statIcon} ${styles.iconRed}`}><IconFileText size={24} /></div>
         </div>
@@ -102,6 +109,32 @@ export default function DashboardPage() {
           </div>
           <div className={`${styles.statIcon} ${styles.iconPurple}`}><IconShare2 size={24} /></div>
         </div>
+      </div>
+
+      <div className={styles.sectionHeader}>
+        <div className={styles.sectionTitle}>Status-Verteilung</div>
+      </div>
+      <div className={styles.statusBreakdown}>
+        {STATUS_OPTIONS.map((s) => {
+          const count = (stats?.offers?.[s] as number | undefined) ?? 0
+          return (
+            <a
+              key={s}
+              href={`/admin/offers?status=${s}`}
+              className={styles.statusBreakdownCard}
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <div className={styles.statusBreakdownLabel}>
+                <span
+                  className={styles.statusBreakdownDot}
+                  style={{ background: statusDotColor(s), marginRight: 6 }}
+                />
+                {STATUS_LABELS[s]}
+              </div>
+              <div className={styles.statusBreakdownNumber}>{stats ? count : '–'}</div>
+            </a>
+          )
+        })}
       </div>
 
       <div className={styles.sectionHeader}>
@@ -160,7 +193,11 @@ export default function DashboardPage() {
               <tr key={o.id}>
                 <td><strong>{o.clientCompany}</strong></td>
                 <td>{o.projectName}</td>
-                <td><span className={`${styles.statusPill} ${statusClass(o.status)}`}>{o.status}</span></td>
+                <td>
+                  <span className={`${styles.statusPill} ${statusClass(o.status)}`}>
+                    {STATUS_LABELS[o.status as OfferStatus] || o.status}
+                  </span>
+                </td>
                 <td>{formatDate(o.createdAt)}</td>
                 <td>
                   <div className={styles.actions}>

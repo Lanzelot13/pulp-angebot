@@ -11,6 +11,7 @@ enum OfferStatus {
   DRAFT
   PRICED
   ACCEPTED
+  DECLINED
 }
 
 enum OfferTemplate {

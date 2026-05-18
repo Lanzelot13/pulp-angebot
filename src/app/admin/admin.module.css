@@ -272,6 +272,8 @@
 .statusPriced::before { background: #4caf50; }
 .statusAccepted { background: #e3f2fd; color: #1565c0; }
 .statusAccepted::before { background: #2196f3; }
+.statusDeclined { background: #fbe9e9; color: #b71c1c; }
+.statusDeclined::before { background: #e53935; }
 
 /* === TEMPLATE SELECT === */
 .templateSelect {
@@ -626,6 +628,82 @@
 }
 .confirmBox p { color: #666; font-size: 14px; margin-bottom: 24px; }
 .confirmActions { display: flex; gap: 10px; justify-content: center; }
+
+/* === SEARCH + FILTER BAR === */
+.filterRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.searchInput {
+  flex: 1;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'Roboto', sans-serif;
+  color: #111;
+  transition: border-color 0.15s;
+}
+.searchInput:focus {
+  outline: none;
+  border-color: #FF1900;
+}
+.filterSelect {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: 'Roboto', sans-serif;
+  color: #111;
+  cursor: pointer;
+  min-width: 160px;
+}
+.filterSelect:focus {
+  outline: none;
+  border-color: #FF1900;
+}
+
+/* === STATUS BREAKDOWN ON DASHBOARD === */
+.statusBreakdown {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.statusBreakdownCard {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.statusBreakdownLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+}
+.statusBreakdownNumber {
+  font-family: 'Anton', sans-serif;
+  font-size: 36px;
+  line-height: 1;
+  color: #111;
+}
+.statusBreakdownDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
 
 /* === FILTER TOGGLE === */
 .filterBar {

@@ -13,6 +13,7 @@ import {
   IconArchiveRestore,
 } from '../Icons'
 import styles from '../admin.module.css'
+import { STATUS_LABELS, STATUS_OPTIONS, type OfferStatus } from '@/lib/types'
 
 interface OfferRow {
   id: string
@@ -21,7 +22,7 @@ interface OfferRow {
   clientCompany: string
   projectName: string
   offerNumber: string | null
-  status: 'DRAFT' | 'PRICED' | 'ACCEPTED'
+  status: 'DRAFT' | 'PRICED' | 'ACCEPTED' | 'DECLINED'
   template: 'TEMPLATE1' | 'TEMPLATE2'
   version: number
   editToken: string
@@ -54,7 +55,7 @@ interface MetaForm {
   projectName: string
   offerNumber: string
   template: 'TEMPLATE1' | 'TEMPLATE2'
-  status: 'DRAFT' | 'PRICED' | 'ACCEPTED'
+  status: 'DRAFT' | 'PRICED' | 'ACCEPTED' | 'DECLINED'
   contactSlug: string
   validUntil: string
   slug: string
@@ -89,13 +90,19 @@ export default function OffersPage() {
   const [versions, setVersions] = useState<Record<string, VersionRow[]>>({})
   const [copied, setCopied] = useState<string | null>(null)
 
+  // Search + filters
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [filterContactSlug, setFilterContactSlug] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'' | OfferStatus>('')
+
   // Modal state
   const [editingOffer, setEditingOffer] = useState<OfferRow | null>(null)
   const [form, setForm] = useState<MetaForm | null>(null)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Confirm dialog state (archive / restore)
+  // Confirm dialog state (archive / restore / version-restore)
   const [confirm, setConfirm] = useState<{
     title: string
     text: string
@@ -103,17 +110,48 @@ export default function OffersPage() {
     busy: boolean
   } | null>(null)
 
-  const loadOffers = useCallback(async (f: Filter) => {
-    const res = await fetch(`/api/admin/offers?archived=${f === 'archived' ? 'true' : 'false'}`)
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data)) setOffers(data)
+  const loadOffers = useCallback(
+    async (f: Filter, q: string, contactSlug: string, status: string) => {
+      const params = new URLSearchParams()
+      params.set('archived', f === 'archived' ? 'true' : 'false')
+      if (q) params.set('search', q)
+      if (contactSlug) params.set('contactSlug', contactSlug)
+      if (status) params.set('status', status)
+      const res = await fetch(`/api/admin/offers?${params.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) setOffers(data)
+      }
+    },
+    []
+  )
+
+  // Pick up ?status= / ?contactSlug= / ?search= from the URL on mount (e.g. when
+  // jumping from the dashboard status breakdown into a pre-filtered offers list)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const s = params.get('status') as OfferStatus | null
+    if (s && STATUS_OPTIONS.includes(s)) setFilterStatus(s)
+    const c = params.get('contactSlug')
+    if (c) setFilterContactSlug(c)
+    const q = params.get('search')
+    if (q) {
+      setSearchInput(q)
+      setSearch(q)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Debounce the search field so typing doesn't fire a request per keystroke
   useEffect(() => {
-    loadOffers(filter)
-  }, [filter, loadOffers])
+    const t = setTimeout(() => setSearch(searchInput.trim()), 250)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  useEffect(() => {
+    loadOffers(filter, search, filterContactSlug, filterStatus)
+  }, [filter, search, filterContactSlug, filterStatus, loadOffers])
 
   useEffect(() => {
     fetch('/api/admin/contacts')
@@ -209,13 +247,39 @@ export default function OffersPage() {
         setSaving(false)
         return
       }
-      await loadOffers(filter)
+      await loadOffers(filter, search, filterContactSlug, filterStatus)
       closeEdit()
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen')
     } finally {
       setSaving(false)
     }
+  }
+
+  const askRestoreVersion = (o: OfferRow, versionNum: number) => {
+    setConfirm({
+      title: `Version v${versionNum} wiederherstellen?`,
+      text: `Der Inhalt von v${versionNum} wird als neue aktuelle Version (v${o.version + 1}) gespeichert. Die bisherige aktuelle Version bleibt im Verlauf erhalten.`,
+      busy: false,
+      action: async () => {
+        const res = await fetch(`/api/admin/offers/${o.id}/versions/${versionNum}/restore`, {
+          method: 'POST',
+        })
+        if (res.ok) {
+          // Force re-fetch of the versions list for this offer
+          setVersions((v) => {
+            const next = { ...v }
+            delete next[o.id]
+            return next
+          })
+          await loadOffers(filter, search, filterContactSlug, filterStatus)
+          setConfirm(null)
+        } else {
+          const data = await res.json().catch(() => ({}))
+          setConfirm((c) => (c ? { ...c, busy: false, text: data.error || c.text } : c))
+        }
+      },
+    })
   }
 
   const askArchive = (o: OfferRow) => {
@@ -226,7 +290,7 @@ export default function OffersPage() {
       action: async () => {
         const res = await fetch(`/api/admin/offers/${o.id}/archive`, { method: 'POST' })
         if (res.ok) {
-          await loadOffers(filter)
+          await loadOffers(filter, search, filterContactSlug, filterStatus)
           setConfirm(null)
         } else {
           setConfirm((c) => (c ? { ...c, busy: false } : c))
@@ -243,7 +307,7 @@ export default function OffersPage() {
       action: async () => {
         const res = await fetch(`/api/admin/offers/${o.id}/restore`, { method: 'POST' })
         if (res.ok) {
-          await loadOffers(filter)
+          await loadOffers(filter, search, filterContactSlug, filterStatus)
           setConfirm(null)
         } else {
           setConfirm((c) => (c ? { ...c, busy: false } : c))
@@ -274,8 +338,11 @@ export default function OffersPage() {
     if (s === 'DRAFT') return styles.statusDraft
     if (s === 'PRICED') return styles.statusPriced
     if (s === 'ACCEPTED') return styles.statusAccepted
+    if (s === 'DECLINED') return styles.statusDeclined
     return ''
   }
+  const statusLabel = (s: string): string =>
+    STATUS_LABELS[s as OfferStatus] || s
 
   const isArchived = filter === 'archived'
   const slugOrigin = typeof window !== 'undefined' ? `${window.location.origin}/o/` : '/o/'
@@ -300,6 +367,47 @@ export default function OffersPage() {
         >
           Archiv
         </button>
+      </div>
+
+      <div className={styles.filterRow}>
+        <input
+          className={styles.searchInput}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Suchen nach Kunde, Projekt oder Angebotsnummer …"
+        />
+        <select
+          className={styles.filterSelect}
+          value={filterContactSlug}
+          onChange={(e) => setFilterContactSlug(e.target.value)}
+        >
+          <option value="">Alle Accounter</option>
+          {contacts.map((c) => (
+            <option key={c.slug} value={c.slug}>{c.name}</option>
+          ))}
+        </select>
+        <select
+          className={styles.filterSelect}
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value as '' | OfferStatus)}
+        >
+          <option value="">Alle Status</option>
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+          ))}
+        </select>
+        {(search || filterContactSlug || filterStatus) && (
+          <button
+            className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+            onClick={() => {
+              setSearchInput('')
+              setFilterContactSlug('')
+              setFilterStatus('')
+            }}
+          >
+            Filter zurücksetzen
+          </button>
+        )}
       </div>
 
       <div className={styles.card}>
@@ -352,7 +460,7 @@ export default function OffersPage() {
                     </select>
                   </td>
                   <td>
-                    <span className={`${styles.statusPill} ${statusClass(o.status)}`}>{o.status}</span>
+                    <span className={`${styles.statusPill} ${statusClass(o.status)}`}>{statusLabel(o.status)}</span>
                   </td>
                   <td>
                     <span className={styles.versionBadge}>v{o.version}</span>
@@ -427,13 +535,7 @@ export default function OffersPage() {
                           <div style={{ color: '#888', fontSize: 13 }}>Laden...</div>
                         )}
                         {versions[o.id]?.map((v, i) => (
-                          <a
-                            key={v.id}
-                            href={`/o/${o.slug}?version=${v.version}`}
-                            target="_blank"
-                            className={styles.versionItem}
-                            style={{ textDecoration: 'none', color: 'inherit' }}
-                          >
+                          <div key={v.id} className={styles.versionItem}>
                             <span
                               className={`${styles.versionDot} ${i === 0 ? styles.versionDotCurrent : ''}`}
                             />
@@ -441,19 +543,38 @@ export default function OffersPage() {
                             <span className={styles.versionMeta}>
                               {v.changedBy} · {formatDateTime(v.createdAt)}
                             </span>
-                            <span
-                              style={{
-                                marginLeft: 'auto',
-                                color: '#FF1900',
-                                fontSize: 12,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                              }}
-                            >
-                              Öffnen <IconExternalLink size={11} color="#FF1900" />
-                            </span>
-                          </a>
+                            <div style={{ marginLeft: 'auto', display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+                              <button
+                                onClick={() => askRestoreVersion(o, v.version)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#888',
+                                  fontSize: 12,
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                }}
+                                title="Diese Version als neue aktuelle Version wiederherstellen"
+                              >
+                                ↺ Wiederherstellen
+                              </button>
+                              <a
+                                href={`/o/${o.slug}?version=${v.version}`}
+                                target="_blank"
+                                rel="noopener"
+                                style={{
+                                  color: '#FF1900',
+                                  fontSize: 12,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                Öffnen <IconExternalLink size={11} color="#FF1900" />
+                              </a>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </td>
@@ -561,13 +682,11 @@ export default function OffersPage() {
                   <select
                     className={styles.formInput}
                     value={form.status}
-                    onChange={(e) =>
-                      setField('status', e.target.value as 'DRAFT' | 'PRICED' | 'ACCEPTED')
-                    }
+                    onChange={(e) => setField('status', e.target.value as OfferStatus)}
                   >
-                    <option value="DRAFT">DRAFT (Entwurf)</option>
-                    <option value="PRICED">PRICED (Preise final)</option>
-                    <option value="ACCEPTED">ACCEPTED (angenommen)</option>
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                    ))}
                   </select>
                 </div>
               </div>

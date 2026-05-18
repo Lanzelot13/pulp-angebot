@@ -114,6 +114,19 @@ export interface LegalSection {
 
 export type OfferTemplate = 'TEMPLATE1' | 'TEMPLATE2'
 
+export type OfferStatus = 'DRAFT' | 'PRICED' | 'ACCEPTED' | 'DECLINED'
+
+// Display labels for offer status. Internal enum values stay in English (DRAFT etc.)
+// to avoid a destructive schema migration, German labels live in the UI.
+export const STATUS_LABELS: Record<OfferStatus, string> = {
+  DRAFT: 'Optionsfindung',
+  PRICED: 'Angebot',
+  ACCEPTED: 'Gewonnen',
+  DECLINED: 'Abgelehnt',
+}
+
+export const STATUS_OPTIONS: OfferStatus[] = ['DRAFT', 'PRICED', 'ACCEPTED', 'DECLINED']
+
 // === API request/response types ===
 
 export interface CreateOfferRequest {
