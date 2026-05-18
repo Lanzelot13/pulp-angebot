@@ -255,22 +255,36 @@ export async function createOffer(input: {
   deal_id?: number
   company_id: number
   date: string // YYYY-MM-DD
+  due_date?: string // YYYY-MM-DD, defaults to date + 14 days
   title: string
   recipient_address?: string
   currency?: string
   tax?: number
   items: MocoOfferItem[]
 }): Promise<MocoOffer> {
+  // Moco requires due_date for offers. Default to offer date + 14 days
+  const dueDate =
+    input.due_date && input.due_date.length > 0
+      ? input.due_date
+      : addDays(input.date, 14)
+
   return call<MocoOffer>('POST', '/offers', {
     deal_id: input.deal_id,
     company_id: input.company_id,
     date: input.date,
+    due_date: dueDate,
     title: input.title,
     recipient_address: input.recipient_address || '',
     currency: input.currency || 'EUR',
     tax: input.tax ?? 20,
     items: input.items,
   })
+}
+
+function addDays(yyyyMmDd: string, days: number): string {
+  const d = new Date(yyyyMmDd + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
 }
 
 export function offerWebUrl(offerId: number): string {

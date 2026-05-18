@@ -161,6 +161,7 @@ export default function OffersPage() {
   const [newLeadCategoryId, setNewLeadCategoryId] = useState<number | ''>('')
   const [newLeadMoney, setNewLeadMoney] = useState('')
   const [newLeadReminderDate, setNewLeadReminderDate] = useState('')
+  const [newLeadStatus, setNewLeadStatus] = useState<'potential' | 'pending' | 'won' | 'lost'>('pending')
   const [mocoError, setMocoError] = useState<string | null>(null)
   const [mocoBusy, setMocoBusy] = useState(false)
   const [packageSyncing, setPackageSyncing] = useState<number | null>(null)
@@ -532,7 +533,7 @@ export default function OffersPage() {
           user_id: Number(newLeadUserId),
           deal_category_id: Number(newLeadCategoryId),
           money: newLeadMoney ? Number(newLeadMoney) : 0,
-          status: 'potential',
+          status: newLeadStatus,
           reminder_date: newLeadReminderDate || undefined,
           closing_date: editingOffer.validUntil
             ? new Date(editingOffer.validUntil).toISOString().slice(0, 10)
@@ -1380,6 +1381,23 @@ export default function OffersPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Status in Moco</label>
+                <select
+                  className={styles.formInput}
+                  value={newLeadStatus}
+                  onChange={(e) =>
+                    setNewLeadStatus(
+                      e.target.value as 'potential' | 'pending' | 'won' | 'lost'
+                    )
+                  }
+                >
+                  <option value="potential">Kontaktmöglichkeit</option>
+                  <option value="pending">Angebot</option>
+                  <option value="won">Gewonnen</option>
+                  <option value="lost">Verloren</option>
+                </select>
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
