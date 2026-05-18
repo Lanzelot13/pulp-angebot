@@ -261,6 +261,8 @@ export async function createOffer(input: {
   recipient_address?: string
   currency?: string
   tax?: number
+  salutation?: string
+  closing_text?: string
   items: MocoOfferItem[]
 }): Promise<MocoOffer> {
   // Moco requires due_date for offers. Default to offer date + 14 days
@@ -278,6 +280,8 @@ export async function createOffer(input: {
     recipient_address: input.recipient_address || '',
     currency: input.currency || 'EUR',
     tax: input.tax ?? 20,
+    salutation: input.salutation,
+    closing_text: input.closing_text,
     items: input.items,
   })
 }

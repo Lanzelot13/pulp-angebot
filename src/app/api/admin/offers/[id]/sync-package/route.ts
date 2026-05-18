@@ -75,7 +75,7 @@ export async function POST(
   const descriptionParts: string[] = []
   if (pkg.description) descriptionParts.push(pkg.description)
   if (includedFeatures.length > 0) {
-    descriptionParts.push(includedFeatures.map((f) => `✓ ${f.text}`).join('\n'))
+    descriptionParts.push(includedFeatures.map((f) => `• ${f.text}`).join('\n'))
   }
   const packageDescription = descriptionParts.join('\n\n')
 
@@ -130,6 +130,18 @@ export async function POST(
     .filter(Boolean)
     .join('\n') || offer.clientCompany || 'Empfänger laut Kundenstamm'
 
+  // Salutation: short Pulpmedia-style intro shown under the headline in Moco's offer
+  const greetName = (offer.clientName || '').trim()
+  const greeting = greetName ? `Hallo ${greetName},` : 'Hallo,'
+  const salutation = [
+    greeting,
+    '',
+    `hier ist unser Angebot für ${offer.projectName}. Schau es dir in Ruhe an. Bei Fragen sind wir jederzeit für dich da.`,
+    '',
+    'Beste Grüße',
+    'Pulpmedia',
+  ].join('\n')
+
   try {
     const mocoOffer = await createOffer({
       deal_id: dealId,
@@ -137,6 +149,7 @@ export async function POST(
       date: today,
       title,
       recipient_address: recipientAddress,
+      salutation,
       currency: 'EUR',
       tax: 20,
       items,
