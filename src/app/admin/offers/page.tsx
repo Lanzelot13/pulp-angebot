@@ -340,7 +340,7 @@ export default function OffersPage() {
                   <td>{o.offerNumber || '–'}</td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <select
-                      value={o.template || 'TEMPLATE1'}
+                      value={o.template || 'TEMPLATE2'}
                       onChange={(e) =>
                         changeTemplate(o.id, e.target.value as 'TEMPLATE1' | 'TEMPLATE2')
                       }

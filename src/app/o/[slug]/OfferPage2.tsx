@@ -10,6 +10,12 @@ import type {
 import { DEFAULT_NOT_INCLUDED } from '@/lib/types'
 import styles from './offer2.module.css'
 
+// Available icons for understanding cards and stats. Used for the cycle button,
+// for auto-assigning when new items are added, and as a per-index fallback so
+// items without an explicit icon don't all look identical.
+const ICON_OPTIONS = ['pixel_heart', 'blume', 'blitz', 'smiley', 'explosion', 'skull', 'horn_hand']
+const iconByIndex = (i: number) => ICON_OPTIONS[i % ICON_OPTIONS.length]
+
 type OfferWithContact = Offer & { contact: Contact }
 
 interface OfferPage2Props {
@@ -612,8 +618,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       <button
                         className={styles.toolbarBtn}
                         onClick={() => {
-                          const icons = ['pixel_heart', 'blume', 'blitz', 'smiley', 'explosion', 'skull', 'horn_hand']
-                          const nextIcon = icons[(icons.indexOf(card.icon || 'pixel_heart') + 1) % icons.length]
+                          const current = card.icon || iconByIndex(i)
+                          const nextIcon = ICON_OPTIONS[(ICON_OPTIONS.indexOf(current) + 1) % ICON_OPTIONS.length]
                           const cards = [...understanding!.cards]
                           cards[i] = { ...cards[i], icon: nextIcon }
                           updateDraft('understanding', { ...understanding!, cards })
@@ -634,7 +640,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     </div>
                   )}
                   <div className={styles.cardIcon}>
-                    {renderIcon(card.icon || 'pixel_heart')}
+                    {renderIcon(card.icon || iconByIndex(i))}
                   </div>
                   <Editable
                     tag="h3"
@@ -662,7 +668,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             </div>
           )}
           <AddButton label="Karte hinzufügen" onClick={() => {
-            const cards = [...(understanding?.cards || []), { title: 'Neue Karte', text: 'Beschreibung' }]
+            const existing = understanding?.cards || []
+            const cards = [...existing, { title: 'Neue Karte', text: 'Beschreibung', icon: iconByIndex(existing.length) }]
             updateDraft('understanding', { ...(understanding || { headline: '', text: '' }), cards })
           }} />
         </section>
@@ -944,7 +951,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             addOns[ai] = { ...addOns[ai], name: v }
                             updateDraft('packages', { ...packages!, addOns })
                           }} style={{ fontFamily: 'Anton', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem' }} />
-                          {draft.status !== 'DRAFT' && addon.price !== null ? (
+                          {draft.status === 'DRAFT' ? (
+                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Preis nach gemeinsamer Abstimmung</div>
+                          ) : addon.price !== null ? (
                             <>
                               <div style={{ fontSize: '1rem', color: '#FF1900', marginBottom: '0.3rem' }}>
                                 {isEdit ? (
@@ -955,12 +964,38 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                                   }} placeholder="0" style={{ background: '#222', color: '#FF1900', border: '1px solid rgba(255,25,0,0.2)', padding: '0.3rem', width: '100%' }} />
                                 ) : formatPrice(addon.price)}
                               </div>
-                              <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>zzgl. 20% USt.</div>
+                              <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: isEdit ? '0.5rem' : '1rem' }}>zzgl. 20% USt.</div>
+                              {isEdit && (
+                                <button
+                                  className={styles.toggleBtn}
+                                  style={{ marginBottom: '1rem' }}
+                                  onClick={() => {
+                                    const addOns = [...(packages?.addOns || [])]
+                                    addOns[ai] = { ...addOns[ai], price: null }
+                                    updateDraft('packages', { ...packages!, addOns })
+                                  }}
+                                >
+                                  → Auf Anfrage
+                                </button>
+                              )}
                             </>
-                          ) : draft.status === 'DRAFT' ? (
-                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Preis nach gemeinsamer Abstimmung</div>
                           ) : (
-                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Auf Anfrage</div>
+                            <>
+                              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: isEdit ? '0.5rem' : '1rem' }}>Auf Anfrage</div>
+                              {isEdit && (
+                                <button
+                                  className={styles.toggleBtn}
+                                  style={{ marginBottom: '1rem' }}
+                                  onClick={() => {
+                                    const addOns = [...(packages?.addOns || [])]
+                                    addOns[ai] = { ...addOns[ai], price: 0 }
+                                    updateDraft('packages', { ...packages!, addOns })
+                                  }}
+                                >
+                                  → Preis setzen
+                                </button>
+                              )}
+                            </>
                           )}
                           <Editable tag="p" className="" value={addon.description} onSave={(v) => {
                             const addOns = [...(packages?.addOns || [])]
@@ -1162,8 +1197,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       className={styles.toolbarBtn}
                       onClick={() => {
                         const newStats = [...stats]
-                        const icons = ['explosion', 'skull', 'blume', 'blitz', 'smiley', 'pixel_heart', 'horn_hand']
-                        const nextIcon = icons[(icons.indexOf(stat.icon || 'explosion') + 1) % icons.length]
+                        const current = stat.icon || iconByIndex(i)
+                        const nextIcon = ICON_OPTIONS[(ICON_OPTIONS.indexOf(current) + 1) % ICON_OPTIONS.length]
                         newStats[i] = { ...newStats[i], icon: nextIcon }
                         updateDraft('stats', newStats)
                       }}
@@ -1183,7 +1218,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   </div>
                 )}
                 <div className={styles.statIcon}>
-                  {renderIcon(stat.icon || 'explosion')}
+                  {renderIcon(stat.icon || iconByIndex(i))}
                 </div>
                 <Editable tag="div" className={styles.statNumber} value={stat.number} onSave={(v) => {
                   const newStats = [...stats]
@@ -1204,7 +1239,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             ))}
           </div>
           <AddButton label="Kennzahl hinzufügen" onClick={() => {
-            const newStats = [...stats, { number: '0+', label: 'Label', detail: 'Detail' }]
+            const newStats = [...stats, { number: '0+', label: 'Label', detail: 'Detail', icon: iconByIndex(stats.length) }]
             updateDraft('stats', newStats)
           }} />
         </section>

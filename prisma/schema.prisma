@@ -64,7 +64,7 @@ model Offer {
   legal         Json?       // { paymentTerms }
 
   // Template
-  template      OfferTemplate @default(TEMPLATE1)
+  template      OfferTemplate @default(TEMPLATE2)
 
   // Version tracking
   version       Int         @default(1)
