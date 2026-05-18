@@ -705,6 +705,151 @@
   display: inline-block;
 }
 
+/* === MOCO-CARD im Modal === */
+.mocoCard {
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+.mocoCardHeader {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mocoRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.mocoRow:last-child { margin-bottom: 0; }
+.mocoLinked {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mocoLinkedLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.mocoLinkedValue {
+  flex: 1;
+  color: #111;
+}
+.mocoLinkedHint {
+  flex: 1;
+  font-size: 13px;
+  color: #888;
+}
+.mocoExternal {
+  color: #FF1900;
+  text-decoration: none;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mocoExternal:hover { text-decoration: underline; }
+
+.mocoSearchWrap { position: relative; flex: 1; }
+.mocoSearchDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.mocoSearchItem {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.mocoSearchItem:last-child { border-bottom: none; }
+.mocoSearchItem:hover { background: #fafafa; }
+.mocoSearchItem strong { display: block; color: #111; }
+.mocoSearchItem small { display: block; color: #888; font-size: 11px; margin-top: 2px; }
+.mocoSearchEmpty { padding: 12px; font-size: 13px; color: #888; text-align: center; }
+
+/* Package sync list */
+.mocoPackageList {
+  margin-top: 12px;
+  border-top: 1px solid #e5e5e5;
+  padding-top: 12px;
+}
+.mocoPackageRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+.mocoPackageRow:last-child { border-bottom: none; }
+.mocoPackageName {
+  flex: 1;
+  font-weight: 500;
+  color: #111;
+}
+.mocoPackagePrice {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #888;
+}
+.mocoSyncSynced {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #2e7d32;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Indicator in the offers table */
+.mocoIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #888;
+  font-family: 'JetBrains Mono', monospace;
+  text-decoration: none;
+  letter-spacing: 0.05em;
+}
+.mocoIndicator:hover { color: #FF1900; }
+.mocoIndicatorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+}
+.mocoIndicatorDotLinked { background: #4caf50; }
+
 /* === FILTER TOGGLE === */
 .filterBar {
   display: flex;

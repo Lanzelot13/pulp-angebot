@@ -15,6 +15,14 @@ import {
 import styles from '../admin.module.css'
 import { STATUS_LABELS, STATUS_OPTIONS, type OfferStatus } from '@/lib/types'
 
+interface PackageItemSlim {
+  name: string
+  price: number | null
+  priceUnit?: string
+  termMonths?: number | null
+  mocoOfferId?: number | null
+}
+
 interface OfferRow {
   id: string
   slug: string
@@ -32,6 +40,38 @@ interface OfferRow {
   createdAt: string
   contact: { name: string }
   _count: { versions: number }
+  // Moco
+  mocoRef: string | null
+  mocoCompanyId: string | null
+  mocoCompanyName: string | null
+  mocoLeadStatus: string | null
+  packages: { items?: PackageItemSlim[] } | null
+}
+
+interface MocoCompanyResult {
+  id: number
+  name: string
+  website?: string
+}
+
+interface MocoLeadResult {
+  id: number
+  name: string
+  status: string
+  money?: number
+  currency?: string
+  company?: { id: number; name: string }
+}
+
+interface MocoUser {
+  id: number
+  firstname: string
+  lastname: string
+}
+
+interface MocoDealCategory {
+  id: number
+  name: string
 }
 
 interface VersionRow {
@@ -101,6 +141,28 @@ export default function OffersPage() {
   const [form, setForm] = useState<MetaForm | null>(null)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Moco state
+  const MOCO_SUBDOMAIN = 'pulpmedia'
+  const [mocoCompanyQ, setMocoCompanyQ] = useState('')
+  const [mocoCompanyResults, setMocoCompanyResults] = useState<MocoCompanyResult[]>([])
+  const [mocoCompanySearching, setMocoCompanySearching] = useState(false)
+  const [mocoLeadQ, setMocoLeadQ] = useState('')
+  const [mocoLeadResults, setMocoLeadResults] = useState<MocoLeadResult[]>([])
+  const [mocoLeadSearching, setMocoLeadSearching] = useState(false)
+  const [mocoUsers, setMocoUsers] = useState<MocoUser[]>([])
+  const [mocoCategories, setMocoCategories] = useState<MocoDealCategory[]>([])
+  const [mocoStammdatenLoaded, setMocoStammdatenLoaded] = useState(false)
+  const [newCompanyOpen, setNewCompanyOpen] = useState(false)
+  const [newCompanyName, setNewCompanyName] = useState('')
+  const [newCompanyWebsite, setNewCompanyWebsite] = useState('')
+  const [newLeadOpen, setNewLeadOpen] = useState(false)
+  const [newLeadUserId, setNewLeadUserId] = useState<number | ''>('')
+  const [newLeadCategoryId, setNewLeadCategoryId] = useState<number | ''>('')
+  const [newLeadMoney, setNewLeadMoney] = useState('')
+  const [mocoError, setMocoError] = useState<string | null>(null)
+  const [mocoBusy, setMocoBusy] = useState(false)
+  const [packageSyncing, setPackageSyncing] = useState<number | null>(null)
 
   // Confirm dialog state (archive / restore / version-restore)
   const [confirm, setConfirm] = useState<{
@@ -253,6 +315,263 @@ export default function OffersPage() {
       setFormError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // === Moco helpers ===
+
+  const patchOfferFields = async (id: string, data: Record<string, unknown>) => {
+    const res = await fetch(`/api/admin/offers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      throw new Error(d.error || 'Update fehlgeschlagen')
+    }
+    return await res.json()
+  }
+
+  // Company live search (debounced)
+  useEffect(() => {
+    if (!editingOffer) return
+    const q = mocoCompanyQ.trim()
+    if (q.length < 2) {
+      setMocoCompanyResults([])
+      return
+    }
+    const t = setTimeout(async () => {
+      setMocoCompanySearching(true)
+      try {
+        const res = await fetch(`/api/admin/moco/companies?q=${encodeURIComponent(q)}`)
+        const data = await res.json().catch(() => [])
+        if (res.ok && Array.isArray(data)) setMocoCompanyResults(data)
+      } finally {
+        setMocoCompanySearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [mocoCompanyQ, editingOffer])
+
+  // Lead live search (debounced) — only relevant once a company is linked
+  useEffect(() => {
+    if (!editingOffer) return
+    const q = mocoLeadQ.trim()
+    if (q.length < 2) {
+      setMocoLeadResults([])
+      return
+    }
+    const t = setTimeout(async () => {
+      setMocoLeadSearching(true)
+      try {
+        const res = await fetch(`/api/admin/moco/leads?q=${encodeURIComponent(q)}`)
+        const data = await res.json().catch(() => [])
+        if (res.ok && Array.isArray(data)) setMocoLeadResults(data)
+      } finally {
+        setMocoLeadSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [mocoLeadQ, editingOffer])
+
+  const ensureMocoStammdaten = async () => {
+    if (mocoStammdatenLoaded) return
+    const res = await fetch('/api/admin/moco/stammdaten')
+    if (res.ok) {
+      const d = await res.json()
+      setMocoUsers(Array.isArray(d.users) ? d.users : [])
+      setMocoCategories(Array.isArray(d.dealCategories) ? d.dealCategories : [])
+      setMocoStammdatenLoaded(true)
+    }
+  }
+
+  const refreshOfferInList = (updated: Partial<OfferRow> & { id: string }) => {
+    setOffers((prev) =>
+      prev.map((o) => (o.id === updated.id ? ({ ...o, ...updated } as OfferRow) : o))
+    )
+    setEditingOffer((prev) => (prev && prev.id === updated.id ? ({ ...prev, ...updated } as OfferRow) : prev))
+  }
+
+  const linkCompany = async (c: MocoCompanyResult) => {
+    if (!editingOffer) return
+    setMocoBusy(true)
+    setMocoError(null)
+    try {
+      const updated = await patchOfferFields(editingOffer.id, {
+        mocoCompanyId: String(c.id),
+        mocoCompanyName: c.name,
+      })
+      refreshOfferInList({ id: editingOffer.id, mocoCompanyId: String(c.id), mocoCompanyName: c.name })
+      setMocoCompanyQ('')
+      setMocoCompanyResults([])
+      void updated
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Verknüpfen')
+    } finally {
+      setMocoBusy(false)
+    }
+  }
+
+  const unlinkCompany = async () => {
+    if (!editingOffer) return
+    setMocoBusy(true)
+    setMocoError(null)
+    try {
+      await patchOfferFields(editingOffer.id, {
+        mocoCompanyId: null,
+        mocoCompanyName: null,
+        // Also clear the lead because it depends on the company
+        mocoRef: null,
+        mocoLeadStatus: null,
+      })
+      refreshOfferInList({
+        id: editingOffer.id,
+        mocoCompanyId: null,
+        mocoCompanyName: null,
+        mocoRef: null,
+        mocoLeadStatus: null,
+      })
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Lösen')
+    } finally {
+      setMocoBusy(false)
+    }
+  }
+
+  const createCompanyInMoco = async () => {
+    if (!editingOffer) return
+    const name = newCompanyName.trim()
+    if (!name) return
+    setMocoBusy(true)
+    setMocoError(null)
+    try {
+      const res = await fetch('/api/admin/moco/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, website: newCompanyWebsite.trim() || undefined }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Anlegen fehlgeschlagen')
+      await linkCompany({ id: d.id, name: d.name })
+      setNewCompanyOpen(false)
+      setNewCompanyName('')
+      setNewCompanyWebsite('')
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Anlegen')
+    } finally {
+      setMocoBusy(false)
+    }
+  }
+
+  const linkLead = async (l: MocoLeadResult) => {
+    if (!editingOffer) return
+    setMocoBusy(true)
+    setMocoError(null)
+    try {
+      await patchOfferFields(editingOffer.id, {
+        mocoRef: String(l.id),
+        mocoLeadStatus: l.status,
+      })
+      refreshOfferInList({ id: editingOffer.id, mocoRef: String(l.id), mocoLeadStatus: l.status })
+      setMocoLeadQ('')
+      setMocoLeadResults([])
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Verknüpfen')
+    } finally {
+      setMocoBusy(false)
+    }
+  }
+
+  const unlinkLead = async () => {
+    if (!editingOffer) return
+    setMocoBusy(true)
+    setMocoError(null)
+    try {
+      await patchOfferFields(editingOffer.id, {
+        mocoRef: null,
+        mocoLeadStatus: null,
+      })
+      refreshOfferInList({ id: editingOffer.id, mocoRef: null, mocoLeadStatus: null })
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Lösen')
+    } finally {
+      setMocoBusy(false)
+    }
+  }
+
+  const openNewLeadDialog = async () => {
+    setMocoError(null)
+    await ensureMocoStammdaten()
+    setNewLeadOpen(true)
+  }
+
+  const createLeadInMoco = async () => {
+    if (!editingOffer) return
+    if (!editingOffer.mocoCompanyId) {
+      setMocoError('Bitte zuerst einen Kunden in Moco verknüpfen')
+      return
+    }
+    if (!newLeadUserId || !newLeadCategoryId) {
+      setMocoError('Bitte Accounter und Kategorie auswählen')
+      return
+    }
+    setMocoBusy(true)
+    setMocoError(null)
+    try {
+      const res = await fetch('/api/admin/moco/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editingOffer.projectName,
+          company_id: Number(editingOffer.mocoCompanyId),
+          user_id: Number(newLeadUserId),
+          deal_category_id: Number(newLeadCategoryId),
+          money: newLeadMoney ? Number(newLeadMoney) : 0,
+          status: 'potential',
+          closing_date: editingOffer.validUntil
+            ? new Date(editingOffer.validUntil).toISOString().slice(0, 10)
+            : undefined,
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Anlegen fehlgeschlagen')
+      await linkLead({ id: d.id, name: d.name, status: d.status })
+      setNewLeadOpen(false)
+      setNewLeadMoney('')
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Anlegen')
+    } finally {
+      setMocoBusy(false)
+    }
+  }
+
+  const syncPackage = async (packageIndex: number) => {
+    if (!editingOffer) return
+    setPackageSyncing(packageIndex)
+    setMocoError(null)
+    try {
+      const res = await fetch(`/api/admin/offers/${editingOffer.id}/sync-package`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageIndex }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Sync fehlgeschlagen')
+      // Update local cache of package mocoOfferId
+      if (editingOffer.packages?.items) {
+        const items = editingOffer.packages.items.map((it, idx) =>
+          idx === packageIndex ? { ...it, mocoOfferId: d.mocoOfferId as number } : it
+        )
+        refreshOfferInList({
+          id: editingOffer.id,
+          packages: { ...editingOffer.packages, items },
+        })
+      }
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Sync')
+    } finally {
+      setPackageSyncing(null)
     }
   }
 
@@ -422,6 +741,7 @@ export default function OffersPage() {
               <th>Version</th>
               <th>Kontakt</th>
               <th>Erstellt</th>
+              <th>Moco</th>
               <th>Aktionen</th>
             </tr>
           </thead>
@@ -467,6 +787,33 @@ export default function OffersPage() {
                   </td>
                   <td>{o.contact.name}</td>
                   <td>{formatDate(o.createdAt)}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {o.mocoRef ? (
+                      <a
+                        className={styles.mocoIndicator}
+                        href={`https://${MOCO_SUBDOMAIN}.mocoapp.com/deals/${o.mocoRef}`}
+                        target="_blank"
+                        rel="noopener"
+                        title={`Lead #${o.mocoRef}${o.mocoLeadStatus ? ` · ${o.mocoLeadStatus}` : ''}`}
+                      >
+                        <span className={`${styles.mocoIndicatorDot} ${styles.mocoIndicatorDotLinked}`} />
+                        Lead
+                      </a>
+                    ) : o.mocoCompanyId ? (
+                      <span
+                        className={styles.mocoIndicator}
+                        title="Kunde verknüpft, aber noch kein Lead"
+                      >
+                        <span className={styles.mocoIndicatorDot} />
+                        Kunde
+                      </span>
+                    ) : (
+                      <span className={styles.mocoIndicator} title="Nicht verknüpft">
+                        <span className={styles.mocoIndicatorDot} />
+                        offen
+                      </span>
+                    )}
+                  </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <div className={styles.actions}>
                       <a
@@ -525,7 +872,7 @@ export default function OffersPage() {
                 </tr>
                 {expandedId === o.id && (
                   <tr>
-                    <td colSpan={9} style={{ padding: 0 }}>
+                    <td colSpan={10} style={{ padding: 0 }}>
                       <div className={styles.versionsPanel}>
                         <h4>Versionshistorie</h4>
                         {versions[o.id]?.length === 0 && (
@@ -584,7 +931,7 @@ export default function OffersPage() {
             ))}
             {offers.length === 0 && (
               <tr>
-                <td colSpan={9} className={styles.emptyState}>
+                <td colSpan={10} className={styles.emptyState}>
                   <div className={styles.emptyText}>
                     {isArchived ? 'Keine archivierten Angebote' : 'Noch keine Angebote erstellt'}
                   </div>
@@ -726,6 +1073,193 @@ export default function OffersPage() {
                   </div>
                 )}
               </div>
+
+              {/* === MOCO-VERKNÜPFUNG === */}
+              <div className={styles.mocoCard}>
+                <div className={styles.mocoCardHeader}>Moco-Verknüpfung</div>
+                {mocoError && <div className={styles.formError}>{mocoError}</div>}
+
+                {/* Kunde */}
+                {editingOffer.mocoCompanyId ? (
+                  <div className={styles.mocoRow}>
+                    <div className={styles.mocoLinked}>
+                      <span className={styles.mocoLinkedLabel}>Kunde</span>
+                      <span className={styles.mocoLinkedValue}>
+                        {editingOffer.mocoCompanyName || `Company #${editingOffer.mocoCompanyId}`}
+                      </span>
+                      <a
+                        className={styles.mocoExternal}
+                        href={`https://${MOCO_SUBDOMAIN}.mocoapp.com/companies/${editingOffer.mocoCompanyId}`}
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        Öffnen <IconExternalLink size={11} color="#FF1900" />
+                      </a>
+                    </div>
+                    <button
+                      className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+                      onClick={unlinkCompany}
+                      disabled={mocoBusy}
+                    >
+                      Lösen
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.mocoRow}>
+                    <div className={styles.mocoSearchWrap}>
+                      <input
+                        className={styles.formInput}
+                        placeholder="Kunde in Moco suchen …"
+                        value={mocoCompanyQ}
+                        onChange={(e) => setMocoCompanyQ(e.target.value)}
+                      />
+                      {mocoCompanyQ.trim().length >= 2 && (
+                        <div className={styles.mocoSearchDropdown}>
+                          {mocoCompanySearching && (
+                            <div className={styles.mocoSearchEmpty}>Suche …</div>
+                          )}
+                          {!mocoCompanySearching && mocoCompanyResults.length === 0 && (
+                            <div className={styles.mocoSearchEmpty}>Keine Treffer</div>
+                          )}
+                          {mocoCompanyResults.map((c) => (
+                            <div
+                              key={c.id}
+                              className={styles.mocoSearchItem}
+                              onClick={() => linkCompany(c)}
+                            >
+                              <strong>{c.name}</strong>
+                              {c.website && <small>{c.website}</small>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+                      onClick={() => {
+                        setNewCompanyName(editingOffer.clientCompany || '')
+                        setNewCompanyOpen(true)
+                      }}
+                      disabled={mocoBusy}
+                    >
+                      Neu anlegen
+                    </button>
+                  </div>
+                )}
+
+                {/* Lead — only when company is linked */}
+                {editingOffer.mocoCompanyId && (
+                  editingOffer.mocoRef ? (
+                    <div className={styles.mocoRow}>
+                      <div className={styles.mocoLinked}>
+                        <span className={styles.mocoLinkedLabel}>Lead</span>
+                        <span className={styles.mocoLinkedValue}>
+                          #{editingOffer.mocoRef}
+                          {editingOffer.mocoLeadStatus && (
+                            <small style={{ marginLeft: 8, color: '#888' }}>
+                              ({editingOffer.mocoLeadStatus})
+                            </small>
+                          )}
+                        </span>
+                        <a
+                          className={styles.mocoExternal}
+                          href={`https://${MOCO_SUBDOMAIN}.mocoapp.com/deals/${editingOffer.mocoRef}`}
+                          target="_blank"
+                          rel="noopener"
+                        >
+                          Öffnen <IconExternalLink size={11} color="#FF1900" />
+                        </a>
+                      </div>
+                      <button
+                        className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+                        onClick={unlinkLead}
+                        disabled={mocoBusy}
+                      >
+                        Lösen
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.mocoRow}>
+                      <div className={styles.mocoSearchWrap}>
+                        <input
+                          className={styles.formInput}
+                          placeholder="Lead in Moco suchen …"
+                          value={mocoLeadQ}
+                          onChange={(e) => setMocoLeadQ(e.target.value)}
+                        />
+                        {mocoLeadQ.trim().length >= 2 && (
+                          <div className={styles.mocoSearchDropdown}>
+                            {mocoLeadSearching && (
+                              <div className={styles.mocoSearchEmpty}>Suche …</div>
+                            )}
+                            {!mocoLeadSearching && mocoLeadResults.length === 0 && (
+                              <div className={styles.mocoSearchEmpty}>Keine Treffer</div>
+                            )}
+                            {mocoLeadResults.map((l) => (
+                              <div
+                                key={l.id}
+                                className={styles.mocoSearchItem}
+                                onClick={() => linkLead(l)}
+                              >
+                                <strong>{l.name}</strong>
+                                <small>
+                                  {l.company?.name || ''} · {l.status}
+                                  {l.money ? ` · ${l.money.toLocaleString('de-AT')} ${l.currency || ''}` : ''}
+                                </small>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+                        onClick={openNewLeadDialog}
+                        disabled={mocoBusy}
+                      >
+                        Neu anlegen
+                      </button>
+                    </div>
+                  )
+                )}
+
+                {/* Package sync list — only when lead is linked */}
+                {editingOffer.mocoRef && editingOffer.packages?.items?.length ? (
+                  <div className={styles.mocoPackageList}>
+                    {editingOffer.packages.items.map((pkg, idx) => {
+                      const isSynced = !!pkg.mocoOfferId
+                      const isBusy = packageSyncing === idx
+                      return (
+                        <div key={idx} className={styles.mocoPackageRow}>
+                          <span className={styles.mocoPackageName}>{pkg.name}</span>
+                          <span className={styles.mocoPackagePrice}>
+                            {pkg.price != null
+                              ? `€ ${pkg.price.toLocaleString('de-AT')}${pkg.priceUnit ? ` ${pkg.priceUnit}` : ''}`
+                              : 'Auf Anfrage'}
+                          </span>
+                          {isSynced ? (
+                            <a
+                              className={styles.mocoSyncSynced}
+                              href={`https://${MOCO_SUBDOMAIN}.mocoapp.com/offers/${pkg.mocoOfferId}`}
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              ✓ in Moco · Öffnen
+                            </a>
+                          ) : (
+                            <button
+                              className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSmall}`}
+                              onClick={() => syncPackage(idx)}
+                              disabled={isBusy}
+                            >
+                              {isBusy ? 'Pusht …' : 'Als Offer anlegen'}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </div>
             </div>
             <div className={styles.modalFooter}>
               <button
@@ -741,6 +1275,132 @@ export default function OffersPage() {
                 disabled={saving}
               >
                 {saving ? 'Speichert …' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === NEUE COMPANY IN MOCO === */}
+      {newCompanyOpen && (
+        <div className={styles.modalOverlay} onClick={() => !mocoBusy && setNewCompanyOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Neuen Kunden in Moco anlegen</h2>
+              <button className={styles.modalClose} onClick={() => setNewCompanyOpen(false)}>
+                &times;
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {mocoError && <div className={styles.formError}>{mocoError}</div>}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Firmenname</label>
+                <input
+                  className={styles.formInput}
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  placeholder="z.B. alao AG"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Website (optional)</label>
+                <input
+                  className={styles.formInput}
+                  value={newCompanyWebsite}
+                  onChange={(e) => setNewCompanyWebsite(e.target.value)}
+                  placeholder="https://www.beispiel.at"
+                />
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setNewCompanyOpen(false)}
+                disabled={mocoBusy}
+              >
+                Abbrechen
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={createCompanyInMoco}
+                disabled={mocoBusy || !newCompanyName.trim()}
+              >
+                {mocoBusy ? 'Lege an …' : 'In Moco anlegen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === NEUER LEAD IN MOCO === */}
+      {newLeadOpen && editingOffer && (
+        <div className={styles.modalOverlay} onClick={() => !mocoBusy && setNewLeadOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Neuen Lead in Moco anlegen</h2>
+              <button className={styles.modalClose} onClick={() => setNewLeadOpen(false)}>
+                &times;
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {mocoError && <div className={styles.formError}>{mocoError}</div>}
+              <div className={styles.formHint} style={{ marginBottom: 16 }}>
+                Lead-Name wird auf <strong>{editingOffer.projectName}</strong> gesetzt,
+                Kunde auf <strong>{editingOffer.mocoCompanyName}</strong>.
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Accounter</label>
+                  <select
+                    className={styles.formInput}
+                    value={newLeadUserId}
+                    onChange={(e) => setNewLeadUserId(e.target.value ? Number(e.target.value) : '')}
+                  >
+                    <option value="">Bitte auswählen …</option>
+                    {mocoUsers.map((u) => (
+                      <option key={u.id} value={u.id}>{u.firstname} {u.lastname}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Kategorie</label>
+                  <select
+                    className={styles.formInput}
+                    value={newLeadCategoryId}
+                    onChange={(e) => setNewLeadCategoryId(e.target.value ? Number(e.target.value) : '')}
+                  >
+                    <option value="">Bitte auswählen …</option>
+                    {mocoCategories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Wert (EUR, optional)</label>
+                <input
+                  className={styles.formInput}
+                  type="number"
+                  value={newLeadMoney}
+                  onChange={(e) => setNewLeadMoney(e.target.value)}
+                  placeholder="z.B. 14000"
+                />
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setNewLeadOpen(false)}
+                disabled={mocoBusy}
+              >
+                Abbrechen
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={createLeadInMoco}
+                disabled={mocoBusy || !newLeadUserId || !newLeadCategoryId}
+              >
+                {mocoBusy ? 'Lege an …' : 'Lead in Moco anlegen'}
               </button>
             </div>
           </div>

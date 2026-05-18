@@ -36,8 +36,11 @@ model Offer {
   contactSlug   String
   contact       Contact     @relation(fields: [contactSlug], references: [slug])
 
-  // Optional Moco reference
-  mocoRef       String?
+  // Moco-Verknüpfung
+  mocoRef           String?   // Lead-ID in Moco
+  mocoCompanyId     String?   // Company-ID in Moco
+  mocoCompanyName   String?   // Cache des Company-Namens
+  mocoLeadStatus    String?   // Cache des Lead-Status zum Zeitpunkt der letzten Sync
 
   // Dates
   createdAt     DateTime    @default(now())

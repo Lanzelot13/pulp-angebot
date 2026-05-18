@@ -82,6 +82,19 @@ export async function PATCH(
       data.validUntil = d
     }
   }
+  // Moco-Verknüpfungs-Felder (alle optional, null leert)
+  if (body.mocoRef !== undefined) {
+    data.mocoRef = body.mocoRef === null || body.mocoRef === '' ? null : String(body.mocoRef)
+  }
+  if (body.mocoCompanyId !== undefined) {
+    data.mocoCompanyId = body.mocoCompanyId === null || body.mocoCompanyId === '' ? null : String(body.mocoCompanyId)
+  }
+  if (body.mocoCompanyName !== undefined) {
+    data.mocoCompanyName = body.mocoCompanyName === null || body.mocoCompanyName === '' ? null : String(body.mocoCompanyName)
+  }
+  if (body.mocoLeadStatus !== undefined) {
+    data.mocoLeadStatus = body.mocoLeadStatus === null || body.mocoLeadStatus === '' ? null : String(body.mocoLeadStatus)
+  }
   if (typeof body.slug === 'string') {
     const newSlug = normalizeSlug(body.slug)
     if (!newSlug) {

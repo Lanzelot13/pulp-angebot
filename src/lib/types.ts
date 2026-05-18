@@ -47,6 +47,8 @@ export interface PackageItem {
   // Both optional — leave empty for one-off packages.
   priceUnit?: string
   termMonths?: number | null
+  // Moco-Anbindung: ID des in Moco angelegten Offers, falls vorhanden
+  mocoOfferId?: number | null
 }
 
 export interface AddOnItem {
