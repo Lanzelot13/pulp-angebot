@@ -118,9 +118,11 @@ export interface MocoCompany {
   id: number
   type: 'customer' | 'supplier' | 'organization'
   name: string
+  address?: string | null
   country_code?: string
   website?: string
   email?: string
+  vat_identifier?: string | null
 }
 
 export interface MocoDeal {

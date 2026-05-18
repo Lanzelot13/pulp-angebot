@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
-import { createOffer, MocoError, type MocoOfferItem } from '@/lib/moco'
+import { createOffer, getCompany, MocoError, type MocoOfferItem } from '@/lib/moco'
 import type { PackagesSection, PackageItem, AddOnItem } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -70,14 +70,15 @@ export async function POST(
   const isYearly = pkg.priceUnit === '/ Jahr'
   const isRecurring = isMonthly || isQuarterly || isYearly
 
-  // Build description text: marketing text + bullet list of included features
+  // Build description text. Moco renders the description as HTML, so we use
+  // <br> for line breaks and a small list pattern for the features.
   const includedFeatures = (pkg.features || []).filter((f) => f.included)
   const descriptionParts: string[] = []
   if (pkg.description) descriptionParts.push(pkg.description)
   if (includedFeatures.length > 0) {
-    descriptionParts.push(includedFeatures.map((f) => `• ${f.text}`).join('\n'))
+    descriptionParts.push(includedFeatures.map((f) => `• ${f.text}`).join('<br>'))
   }
-  const packageDescription = descriptionParts.join('\n\n')
+  const packageDescription = descriptionParts.join('<br><br>')
 
   // Quantity + unit
   let quantity = 1
@@ -123,24 +124,21 @@ export async function POST(
 
   const title = `${offer.projectName} — ${pkg.name}`
 
-  // Moco requires recipient_address. We build a fallback from the client data
-  // we already have. Moco enriches it from the company record where possible.
-  const recipientAddress = [offer.clientCompany, offer.clientName]
-    .map((s) => (s || '').trim())
-    .filter(Boolean)
-    .join('\n') || offer.clientCompany || 'Empfänger laut Kundenstamm'
+  // Recipient address: use exactly what is stored on the Moco-Company. This
+  // avoids overwriting the address with the per-offer client name we have locally.
+  let recipientAddress = ''
+  try {
+    const company = await getCompany(Number(mocoCompanyId))
+    recipientAddress = (company.address || company.name || '').trim()
+  } catch {
+    recipientAddress = offer.clientCompany || ''
+  }
+  if (!recipientAddress) recipientAddress = offer.clientCompany || 'Empfänger laut Kundenstamm'
 
-  // Salutation: short Pulpmedia-style intro shown under the headline in Moco's offer
-  const greetName = (offer.clientName || '').trim()
-  const greeting = greetName ? `Hallo ${greetName},` : 'Hallo,'
-  const salutation = [
-    greeting,
-    '',
-    `hier ist unser Angebot für ${offer.projectName}. Schau es dir in Ruhe an. Bei Fragen sind wir jederzeit für dich da.`,
-    '',
-    'Beste Grüße',
-    'Pulpmedia',
-  ].join('\n')
+  // Moco renders the salutation as HTML, so we use <br> for line breaks.
+  const salutation =
+    'Sehr geehrte Damen und Herren,<br><br>' +
+    'vielen Dank für Ihre Anfrage. Gerne bieten wir wie folgt an:'
 
   try {
     const mocoOffer = await createOffer({
