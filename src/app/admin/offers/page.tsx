@@ -160,6 +160,7 @@ export default function OffersPage() {
   const [newLeadUserId, setNewLeadUserId] = useState<number | ''>('')
   const [newLeadCategoryId, setNewLeadCategoryId] = useState<number | ''>('')
   const [newLeadMoney, setNewLeadMoney] = useState('')
+  const [newLeadReminderDate, setNewLeadReminderDate] = useState('')
   const [mocoError, setMocoError] = useState<string | null>(null)
   const [mocoBusy, setMocoBusy] = useState(false)
   const [packageSyncing, setPackageSyncing] = useState<number | null>(null)
@@ -502,6 +503,9 @@ export default function OffersPage() {
 
   const openNewLeadDialog = async () => {
     setMocoError(null)
+    // Default reminder date: today + 14 days
+    const def = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    setNewLeadReminderDate(def)
     await ensureMocoStammdaten()
     setNewLeadOpen(true)
   }
@@ -529,6 +533,7 @@ export default function OffersPage() {
           deal_category_id: Number(newLeadCategoryId),
           money: newLeadMoney ? Number(newLeadMoney) : 0,
           status: 'potential',
+          reminder_date: newLeadReminderDate || undefined,
           closing_date: editingOffer.validUntil
             ? new Date(editingOffer.validUntil).toISOString().slice(0, 10)
             : undefined,
@@ -1376,15 +1381,26 @@ export default function OffersPage() {
                   </select>
                 </div>
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Wert (EUR, optional)</label>
-                <input
-                  className={styles.formInput}
-                  type="number"
-                  value={newLeadMoney}
-                  onChange={(e) => setNewLeadMoney(e.target.value)}
-                  placeholder="z.B. 14000"
-                />
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Wert (EUR, optional)</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    value={newLeadMoney}
+                    onChange={(e) => setNewLeadMoney(e.target.value)}
+                    placeholder="z.B. 14000"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Wiedervorlage</label>
+                  <input
+                    className={styles.formInput}
+                    type="date"
+                    value={newLeadReminderDate}
+                    onChange={(e) => setNewLeadReminderDate(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
             <div className={styles.modalFooter}>

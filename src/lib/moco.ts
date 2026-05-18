@@ -19,6 +19,59 @@ export class MocoError extends Error {
   }
 }
 
+/**
+ * Moco returns validation errors in several shapes:
+ *   { message: "..." }                                     — generic
+ *   { errors: { field: ["msg1", "msg2"] } }                — ActiveRecord style
+ *   { errors: [{ field, message }] }                       — alternative
+ *   "..."                                                  — plain text
+ * Plus arbitrary other shapes. This walker extracts a readable summary.
+ */
+function describeMocoError(parsed: unknown, status: number): string {
+  if (typeof parsed === 'string') return parsed.slice(0, 400)
+  if (!parsed || typeof parsed !== 'object') return `HTTP ${status}`
+
+  const obj = parsed as Record<string, unknown>
+
+  if (typeof obj.message === 'string') return obj.message
+
+  const errors = obj.errors
+  if (Array.isArray(errors)) {
+    const parts = errors
+      .map((e) => {
+        if (typeof e === 'string') return e
+        if (e && typeof e === 'object') {
+          const ee = e as Record<string, unknown>
+          if (typeof ee.message === 'string') {
+            return ee.field ? `${ee.field}: ${ee.message}` : ee.message
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
+    if (parts.length > 0) return parts.join(' · ')
+  }
+
+  if (errors && typeof errors === 'object') {
+    const parts: string[] = []
+    for (const [field, msgs] of Object.entries(errors as Record<string, unknown>)) {
+      if (Array.isArray(msgs)) {
+        parts.push(`${field}: ${msgs.join(', ')}`)
+      } else if (typeof msgs === 'string') {
+        parts.push(`${field}: ${msgs}`)
+      }
+    }
+    if (parts.length > 0) return parts.join(' · ')
+  }
+
+  // Last resort: stringify
+  try {
+    return JSON.stringify(parsed).slice(0, 400)
+  } catch {
+    return `HTTP ${status}`
+  }
+}
+
 function baseUrl(): string {
   return `https://${SUBDOMAIN}.mocoapp.com/api/v1`
 }
@@ -53,12 +106,7 @@ async function call<T = unknown>(
     }
   }
   if (!res.ok) {
-    const detail =
-      typeof parsed === 'object' && parsed && 'message' in (parsed as Record<string, unknown>)
-        ? String((parsed as Record<string, unknown>).message)
-        : typeof parsed === 'string'
-        ? parsed.slice(0, 300)
-        : `HTTP ${res.status}`
+    const detail = describeMocoError(parsed, res.status)
     throw new MocoError(`Moco-API antwortet ${res.status}: ${detail}`, res.status, parsed)
   }
   return parsed as T
@@ -170,6 +218,13 @@ export async function createDeal(input: {
   reminder_date?: string
   info?: string
 }): Promise<MocoDeal> {
+  // reminder_date is required by Moco for deals. Default to today + 14 days
+  // when the caller didn't supply one, so the UI can keep it optional.
+  const reminder =
+    input.reminder_date && input.reminder_date.length > 0
+      ? input.reminder_date
+      : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
   return call<MocoDeal>('POST', '/deals', {
     name: input.name,
     company_id: input.company_id,
@@ -178,7 +233,7 @@ export async function createDeal(input: {
     money: input.money,
     currency: input.currency || 'EUR',
     status: input.status || 'potential',
-    reminder_date: input.reminder_date,
+    reminder_date: reminder,
     closing_date: input.closing_date,
     info: input.info,
   })
