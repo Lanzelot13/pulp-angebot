@@ -558,6 +558,36 @@ export default function OffersPage() {
     }
   }
 
+  const unlinkPackage = async (packageIndex: number) => {
+    if (!mocoOffer) return
+    setPackageSyncing(packageIndex)
+    setMocoError(null)
+    try {
+      const res = await fetch(`/api/admin/offers/${mocoOffer.id}/unlink-package`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageIndex }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || 'Lösen fehlgeschlagen')
+      }
+      if (mocoOffer.packages?.items) {
+        const items = mocoOffer.packages.items.map((it, idx) =>
+          idx === packageIndex ? { ...it, mocoOfferId: null } : it
+        )
+        refreshOfferInList({
+          id: mocoOffer.id,
+          packages: { ...mocoOffer.packages, items },
+        })
+      }
+    } catch (e) {
+      setMocoError(e instanceof Error ? e.message : 'Fehler beim Lösen')
+    } finally {
+      setPackageSyncing(null)
+    }
+  }
+
   const syncPackage = async (packageIndex: number) => {
     if (!mocoOffer) return
     setPackageSyncing(packageIndex)
@@ -1301,14 +1331,32 @@ export default function OffersPage() {
                             : 'Auf Anfrage'}
                         </span>
                         {isSynced ? (
-                          <a
-                            className={styles.mocoSyncSynced}
-                            href={`https://${MOCO_SUBDOMAIN}.mocoapp.com/offers/${pkg.mocoOfferId}`}
-                            target="_blank"
-                            rel="noopener"
-                          >
-                            ✓ in Moco · Öffnen
-                          </a>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                            <a
+                              className={styles.mocoSyncSynced}
+                              href={`https://${MOCO_SUBDOMAIN}.mocoapp.com/offers/${pkg.mocoOfferId}`}
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              ✓ in Moco · Öffnen
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => unlinkPackage(idx)}
+                              disabled={isBusy}
+                              title="Verknüpfung lösen. Das Moco-Offer bleibt erhalten, das Paket kann erneut gepusht werden."
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#888',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                padding: 0,
+                              }}
+                            >
+                              {isBusy ? 'Löse …' : 'Lösen'}
+                            </button>
+                          </span>
                         ) : (
                           <button
                             className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSmall}`}
