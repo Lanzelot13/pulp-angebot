@@ -58,10 +58,11 @@ export async function POST(
     return NextResponse.json({ error: 'Paket nicht gefunden' }, { status: 404 })
   }
 
-  // Build offer items
+  // Build offer items. Moco requires quantity + unit for every item-row,
+  // even for one-off positions. We use type: 'item' uniformly and only fall
+  // back to title/separator rows for headlines.
   const items: MocoOfferItem[] = []
 
-  // Main package as title + lump sum (or item with quantity for monthly recurring)
   const isMonthly = pkg.priceUnit === '/ Monat'
   const isQuarterly = pkg.priceUnit === '/ Quartal'
   const isYearly = pkg.priceUnit === '/ Jahr'
@@ -70,9 +71,6 @@ export async function POST(
   items.push({ type: 'title', title: pkg.name })
 
   if (isRecurring && pkg.termMonths && pkg.termMonths > 0) {
-    // Monthly: quantity = months
-    // Quarterly: quantity = months / 3
-    // Yearly: quantity = months / 12
     const divisor = isMonthly ? 1 : isQuarterly ? 3 : 12
     const quantity = pkg.termMonths / divisor
     const unit = isMonthly ? 'Monat' : isQuarterly ? 'Quartal' : 'Jahr'
@@ -85,13 +83,14 @@ export async function POST(
     })
   } else {
     items.push({
-      type: 'lump_sum',
+      type: 'item',
       title: pkg.description || pkg.name,
+      quantity: 1,
+      unit: 'Pauschale',
       unit_price: pkg.price ?? 0,
     })
   }
 
-  // Add-Ons as separate positions
   if (includeAddOns && packages?.addOns?.length) {
     const visibleAddOns = packages.addOns.filter(
       (a: AddOnItem) => a.price !== null && a.price !== undefined
@@ -100,8 +99,10 @@ export async function POST(
       items.push({ type: 'separator', title: 'Add-Ons' })
       for (const a of visibleAddOns) {
         items.push({
-          type: 'lump_sum',
-          title: `${a.name}${a.description ? ` — ${a.description}` : ''}`,
+          type: 'item',
+          title: `${a.name}${a.description ? ' — ' + a.description : ''}`,
+          quantity: 1,
+          unit: 'Pauschale',
           unit_price: a.price ?? 0,
         })
       }
@@ -113,12 +114,20 @@ export async function POST(
 
   const title = `${offer.projectName} — ${pkg.name}`
 
+  // Moco requires recipient_address. We build a fallback from the client data
+  // we already have. Moco enriches it from the company record where possible.
+  const recipientAddress = [offer.clientCompany, offer.clientName]
+    .map((s) => (s || '').trim())
+    .filter(Boolean)
+    .join('\n') || offer.clientCompany || 'Empfänger laut Kundenstamm'
+
   try {
     const mocoOffer = await createOffer({
       deal_id: dealId,
       company_id: Number(mocoCompanyId),
       date: today,
       title,
+      recipient_address: recipientAddress,
       currency: 'EUR',
       tax: 20,
       items,
