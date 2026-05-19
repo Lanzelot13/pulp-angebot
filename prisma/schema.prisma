@@ -19,6 +19,12 @@ enum OfferTemplate {
   TEMPLATE2
 }
 
+enum PitchStatus {
+  DRAFT
+  SENT
+  ARCHIVED
+}
+
 model Offer {
   id            String      @id @default(cuid())
   slug          String      @unique
@@ -99,6 +105,7 @@ model Contact {
   email     String
   avatarUrl String?
   offers    Offer[]
+  pitches   Pitch[]
 }
 
 model Reference {
@@ -117,4 +124,73 @@ model Channel {
   platform  String   @default("") // "instagram", "facebook", "linkedin", etc. (auto-detected from URL)
   url       String                // "https://www.instagram.com/efkoat/"
   sortOrder Int      @default(0)
+}
+
+// ============================================================
+// Pitches – Agenturpräsentationen pro Kunde
+// ============================================================
+//
+// Eine Pitch-Seite ist eine modular zusammengestellte Agentur-
+// präsentation, die nach dem Erstgespräch an den Kunden geschickt
+// wird. Module sind global wiederverwendbar (Pulpies-Folie, Service-
+// Detail, Stats, ...), werden aber beim Hinzufügen zum Pitch
+// statisch reinkopiert (Snapshot), damit spätere Änderungen am
+// globalen Modul die bestehende Pitch nicht "live" verändern.
+// Per Button kann jederzeit auf die aktuelle Version aktualisiert
+// werden.
+
+model Pitch {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  status          PitchStatus @default(DRAFT)
+
+  // Kunde / Anlass
+  clientCompany   String                  // "Fronius International GmbH"
+  occasion        String?                 // "Erstgespräch", "Pitch", "Reminder", ...
+
+  // Pulpmedia-Kontakt
+  contactSlug     String
+  contact         Contact     @relation(fields: [contactSlug], references: [slug])
+
+  // Dates
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  archivedAt      DateTime?
+
+  // Edit token (analog zum Offer)
+  editToken       String      @unique @default(cuid())
+
+  // Module-Snapshots: geordnete Liste aller in der Pitch verwendeten Module.
+  // Struktur pro Eintrag: {
+  //   instanceId: string,        // eindeutige ID innerhalb der Pitch
+  //   moduleId: string | null,   // Referenz auf PitchModule.id (null = custom block)
+  //   type: string,              // "hero", "team-grid", "service-detail", ...
+  //   name: string,              // Anzeigename
+  //   content: Json,             // Eingefrorener Inhalt zum Zeitpunkt des Hinzufügens
+  //   sourceUpdatedAt: string,   // updatedAt des Quellmoduls bei Snapshot (für "Update verfügbar"-Check)
+  //   sortOrder: number
+  // }
+  modules         Json        @default("[]")
+
+  @@index([status])
+  @@index([contactSlug])
+  @@index([archivedAt])
+}
+
+model PitchModule {
+  id          String   @id @default(cuid())
+  type        String                // "hero", "manifest", "stats-grid", "team-grid",
+                                    // "fun-facts", "services-grid", "service-detail",
+                                    // "video", "image", "text", "outro"
+  name        String                // sprechender Name, z.B. "Pulpies Standard", "Service: Hero Videos"
+  description String?               // interne Notiz, was das Modul ist und wann man es nutzt
+  content     Json                  // Typ-spezifischer Inhalt (Struktur variiert je nach type)
+  createdBy   String                // Moco-Userslug oder Name
+  sortOrder   Int      @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([archivedAt])
 }

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
-import { IconDashboard, IconFileText, IconUser, IconBuilding, IconShare2, IconLogout } from './Icons'
+import { IconDashboard, IconFileText, IconUser, IconBuilding, IconShare2, IconLogout, IconPresentation, IconLayers } from './Icons'
 import styles from './admin.module.css'
 
 interface User {
@@ -58,6 +58,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const nav = [
     { href: '/admin', label: 'Dashboard', icon: <IconDashboard size={18} /> },
     { href: '/admin/offers', label: 'Angebote', icon: <IconFileText size={18} /> },
+    { href: '/admin/pitches', label: 'Pitches', icon: <IconPresentation size={18} /> },
+    { href: '/admin/modules', label: 'Module', icon: <IconLayers size={18} /> },
     { href: '/admin/contacts', label: 'Ansprechpersonen', icon: <IconUser size={18} /> },
     { href: '/admin/references', label: 'Referenzen', icon: <IconBuilding size={18} /> },
     { href: '/admin/channels', label: 'Kanäle', icon: <IconShare2 size={18} /> },

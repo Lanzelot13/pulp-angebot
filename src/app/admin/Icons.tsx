@@ -176,6 +176,27 @@ export function IconExternalLink({ size = 20, color = 'currentColor' }) {
   )
 }
 
+export function IconPresentation({ size = 20, color = 'currentColor' }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h20" />
+      <rect x="3" y="3" width="18" height="13" rx="1" />
+      <path d="M8 21l4-5 4 5" />
+      <path d="M12 16v-3" />
+    </svg>
+  )
+}
+
+export function IconLayers({ size = 20, color = 'currentColor' }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  )
+}
+
 // Social Network Icons
 export function IconInstagram({ size = 20, color = 'currentColor' }) {
   return (

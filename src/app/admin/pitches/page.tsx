@@ -1,0 +1,461 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { AdminShell } from '../AdminShell'
+import {
+  IconEye,
+  IconEdit,
+  IconLink,
+  IconCheck,
+  IconArchive,
+  IconArchiveRestore,
+  IconPlus,
+} from '../Icons'
+import styles from '../admin.module.css'
+
+interface PitchRow {
+  id: string
+  slug: string
+  status: 'DRAFT' | 'SENT' | 'ARCHIVED'
+  clientCompany: string
+  occasion: string | null
+  contactSlug: string
+  contact: { name: string; slug: string }
+  editToken: string
+  modules: unknown[]
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface ContactOption {
+  slug: string
+  name: string
+  role: string
+}
+
+type Filter = 'active' | 'archived'
+
+const STATUS_LABELS: Record<PitchRow['status'], string> = {
+  DRAFT: 'Entwurf',
+  SENT: 'Versendet',
+  ARCHIVED: 'Archiv',
+}
+
+export default function PitchesPage() {
+  const [pitches, setPitches] = useState<PitchRow[]>([])
+  const [contacts, setContacts] = useState<ContactOption[]>([])
+  const [filter, setFilter] = useState<Filter>('active')
+  const [copied, setCopied] = useState<string | null>(null)
+
+  // Create modal
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    clientCompany: '',
+    occasion: 'Erstgespräch',
+    contactSlug: '',
+  })
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+
+  // Confirm dialog (archive/restore/delete)
+  const [confirm, setConfirm] = useState<{
+    title: string
+    text: string
+    busy: boolean
+    action: () => Promise<void>
+  } | null>(null)
+
+  const load = useCallback(async (f: Filter) => {
+    const res = await fetch(
+      `/api/admin/pitches?archived=${f === 'archived' ? 'true' : 'false'}`
+    )
+    if (res.ok) {
+      const d = await res.json()
+      if (Array.isArray(d)) setPitches(d)
+    }
+  }, [])
+
+  useEffect(() => {
+    load(filter)
+  }, [filter, load])
+
+  useEffect(() => {
+    fetch('/api/admin/contacts')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => {
+        if (Array.isArray(d)) {
+          setContacts(d)
+          setCreateForm((f) => ({
+            ...f,
+            contactSlug: f.contactSlug || d[0]?.slug || '',
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const copyLink = (slug: string) => {
+    const url = `${window.location.origin}/p/${slug}`
+    navigator.clipboard.writeText(url)
+    setCopied(slug)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  const handleCreate = async () => {
+    if (!createForm.clientCompany.trim()) {
+      setCreateError('Bitte gib den Kundenfirma-Namen ein')
+      return
+    }
+    if (!createForm.contactSlug) {
+      setCreateError('Bitte wähle einen Pulpmedia-Kontakt')
+      return
+    }
+    setCreating(true)
+    setCreateError(null)
+    const res = await fetch('/api/admin/pitches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientCompany: createForm.clientCompany.trim(),
+        occasion: createForm.occasion.trim() || null,
+        contactSlug: createForm.contactSlug,
+      }),
+    })
+    setCreating(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setCreateError(d.error || 'Anlegen fehlgeschlagen')
+      return
+    }
+    const created = await res.json()
+    setCreateOpen(false)
+    setCreateForm({ clientCompany: '', occasion: 'Erstgespräch', contactSlug: contacts[0]?.slug || '' })
+    // Jump straight into the edit page so the user can start composing
+    window.location.href = `/admin/pitches/${created.id}`
+  }
+
+  const askArchive = (p: PitchRow) => {
+    setConfirm({
+      title: 'Pitch archivieren?',
+      text: `"${p.clientCompany}" wird ins Archiv verschoben. Die Kunden-URL ist danach nicht mehr erreichbar.`,
+      busy: false,
+      action: async () => {
+        const res = await fetch(`/api/admin/pitches/${p.id}/archive`, {
+          method: 'POST',
+        })
+        if (res.ok) {
+          await load(filter)
+          setConfirm(null)
+        }
+      },
+    })
+  }
+
+  const askRestore = (p: PitchRow) => {
+    setConfirm({
+      title: 'Pitch wiederherstellen?',
+      text: `"${p.clientCompany}" wird aus dem Archiv zurückgeholt.`,
+      busy: false,
+      action: async () => {
+        const res = await fetch(`/api/admin/pitches/${p.id}/restore`, {
+          method: 'POST',
+        })
+        if (res.ok) {
+          await load(filter)
+          setConfirm(null)
+        }
+      },
+    })
+  }
+
+  const askDelete = (p: PitchRow) => {
+    setConfirm({
+      title: 'Pitch endgültig löschen?',
+      text: `"${p.clientCompany}" wird unwiderruflich gelöscht. Die Modul-Snapshots gehen verloren.`,
+      busy: false,
+      action: async () => {
+        const res = await fetch(`/api/admin/pitches/${p.id}`, { method: 'DELETE' })
+        if (res.ok) {
+          await load(filter)
+          setConfirm(null)
+        }
+      },
+    })
+  }
+
+  const runConfirm = async () => {
+    if (!confirm) return
+    setConfirm({ ...confirm, busy: true })
+    await confirm.action()
+  }
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('de-AT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+
+  const isArchived = filter === 'archived'
+
+  return (
+    <AdminShell>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Pitches</h1>
+        <div className={styles.pageSub}>
+          Agenturpräsentationen für Erstgespräche. Pro Termin zusammengestellt
+          aus globalen Modulen plus optionalen Custom-Blöcken.
+        </div>
+      </div>
+
+      <div className={styles.filterBar}>
+        <button
+          className={`${styles.filterTab} ${filter === 'active' ? styles.filterTabActive : ''}`}
+          onClick={() => setFilter('active')}
+        >
+          Aktiv
+        </button>
+        <button
+          className={`${styles.filterTab} ${filter === 'archived' ? styles.filterTabActive : ''}`}
+          onClick={() => setFilter('archived')}
+        >
+          Archiv
+        </button>
+      </div>
+
+      <div className={styles.sectionHeader}>
+        <div className={styles.sectionTitle}>
+          {isArchived ? 'Archivierte Pitches' : 'Alle Pitches'}
+        </div>
+        {!isArchived && (
+          <button
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            onClick={() => setCreateOpen(true)}
+          >
+            <IconPlus size={14} /> Neue Pitch
+          </button>
+        )}
+      </div>
+
+      <div className={styles.card}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Kunde / Anlass</th>
+              <th>Status</th>
+              <th>Module</th>
+              <th>Kontakt</th>
+              <th>Erstellt</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pitches.map((p) => (
+              <tr
+                key={p.id}
+                className={p.archivedAt ? styles.archivedRow : ''}
+              >
+                <td>
+                  <strong>{p.clientCompany}</strong>
+                  {p.archivedAt && (
+                    <span className={styles.archivedBadge}>Archiv</span>
+                  )}
+                  <br />
+                  <span style={{ fontSize: 13, color: '#888' }}>
+                    {p.occasion || 'Pitch'}
+                  </span>
+                </td>
+                <td>
+                  <span className={styles.tag}>{STATUS_LABELS[p.status]}</span>
+                </td>
+                <td>{Array.isArray(p.modules) ? p.modules.length : 0}</td>
+                <td>{p.contact?.name || p.contactSlug}</td>
+                <td>{formatDate(p.createdAt)}</td>
+                <td>
+                  <div className={styles.actions}>
+                    <a
+                      href={`/p/${p.slug}`}
+                      target="_blank"
+                      rel="noopener"
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      title="Kundenansicht"
+                    >
+                      <IconEye size={14} />
+                    </a>
+                    <a
+                      href={`/admin/pitches/${p.id}`}
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      title="Bearbeiten"
+                    >
+                      <IconEdit size={14} />
+                    </a>
+                    <button
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      onClick={() => copyLink(p.slug)}
+                      title="Kunden-Link kopieren"
+                    >
+                      {copied === p.slug ? (
+                        <IconCheck size={14} color="#22c55e" />
+                      ) : (
+                        <IconLink size={14} />
+                      )}
+                    </button>
+                    {p.archivedAt ? (
+                      <button
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                        onClick={() => askRestore(p)}
+                        title="Wiederherstellen"
+                      >
+                        <IconArchiveRestore size={14} />
+                      </button>
+                    ) : (
+                      <button
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`}
+                        onClick={() => askArchive(p)}
+                        title="Archivieren"
+                      >
+                        <IconArchive size={14} />
+                      </button>
+                    )}
+                    {p.archivedAt && (
+                      <button
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall} ${styles.btnDanger}`}
+                        onClick={() => askDelete(p)}
+                        title="Endgültig löschen"
+                      >
+                        Löschen
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {pitches.length === 0 && (
+              <tr>
+                <td colSpan={6} className={styles.emptyState}>
+                  <div className={styles.emptyText}>
+                    {isArchived
+                      ? 'Keine archivierten Pitches'
+                      : 'Noch keine Pitches. Leg deine erste an.'}
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {createOpen && (
+        <div className={styles.modalOverlay} onClick={() => !creating && setCreateOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Neue Pitch anlegen</h2>
+              <button
+                className={styles.modalClose}
+                onClick={() => setCreateOpen(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {createError && (
+                <div className={styles.formError}>{createError}</div>
+              )}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Kundenfirma</label>
+                <input
+                  className={styles.formInput}
+                  value={createForm.clientCompany}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({
+                      ...f,
+                      clientCompany: e.target.value,
+                    }))
+                  }
+                  placeholder="z.B. Fronius International GmbH"
+                  autoFocus
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Anlass</label>
+                <input
+                  className={styles.formInput}
+                  value={createForm.occasion}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, occasion: e.target.value }))
+                  }
+                  placeholder="z.B. Erstgespräch, Pitch, Reminder"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Pulpmedia-Kontakt</label>
+                <select
+                  className={styles.formInput}
+                  value={createForm.contactSlug}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({
+                      ...f,
+                      contactSlug: e.target.value,
+                    }))
+                  }
+                >
+                  {contacts.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.name}
+                      {c.role ? ` — ${c.role}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setCreateOpen(false)}
+                disabled={creating}
+              >
+                Abbrechen
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handleCreate}
+                disabled={creating}
+              >
+                {creating ? 'Lege an …' : 'Anlegen & bearbeiten'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirm && (
+        <div
+          className={styles.confirmOverlay}
+          onClick={() => !confirm.busy && setConfirm(null)}
+        >
+          <div className={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
+            <h3>{confirm.title}</h3>
+            <p>{confirm.text}</p>
+            <div className={styles.confirmActions}>
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setConfirm(null)}
+                disabled={confirm.busy}
+              >
+                Abbrechen
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={runConfirm}
+                disabled={confirm.busy}
+              >
+                {confirm.busy ? 'Bitte warten …' : 'Bestätigen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminShell>
+  )
+}
