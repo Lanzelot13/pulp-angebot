@@ -705,6 +705,29 @@
   display: inline-block;
 }
 
+/* === BULK ACTION BAR === */
+.bulkBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff0ee;
+  border: 1px solid #FF1900;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.bulkBarLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #FF1900;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-right: auto;
+}
+
+/* Highlight selected rows in the offers table */
+.selectedRow td { background: #fff7f5; }
+
 /* === MOCO-CARD im Modal === */
 .mocoCard {
   background: #fafafa;

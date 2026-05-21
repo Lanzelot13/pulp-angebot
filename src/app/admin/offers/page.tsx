@@ -142,6 +142,10 @@ export default function OffersPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
+
   // Moco state
   const MOCO_SUBDOMAIN = 'pulpmedia'
   const [mocoOffer, setMocoOffer] = useState<OfferRow | null>(null)
@@ -617,6 +621,59 @@ export default function OffersPage() {
     }
   }
 
+  // === Bulk selection ===
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (prev.size === offers.length && offers.length > 0) return new Set()
+      return new Set(offers.map((o) => o.id))
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const askBulkArchive = () => {
+    const count = selectedIds.size
+    if (count === 0) return
+    setConfirm({
+      title: `${count} Angebote archivieren?`,
+      text: `Alle ausgewählten Angebote werden ins Archiv verschoben. Du findest sie weiterhin im Archiv-Tab und kannst sie einzeln wiederherstellen.`,
+      busy: false,
+      action: async () => {
+        setBulkBusy(true)
+        try {
+          const res = await fetch('/api/admin/offers/bulk-archive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: Array.from(selectedIds) }),
+          })
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}))
+            throw new Error(d.error || 'Bulk-Archive fehlgeschlagen')
+          }
+          clearSelection()
+          await loadOffers(filter, search, filterContactSlug, filterStatus)
+          setConfirm(null)
+        } catch (e) {
+          setConfirm((c) =>
+            c ? { ...c, busy: false, text: e instanceof Error ? e.message : c.text } : c
+          )
+        } finally {
+          setBulkBusy(false)
+        }
+      },
+    })
+  }
+
   const askRestoreVersion = (o: OfferRow, versionNum: number) => {
     setConfirm({
       title: `Version v${versionNum} wiederherstellen?`,
@@ -771,10 +828,45 @@ export default function OffersPage() {
         )}
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className={styles.bulkBar}>
+          <span className={styles.bulkBarLabel}>
+            {selectedIds.size} ausgewählt
+          </span>
+          <button
+            className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+            onClick={clearSelection}
+          >
+            Auswahl aufheben
+          </button>
+          <button
+            className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSmall}`}
+            onClick={askBulkArchive}
+            disabled={bulkBusy}
+          >
+            {bulkBusy ? 'Archiviert …' : 'Ausgewählte archivieren'}
+          </button>
+        </div>
+      )}
+
       <div className={styles.card}>
         <table className={styles.table}>
           <thead>
             <tr>
+              <th style={{ width: 30 }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size > 0 && selectedIds.size === offers.length}
+                  ref={(el) => {
+                    if (el) {
+                      el.indeterminate =
+                        selectedIds.size > 0 && selectedIds.size < offers.length
+                    }
+                  }}
+                  onChange={toggleSelectAll}
+                  aria-label="Alle auswählen"
+                />
+              </th>
               <th style={{ width: 30 }}></th>
               <th>Kunde / Projekt</th>
               <th>Angebotsnr.</th>
@@ -791,9 +883,17 @@ export default function OffersPage() {
             {offers.map((o) => (
               <Fragment key={o.id}>
                 <tr
-                  className={`${styles.offerRow} ${o.archivedAt ? styles.archivedRow : ''}`}
+                  className={`${styles.offerRow} ${o.archivedAt ? styles.archivedRow : ''} ${selectedIds.has(o.id) ? styles.selectedRow : ''}`}
                   onClick={() => toggleVersions(o.id)}
                 >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(o.id)}
+                      onChange={() => toggleSelect(o.id)}
+                      aria-label={`${o.clientCompany} auswählen`}
+                    />
+                  </td>
                   <td>
                     <span
                       className={`${styles.expandIcon} ${expandedId === o.id ? styles.expandIconOpen : ''}`}
@@ -928,7 +1028,7 @@ export default function OffersPage() {
                 </tr>
                 {expandedId === o.id && (
                   <tr>
-                    <td colSpan={10} style={{ padding: 0 }}>
+                    <td colSpan={11} style={{ padding: 0 }}>
                       <div className={styles.versionsPanel}>
                         <h4>Versionshistorie</h4>
                         {versions[o.id]?.length === 0 && (
@@ -987,7 +1087,7 @@ export default function OffersPage() {
             ))}
             {offers.length === 0 && (
               <tr>
-                <td colSpan={10} className={styles.emptyState}>
+                <td colSpan={11} className={styles.emptyState}>
                   <div className={styles.emptyText}>
                     {isArchived ? 'Keine archivierten Angebote' : 'Noch keine Angebote erstellt'}
                   </div>

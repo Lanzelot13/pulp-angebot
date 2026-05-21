@@ -56,6 +56,34 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Duplicate guard: if an offer with the same clientCompany + projectName was
+  // created in the last 10 minutes, bounce with 409 and the existing id.
+  // This catches accidental double-creates from the Claude-skill retrying.
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000)
+  const existing = await prisma.offer.findFirst({
+    where: {
+      clientCompany: body.clientCompany,
+      projectName: body.projectName,
+      createdAt: { gt: tenMinutesAgo },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (existing) {
+    return NextResponse.json(
+      {
+        error:
+          `Es gibt bereits ein Angebot für "${body.clientCompany}" / "${body.projectName}", angelegt vor ` +
+          `${Math.round((Date.now() - existing.createdAt.getTime()) / 1000)}s. ` +
+          `Falls das absichtlich ist, ändere clientCompany oder projectName.`,
+        existingOfferId: existing.id,
+        existingSlug: existing.slug,
+        existingUrl: `/o/${existing.slug}`,
+        existingEditUrl: `/o/${existing.slug}?edit=${existing.editToken}`,
+      },
+      { status: 409 }
+    )
+  }
+
   const slug = createSlug(body.clientCompany, body.offerNumber)
 
   // Check slug uniqueness, append suffix if needed
