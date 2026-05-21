@@ -810,6 +810,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             {pkg.priceUnit && (
                               <span className={styles.packagePriceUnit}> {pkg.priceUnit}</span>
                             )}
+                            {pkg.priceNote && (
+                              <span className={styles.packagePriceNote}> {pkg.priceNote}</span>
+                            )}
                           </>
                         )}
                       </div>
@@ -840,6 +843,16 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                               updateDraft('packages', { ...packages!, items })
                             }}
                             placeholder="Laufzeit (Monate)"
+                          />
+                          <input
+                            type="text"
+                            value={pkg.priceNote || ''}
+                            onChange={(e) => {
+                              const items = [...packages!.items]
+                              items[i] = { ...items[i], priceNote: e.target.value || undefined }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                            placeholder='Anmerkung (z.B. "/ Marke", "Richtpreis")'
                           />
                         </div>
                       )}

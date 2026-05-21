@@ -44,9 +44,12 @@ export interface PackageItem {
   highlighted?: boolean
   // Recurring offers: priceUnit shows next to the price ("/ Monat", "/ Jahr"),
   // termMonths renders a "Laufzeit · X Monate" hint below the price.
-  // Both optional — leave empty for one-off packages.
+  // Both optional, leave empty for one-off packages.
   priceUnit?: string
   termMonths?: number | null
+  // Freie Anmerkung neben dem Preis, z.B. "/ Marke", "/ Workshop" oder "Richtpreis".
+  // Wird hinter priceUnit (oder direkt hinter dem Preis) gerendert.
+  priceNote?: string
   // Moco-Anbindung: ID des in Moco angelegten Offers, falls vorhanden
   mocoOfferId?: number | null
 }

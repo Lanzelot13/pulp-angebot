@@ -369,6 +369,15 @@
   margin-left: 0.3rem;
 }
 
+/* Freie Anmerkung hinter Preis/Einheit, z.B. "/ Marke" oder "Richtpreis" */
+.packagePriceNote {
+  font-family: 'Anton', sans-serif;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0;
+  margin-left: 0.3rem;
+}
+
 /* "Laufzeit · 3 Monate" hint below the VAT line */
 .packageTerm {
   font-family: 'JetBrains Mono', monospace;

@@ -19,6 +19,7 @@ interface PackageItemSlim {
   name: string
   price: number | null
   priceUnit?: string
+  priceNote?: string
   termMonths?: number | null
   mocoOfferId?: number | null
 }
