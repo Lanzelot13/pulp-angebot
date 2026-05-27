@@ -865,6 +865,20 @@
 
 .legalLinks a:hover { color: #FF1900; }
 
+.privacyNote {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  max-width: 32rem;
+}
+.privacyNote a {
+  color: rgba(255,255,255,0.55);
+  text-decoration: underline;
+}
+.privacyNote a:hover { color: #FF1900; }
+
 /* EDIT MODE: status bar, editable elements, save/cancel */
 .statusBar {
   position: fixed;

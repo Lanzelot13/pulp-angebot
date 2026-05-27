@@ -11,6 +11,7 @@ import {
   IconSettings,
   IconArchive,
   IconArchiveRestore,
+  IconActivity,
 } from '../Icons'
 import styles from '../admin.module.css'
 import { STATUS_LABELS, STATUS_OPTIONS, type OfferStatus } from '@/lib/types'
@@ -1007,6 +1008,13 @@ export default function OffersPage() {
                       >
                         <IconSettings size={14} />
                       </button>
+                      <a
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                        href={`/admin/offers/${o.id}/tracking`}
+                        title="Tracking ansehen"
+                      >
+                        <IconActivity size={14} />
+                      </a>
                       {o.archivedAt ? (
                         <button
                           className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}

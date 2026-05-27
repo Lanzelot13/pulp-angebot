@@ -989,3 +989,154 @@
 }
 .emptyIcon { font-size: 40px; margin-bottom: 12px; }
 .emptyText { font-size: 14px; }
+
+/* === TRACKING === */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.backLink:hover { color: #111; }
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  color: #FF1900;
+  text-decoration: none;
+  font-size: 12px;
+}
+.inlineLink:hover { text-decoration: underline; }
+
+.muted { color: #999; font-size: 12px; }
+
+.linkBtn {
+  background: none;
+  border: none;
+  color: #FF1900;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+}
+.linkBtn:hover { text-decoration: underline; }
+
+.trackStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.trackStatCard {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.trackStatLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin-bottom: 8px;
+}
+.trackStatValue {
+  font-family: 'Anton', sans-serif;
+  font-size: 36px;
+  color: #111;
+  line-height: 1;
+}
+.trackStatValueSmall {
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+.trackStatSub {
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+}
+
+.trackBreakdown {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+.trackBreakdownLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin-bottom: 10px;
+}
+.trackBreakdownItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trackBreakdownPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f5f5;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+.trackBreakdownStatus { color: #555; }
+.trackBreakdownCount {
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.trackSessionMeta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+.trackSessionMeta strong { color: #111; margin-right: 6px; }
+
+.tableCompact {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tableCompact th,
+.tableCompact td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+}
+.tableCompact th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+}

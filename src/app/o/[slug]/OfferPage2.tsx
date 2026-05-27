@@ -8,6 +8,7 @@ import type {
   NotIncludedSection,
 } from '@/lib/types'
 import { DEFAULT_NOT_INCLUDED } from '@/lib/types'
+import { useTracking } from '@/lib/use-tracking'
 import styles from './offer2.module.css'
 
 // Available icons for understanding cards and stats. Used for the cycle button,
@@ -68,6 +69,14 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     els.forEach(el => observer.observe(el))
     return () => observer.disconnect()
   }, [])
+
+  // Anonymes Tracking (nur im View-Modus, nicht im Editor).
+  // Der Hook prüft zusätzlich ?clean=1 und localStorage-Opt-Out.
+  useTracking({
+    targetType: 'OFFER',
+    targetSlug: initialOffer.slug,
+    disabled: isEdit,
+  })
 
   // Parse JSON sections from draft
   const hero = (draft.hero as unknown as HeroSection) || { title: '', subtitle: '' }
@@ -541,7 +550,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       </nav>
 
       {/* HERO */}
-      <section className={styles.hero}>
+      <section className={styles.hero} data-track-section="hero" data-track-type="hero" data-track-index="0">
         <div className={`${rev}`} data-delay="0">
           <div className={styles.heroIcon}>
             <PixelHeartIcon />
@@ -593,7 +602,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* UNDERSTANDING */}
       {(understanding || isEdit) && (
-        <section className={styles.section}>
+        <section className={styles.section} data-track-section="understanding" data-track-type="understanding" data-track-index="1">
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="100">
             {sectionNumbers.understanding} — Kundenverständnis
           </div>
@@ -677,7 +686,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* SERVICES */}
       {(services || isEdit) && (
-        <section className={styles.section}>
+        <section className={styles.section} data-track-section="services" data-track-type="services" data-track-index="2">
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.services} — Leistungsübersicht
           </div>
@@ -753,7 +762,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* PACKAGES */}
       {(packages || isEdit) && (
-        <section className={styles.packagesBg}>
+        <section className={styles.packagesBg} data-track-section="packages" data-track-type="packages" data-track-index="3">
           <div className={styles.section}>
             <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
               {sectionNumbers.packages} — Pakete
@@ -774,7 +783,14 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             )}
             <div className={styles.packagesGrid}>
               {(packages?.items || []).map((pkg, i) => (
-                <div key={i} className={`${styles.packageCard} ${rev}`} data-delay={100 + i * 100}>
+                <div
+                  key={i}
+                  className={`${styles.packageCard} ${rev}`}
+                  data-delay={100 + i * 100}
+                  data-track-section={`package_${i}`}
+                  data-track-type="package"
+                  data-track-index={i}
+                >
                   <RemoveButton onClick={() => {
                     const items = packages!.items.filter((_, idx) => idx !== i)
                     updateDraft('packages', { ...packages!, items })
@@ -937,7 +953,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
             {/* ADD-ONS */}
             {(isEdit || (!packages?.addOnsHidden && (packages?.addOns || []).length > 0)) && (
-              <>
+              <div data-track-section="packages_addons" data-track-type="packages_addons" data-track-index="4">
                 <div style={{ marginTop: '4rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className={styles.addOnsHeadline}>Optionale Add-Ons</h3>
                   {isEdit && (
@@ -1026,7 +1042,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     )}
                   </>
                 )}
-              </>
+              </div>
             )}
 
             {/* NOT INCLUDED — hint box below packages/add-ons */}
@@ -1034,6 +1050,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               <div
                 className={`${styles.notIncludedBox} ${notIncluded.hidden ? styles.notIncludedHidden : ''} ${rev}`}
                 data-delay="100"
+                data-track-section="not_included"
+                data-track-type="not_included"
+                data-track-index="5"
               >
                 <div className={styles.notIncludedIcon} aria-hidden="true">ⓘ</div>
                 <div className={styles.notIncludedContent}>
@@ -1136,7 +1155,13 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* TIMELINE */}
       {(timeline || isEdit) && (!timelineHidden || isEdit) && (
-        <section className={styles.section} style={isEdit && timelineHidden ? { opacity: 0.4 } : undefined}>
+        <section
+          className={styles.section}
+          style={isEdit && timelineHidden ? { opacity: 0.4 } : undefined}
+          data-track-section="timeline"
+          data-track-type="timeline"
+          data-track-index="6"
+        >
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.timeline || '—'} — Ablauf {isEdit && timelineHidden && '(ausgeblendet)'}
             {isEdit && (
@@ -1191,7 +1216,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* STATS */}
       {(stats.length > 0 || isEdit) && (
-        <section className={styles.section}>
+        <section className={styles.section} data-track-section="stats" data-track-type="stats" data-track-index="7">
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.stats} — Warum Pulpmedia
           </div>
@@ -1259,7 +1284,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       )}
 
       {/* REFERENCES */}
-      <section className={styles.section}>
+      <section className={styles.section} data-track-section="references" data-track-type="references" data-track-index="8">
         <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
           {sectionNumbers.references} — Referenzen
         </div>
@@ -1331,7 +1356,13 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
       {/* CHANNELS */}
       {(displayChannels.length > 0 || isEdit) && (!channelsHidden || isEdit) && (
-        <section className={styles.section} style={isEdit && channelsHidden ? { opacity: 0.4 } : undefined}>
+        <section
+          className={styles.section}
+          style={isEdit && channelsHidden ? { opacity: 0.4 } : undefined}
+          data-track-section="channels"
+          data-track-type="channels"
+          data-track-index="9"
+        >
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
             {sectionNumbers.channels || '—'} — Kanäle {isEdit && channelsHidden && '(ausgeblendet)'}
             {isEdit && (
@@ -1401,7 +1432,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       )}
 
       {/* CTA + CONTACT */}
-      <section className={styles.ctaContactSection}>
+      <section className={styles.ctaContactSection} data-track-section="cta_contact" data-track-type="cta_contact" data-track-index="10">
         <div className={styles.ctaContactLeft}>
           <div className={`${rev}`} data-delay="0">
             <div className={styles.ctaIcon}>
@@ -1460,6 +1491,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       <div className={styles.legalFooter}>
         <div className={styles.legalText}>
           Alle Preise verstehen sich exkl. USt. Zahlbar innerhalb von 14 Tagen nach Rechnungslegung.
+        </div>
+        <div className={styles.privacyNote}>
+          Wir messen die Nutzung dieser Seite anonym, um sie besser zu machen. Keine Cookies, keine IP-Adresse.
+          Mehr im <a href="https://pulpmedia.at/Datenschutz" target="_blank" rel="noopener">Datenschutz</a>.
         </div>
         <div className={styles.legalLinks}>
           <a href="https://pulpmedia.at/AGB" target="_blank" rel="noopener">AGB</a>

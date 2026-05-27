@@ -194,3 +194,60 @@ model PitchModule {
   @@index([type])
   @@index([archivedAt])
 }
+
+// ============================================================
+// Tracking – Anonyme Nutzungsmessung für Offers (später Pitches)
+// ============================================================
+//
+// Eine TrackView pro Browser pro Angebot (deduped über sessionId).
+// Status-Snapshot beim Open, damit man später sieht, ob Zugriffe
+// noch im DRAFT-Modus passierten oder schon im PRICED-Modus.
+// Geo nur Country + Region (kein City, kein IP), Cookie-frei.
+
+enum TrackTargetType {
+  OFFER
+  PITCH
+}
+
+model TrackView {
+  id            String          @id @default(cuid())
+  targetType    TrackTargetType
+  targetId      String          // FK auf Offer.id oder Pitch.id (kein hard FK, generisch)
+  targetSlug    String          // praktisch für Filter im Admin
+
+  sessionId     String          // anonyme UUID aus dem Client (localStorage)
+  openedAt      DateTime        @default(now())
+  lastEventAt   DateTime        @default(now())
+  activeSeconds Int             @default(0)
+
+  // Status-Snapshot beim ersten Öffnen (z.B. "DRAFT", "PRICED", ...)
+  targetStatus  String?
+
+  // Kontext (Geo bewusst grob: kein City, kein IP)
+  userAgent     String?
+  referrer      String?
+  country       String?         // 2-Letter ISO, aus Vercel Edge Header
+  region        String?         // ISO 3166-2 Subdivision, aus Vercel Edge Header
+  device        String?         // 'mobile' | 'tablet' | 'desktop'
+
+  events        TrackEvent[]
+
+  @@index([targetType, targetId])
+  @@index([targetSlug])
+  @@index([sessionId])
+  @@index([openedAt])
+}
+
+model TrackEvent {
+  id        String    @id @default(cuid())
+  viewId    String
+  view      TrackView @relation(fields: [viewId], references: [id], onDelete: Cascade)
+
+  type      String    // "section_view", "link_click", "video_play", "video_progress", "heartbeat", "view_close"
+  payload   Json?
+  at        DateTime  @default(now())
+
+  @@index([viewId])
+  @@index([type])
+  @@index([at])
+}
