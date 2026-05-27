@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, Fragment } from 'react'
 import type { Offer, Contact, Reference, Channel } from '@prisma/client'
 import type {
   HeroSection, UnderstandingSection, ServicesSection,
@@ -178,7 +178,49 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     }).format(price)
   }
 
+  // URLs im Klartext erkennen und in <a>-Tags umwandeln.
+  // Wir matchen http(s)://… und www.… aber bewusst keine "bare domains"
+  // wie "pulpmedia.at" allein – zu viele false-positives.
+  const linkifyText = (text: string, keyPrefix: string): React.ReactNode[] => {
+    if (!text) return []
+    const urlRegex = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/gi
+    const nodes: React.ReactNode[] = []
+    let lastIndex = 0
+    let key = 0
+    let m: RegExpExecArray | null
+    while ((m = urlRegex.exec(text)) !== null) {
+      const matched = m[0]
+      const start = m.index
+      if (start > lastIndex) nodes.push(text.slice(lastIndex, start))
+      // Trailing-Punctuation rausziehen (".", ",", ")", "!" usw. gehören
+      // i.d.R. nicht zur URL, sondern in den umgebenden Satz).
+      let clean = matched
+      let trail = ''
+      while (clean.length > 0 && '.,;:!?)]}'.includes(clean[clean.length - 1])) {
+        trail = clean[clean.length - 1] + trail
+        clean = clean.slice(0, -1)
+      }
+      const href = clean.startsWith('www.') ? `https://${clean}` : clean
+      nodes.push(
+        <a
+          key={`${keyPrefix}-${key++}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.autoLink}
+        >
+          {clean}
+        </a>
+      )
+      if (trail) nodes.push(trail)
+      lastIndex = start + matched.length
+    }
+    if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+    return nodes
+  }
+
   // Helper function to render text with red markup (*word* → red)
+  // und automatischer Link-Erkennung für URLs im Klartext.
   const renderRedMarkup = (text: string) => {
     if (!text) return ''
     const parts = text.split(/(\*[^*]+\*)/)
@@ -186,7 +228,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       if (part.startsWith('*') && part.endsWith('*')) {
         return <span key={i} style={{ color: '#FF1900' }}>{part.slice(1, -1)}</span>
       }
-      return <span key={i}>{part}</span>
+      return <Fragment key={i}>{linkifyText(part, `l${i}`)}</Fragment>
     })
   }
 

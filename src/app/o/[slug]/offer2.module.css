@@ -879,6 +879,17 @@
 }
 .privacyNote a:hover { color: #FF1900; }
 
+/* Automatisch erkannte Links in Klartext-Feldern (Beschreibungen, Texte) */
+.autoLink {
+  color: #FF1900;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  word-break: break-word;
+  transition: opacity 0.15s;
+}
+.autoLink:hover { opacity: 0.75; }
+
 /* EDIT MODE: status bar, editable elements, save/cancel */
 .statusBar {
   position: fixed;
