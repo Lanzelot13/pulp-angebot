@@ -58,5 +58,34 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
   })
 
-  return NextResponse.json(offers)
+  // Aufrufe pro Angebot (TrackView-Count) in einem Query holen.
+  // Cast, weil Prisma-Client in der Sandbox nicht regeneriert wird.
+  const offerIds = offers.map((o) => o.id)
+  const countMap = new Map<string, number>()
+  if (offerIds.length > 0) {
+    try {
+      const trackDb = prisma as unknown as {
+        trackView: {
+          groupBy: (a: unknown) => Promise<Array<{ targetId: string; _count: { _all: number } }>>
+        }
+      }
+      const grouped = await trackDb.trackView.groupBy({
+        by: ['targetId'],
+        where: { targetType: 'OFFER', targetId: { in: offerIds } },
+        _count: { _all: true },
+      })
+      for (const row of grouped) {
+        countMap.set(row.targetId, row._count._all)
+      }
+    } catch {
+      // Tracking-Tabelle noch nicht da: einfach 0er liefern
+    }
+  }
+
+  const offersWithCounts = offers.map((o) => ({
+    ...o,
+    viewCount: countMap.get(o.id) || 0,
+  }))
+
+  return NextResponse.json(offersWithCounts)
 }

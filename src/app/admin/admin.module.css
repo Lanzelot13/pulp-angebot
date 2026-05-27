@@ -1140,3 +1140,26 @@
   letter-spacing: 0.08em;
   color: #888;
 }
+
+.viewCountLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.viewCountLink:hover { background: #FF1900; }
+.viewCountZero {
+  display: inline-block;
+  color: #ccc;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 2px 8px;
+}

@@ -11,7 +11,6 @@ import {
   IconSettings,
   IconArchive,
   IconArchiveRestore,
-  IconActivity,
 } from '../Icons'
 import styles from '../admin.module.css'
 import { STATUS_LABELS, STATUS_OPTIONS, type OfferStatus } from '@/lib/types'
@@ -42,6 +41,8 @@ interface OfferRow {
   createdAt: string
   contact: { name: string }
   _count: { versions: number }
+  // Tracking
+  viewCount: number
   // Moco
   mocoRef: string | null
   mocoCompanyId: string | null
@@ -250,17 +251,6 @@ export default function OffersPage() {
     },
     [expandedId, versions]
   )
-
-  const changeTemplate = async (offerId: string, template: 'TEMPLATE1' | 'TEMPLATE2') => {
-    const res = await fetch(`/api/admin/offers/${offerId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ template }),
-    })
-    if (res.ok) {
-      setOffers((prev) => prev.map((o) => (o.id === offerId ? { ...o, template } : o)))
-    }
-  }
 
   const copyLink = (slug: string) => {
     const url = `${window.location.origin}/o/${slug}`
@@ -872,9 +862,9 @@ export default function OffersPage() {
               <th style={{ width: 30 }}></th>
               <th>Kunde / Projekt</th>
               <th>Angebotsnr.</th>
-              <th>Template</th>
               <th>Status</th>
               <th>Version</th>
+              <th>Aufrufe</th>
               <th>Kontakt</th>
               <th>Erstellt</th>
               <th>Moco</th>
@@ -910,24 +900,24 @@ export default function OffersPage() {
                     <span style={{ fontSize: 13, color: '#888' }}>{o.projectName}</span>
                   </td>
                   <td>{o.offerNumber || '–'}</td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={o.template || 'TEMPLATE2'}
-                      onChange={(e) =>
-                        changeTemplate(o.id, e.target.value as 'TEMPLATE1' | 'TEMPLATE2')
-                      }
-                      className={styles.templateSelect}
-                      disabled={!!o.archivedAt}
-                    >
-                      <option value="TEMPLATE1">Template 1</option>
-                      <option value="TEMPLATE2">Template 2</option>
-                    </select>
-                  </td>
                   <td>
                     <span className={`${styles.statusPill} ${statusClass(o.status)}`}>{statusLabel(o.status)}</span>
                   </td>
                   <td>
                     <span className={styles.versionBadge}>v{o.version}</span>
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {o.viewCount > 0 ? (
+                      <a
+                        href={`/admin/offers/${o.id}/tracking`}
+                        className={styles.viewCountLink}
+                        title="Tracking ansehen"
+                      >
+                        {o.viewCount}
+                      </a>
+                    ) : (
+                      <span className={styles.viewCountZero}>0</span>
+                    )}
                   </td>
                   <td>{o.contact.name}</td>
                   <td>{formatDate(o.createdAt)}</td>
@@ -1008,13 +998,6 @@ export default function OffersPage() {
                       >
                         <IconSettings size={14} />
                       </button>
-                      <a
-                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
-                        href={`/admin/offers/${o.id}/tracking`}
-                        title="Tracking ansehen"
-                      >
-                        <IconActivity size={14} />
-                      </a>
                       {o.archivedAt ? (
                         <button
                           className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
