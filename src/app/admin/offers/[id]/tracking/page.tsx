@@ -6,6 +6,7 @@ import { AdminShell } from '../../../AdminShell'
 import { IconArrowLeft, IconExternalLink } from '../../../Icons'
 import styles from '../../../admin.module.css'
 import { STATUS_LABELS, type OfferStatus } from '@/lib/types'
+import { formatGeo } from '@/lib/geo'
 
 interface SessionRow {
   id: string
@@ -194,7 +195,7 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
                   <td>{s.eventCount}</td>
                   <td>{statusLabel(s.targetStatus)}</td>
                   <td>
-                    {[s.country, s.region].filter(Boolean).join(' / ') || '–'}
+                    {formatGeo(s.country, s.region)}
                     {s.device && <span className={styles.muted}> · {s.device}</span>}
                   </td>
                   <td>
@@ -223,7 +224,7 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
                 <div><strong>Letzte Aktivität:</strong> {formatDate(detailView.lastEventAt)}</div>
                 <div><strong>Aktive Zeit:</strong> {formatDuration(detailView.activeSeconds)}</div>
                 <div><strong>Status zum Zeitpunkt:</strong> {statusLabel(detailView.targetStatus)}</div>
-                <div><strong>Geo:</strong> {[detailView.country, detailView.region].filter(Boolean).join(' / ') || '–'}</div>
+                <div><strong>Geo:</strong> {formatGeo(detailView.country, detailView.region)}</div>
                 <div><strong>Device:</strong> {detailView.device || '–'}</div>
                 {detailView.referrer && <div><strong>Referrer:</strong> {detailView.referrer}</div>}
               </div>
