@@ -178,9 +178,22 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     }).format(price)
   }
 
+  // Domain-Label für einen Link: aus "https://www.instagram.com/reel/..." wird
+  // "instagram.com". Fällt zurück auf die rohe URL, wenn der Parser nichts mag.
+  const linkLabel = (href: string): string => {
+    try {
+      const u = new URL(href)
+      return u.hostname.replace(/^www\./i, '')
+    } catch {
+      return href
+    }
+  }
+
   // URLs im Klartext erkennen und in <a>-Tags umwandeln.
   // Wir matchen http(s)://… und www.… aber bewusst keine "bare domains"
   // wie "pulpmedia.at" allein – zu viele false-positives.
+  // Anzeigetext ist immer nur die Domain (z.B. "instagram.com"),
+  // der href bleibt der vollständige Link.
   const linkifyText = (text: string, keyPrefix: string): React.ReactNode[] => {
     if (!text) return []
     const urlRegex = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/gi
@@ -208,8 +221,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           target="_blank"
           rel="noopener noreferrer"
           className={styles.autoLink}
+          title={clean}
         >
-          {clean}
+          {linkLabel(href)}
         </a>
       )
       if (trail) nodes.push(trail)
