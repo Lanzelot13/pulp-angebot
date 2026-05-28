@@ -246,6 +246,57 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     })
   }
 
+  // Erkennt Inline-Bullets (• oder - am Anfang einer "Teil-Phrase") und
+  // rendert sie als echte <ul>-Liste. Was vor den Bullets steht, bleibt als
+  // Einleitungs-Absatz. Greift nur ab 2 Bullets, damit ein einzelner Bullet
+  // (z.B. Trennzeichen wie "Foo • Bar") nicht aus Versehen umgebrochen wird.
+  const renderTextWithLists = (text: string): React.ReactNode => {
+    if (!text) return ''
+
+    // Split bei • oder bei Anfang-der-Zeile-Bullets (- am Zeilenstart oder am Anfang).
+    // Wir teilen sehr defensiv: nur an "• " oder " • " oder am Zeilenanfang nach \n.
+    // Dafür normalisieren wir zuerst Bindestrich-Listen ("\n- " → "\n• ").
+    const normalized = text.replace(/(^|\n)\s*-\s+/g, '$1• ')
+
+    // Finde alle Bullet-Marker. Erlaubt: " •", "\n•", "•" am Anfang.
+    const bulletRegex = /(?:^|\s)•\s+/g
+    const matches: number[] = []
+    let m: RegExpExecArray | null
+    while ((m = bulletRegex.exec(normalized)) !== null) {
+      // Position des Bullets selbst (nicht des Whitespace davor)
+      const bulletIdx = m.index + m[0].indexOf('•')
+      matches.push(bulletIdx)
+    }
+
+    if (matches.length < 2) {
+      // Kein/nur 1 Bullet: ganz normal als Inline-Text rendern.
+      return renderRedMarkup(text)
+    }
+
+    // Intro = alles vor dem ersten Bullet
+    const intro = normalized.slice(0, matches[0]).trim()
+    const items: string[] = []
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i] + 1 // hinter dem •
+      const end = i + 1 < matches.length ? matches[i + 1] : normalized.length
+      const itemText = normalized.slice(start, end).replace(/^\s+/, '').replace(/\s+$/, '')
+      if (itemText) items.push(itemText)
+    }
+
+    return (
+      <>
+        {intro && <span className={styles.autoListIntro}>{renderRedMarkup(intro)}</span>}
+        <ul className={styles.autoList}>
+          {items.map((it, i) => (
+            <li key={i} className={styles.autoListItem}>
+              {renderRedMarkup(it)}
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
   // Helper function to render icons by name
   const renderIcon = (name: string | undefined, size?: number) => {
     void size // size reserved for future use
@@ -278,8 +329,19 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     style?: React.CSSProperties
   }) => {
     if (!isEdit) {
-      const Tag = tag as keyof JSX.IntrinsicElements
-      return <Tag className={className} style={style}>{renderRedMarkup(value)}</Tag>
+      // Wenn der Text zwei oder mehr Bullets enthält, rendern wir eine
+      // echte <ul>-Liste. Damit das HTML valide bleibt, schalten wir das
+      // outer-Tag in dem Fall von <p>/<span> auf <div> um.
+      const bulletCount = ((value || '').match(/(?:^|\s)[•]\s+/g) || []).length
+        + ((value || '').match(/(?:^|\n)\s*-\s+/g) || []).length
+      const hasList = bulletCount >= 2
+      const safeTag = hasList && (tag === 'p' || tag === 'span') ? 'div' : tag
+      const Tag = safeTag as keyof JSX.IntrinsicElements
+      return (
+        <Tag className={className} style={style}>
+          {hasList ? renderTextWithLists(value) : renderRedMarkup(value)}
+        </Tag>
+      )
     }
     return (
       <div
@@ -926,11 +988,32 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             }}
                             placeholder='Anmerkung (z.B. "/ Marke", "Richtpreis")'
                           />
+                          <input
+                            type="number"
+                            min="0"
+                            value={pkg.oneTimePrice ?? ''}
+                            onChange={(e) => {
+                              const items = [...packages!.items]
+                              const v = e.target.value ? Number(e.target.value) : null
+                              items[i] = { ...items[i], oneTimePrice: v }
+                              updateDraft('packages', { ...packages!, items })
+                            }}
+                            placeholder="Einmalpreis (optional)"
+                          />
                         </div>
                       )}
-                      {pkg.termMonths != null && pkg.termMonths > 0 && (
-                        <div className={styles.packageTerm}>
-                          Laufzeit · {pkg.termMonths} {pkg.termMonths === 1 ? 'Monat' : 'Monate'}
+                      {((pkg.termMonths != null && pkg.termMonths > 0) || (pkg.oneTimePrice != null && pkg.oneTimePrice > 0)) && (
+                        <div className={styles.packageMetaInfo}>
+                          {pkg.termMonths != null && pkg.termMonths > 0 && (
+                            <div className={styles.packageTerm}>
+                              Laufzeit · {pkg.termMonths} {pkg.termMonths === 1 ? 'Monat' : 'Monate'}
+                            </div>
+                          )}
+                          {pkg.oneTimePrice != null && pkg.oneTimePrice > 0 && (
+                            <div className={styles.packageOneTime}>
+                              einmalig {formatPrice(pkg.oneTimePrice)}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>

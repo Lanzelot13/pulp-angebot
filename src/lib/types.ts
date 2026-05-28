@@ -50,6 +50,10 @@ export interface PackageItem {
   // Freie Anmerkung neben dem Preis, z.B. "/ Marke", "/ Workshop" oder "Richtpreis".
   // Wird hinter priceUnit (oder direkt hinter dem Preis) gerendert.
   priceNote?: string
+  // Optionaler Einmalpreis als Alternative zum priceUnit-Preis, z.B. für
+  // Retainer-Pakete, die zusätzlich auch einmalig buchbar sind. Wird als
+  // kleine Hinweiszeile unter Preis + Laufzeit gerendert: "einmalig € 6.500".
+  oneTimePrice?: number | null
   // Moco-Anbindung: ID des in Moco angelegten Offers, falls vorhanden
   mocoOfferId?: number | null
 }
