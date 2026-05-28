@@ -129,6 +129,7 @@ export default function OffersPage() {
   const [offers, setOffers] = useState<OfferRow[]>([])
   const [contacts, setContacts] = useState<ContactOption[]>([])
   const [filter, setFilter] = useState<Filter>('active')
+  const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [versions, setVersions] = useState<Record<string, VersionRow[]>>({})
   const [copied, setCopied] = useState<string | null>(null)
@@ -184,15 +185,20 @@ export default function OffersPage() {
 
   const loadOffers = useCallback(
     async (f: Filter, q: string, contactSlug: string, status: string) => {
-      const params = new URLSearchParams()
-      params.set('archived', f === 'archived' ? 'true' : 'false')
-      if (q) params.set('search', q)
-      if (contactSlug) params.set('contactSlug', contactSlug)
-      if (status) params.set('status', status)
-      const res = await fetch(`/api/admin/offers?${params.toString()}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data)) setOffers(data)
+      setLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.set('archived', f === 'archived' ? 'true' : 'false')
+        if (q) params.set('search', q)
+        if (contactSlug) params.set('contactSlug', contactSlug)
+        if (status) params.set('status', status)
+        const res = await fetch(`/api/admin/offers?${params.toString()}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data)) setOffers(data)
+        }
+      } finally {
+        setLoading(false)
       }
     },
     []
@@ -1081,7 +1087,11 @@ export default function OffersPage() {
               <tr>
                 <td colSpan={11} className={styles.emptyState}>
                   <div className={styles.emptyText}>
-                    {isArchived ? 'Keine archivierten Angebote' : 'Noch keine Angebote erstellt'}
+                    {loading
+                      ? 'Angebote werden geladen…'
+                      : isArchived
+                        ? 'Keine archivierten Angebote'
+                        : 'Noch keine Angebote erstellt'}
                   </div>
                 </td>
               </tr>
