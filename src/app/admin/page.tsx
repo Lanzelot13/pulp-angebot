@@ -5,6 +5,7 @@ import { AdminShell } from './AdminShell'
 import { IconFileText, IconUser, IconBuilding, IconShare2, IconEye, IconEdit, IconLink, IconCheck } from './Icons'
 import styles from './admin.module.css'
 import { STATUS_LABELS, STATUS_OPTIONS, type OfferStatus } from '@/lib/types'
+import { formatGeo } from '@/lib/geo'
 
 interface Stats {
   offers: { total: number; DRAFT?: number; PRICED?: number; ACCEPTED?: number; DECLINED?: number }
@@ -26,9 +27,41 @@ interface OfferRow {
   contact: { name: string }
 }
 
+interface RecentView {
+  id: string
+  openedAt: string
+  activeSeconds: number
+  targetStatus: string | null
+  country: string | null
+  region: string | null
+  device: string | null
+  eventCount: number
+  sectionsSeen: number
+  offer: {
+    id: string
+    slug: string
+    projectName: string
+    clientCompany: string
+    status: string
+  } | null
+}
+
+function formatDuration(totalSec: number) {
+  if (!totalSec) return '0s'
+  if (totalSec < 60) return `${totalSec}s`
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  if (m < 60) return `${m}m ${s}s`
+  const h = Math.floor(m / 60)
+  const rest = m % 60
+  return `${h}h ${rest}m`
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentOffers, setRecentOffers] = useState<OfferRow[]>([])
+  const [recentViews, setRecentViews] = useState<RecentView[]>([])
+  const [viewsLoading, setViewsLoading] = useState(true)
   const [copied, setCopied] = useState<string | null>(null)
 
   const copyLink = (slug: string) => {
@@ -47,6 +80,11 @@ export default function DashboardPage() {
       .then(r => r.ok ? r.json() : [])
       .then((data: OfferRow[]) => setRecentOffers(Array.isArray(data) ? data.slice(0, 5) : []))
       .catch(() => {})
+    fetch('/api/admin/tracking/recent?limit=10')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.views) setRecentViews(d.views) })
+      .catch(() => {})
+      .finally(() => setViewsLoading(false))
   }, [])
 
   const formatDate = (d: string) =>
@@ -138,40 +176,6 @@ export default function DashboardPage() {
       </div>
 
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>Schnellzugriff</div>
-      </div>
-      <div className={styles.quickGrid}>
-        <a href="/admin/offers" className={styles.quickCard}>
-          <div className={styles.quickIcon}><IconFileText size={24} /></div>
-          <div className={styles.quickLabel}>
-            <strong>Alle Angebote</strong>
-            <small>Übersicht aller Angebote</small>
-          </div>
-        </a>
-        <a href="/admin/contacts" className={styles.quickCard}>
-          <div className={styles.quickIcon}><IconUser size={24} /></div>
-          <div className={styles.quickLabel}>
-            <strong>Ansprechpersonen</strong>
-            <small>Kontakte verwalten</small>
-          </div>
-        </a>
-        <a href="/admin/references" className={styles.quickCard}>
-          <div className={styles.quickIcon}><IconBuilding size={24} /></div>
-          <div className={styles.quickLabel}>
-            <strong>Referenzen</strong>
-            <small>Kundenprojekte verwalten</small>
-          </div>
-        </a>
-        <a href="/admin/channels" className={styles.quickCard}>
-          <div className={styles.quickIcon}><IconShare2 size={24} /></div>
-          <div className={styles.quickLabel}>
-            <strong>Kanäle</strong>
-            <small>Social Media Kanäle</small>
-          </div>
-        </a>
-      </div>
-
-      <div className={styles.sectionHeader}>
         <div className={styles.sectionTitle}>Letzte Angebote</div>
         <a href="/admin/offers" className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}>
           Alle anzeigen →
@@ -232,6 +236,62 @@ export default function DashboardPage() {
               <tr>
                 <td colSpan={5} style={{ textAlign: 'center', color: '#888', padding: 40 }}>
                   Noch keine Angebote erstellt
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className={styles.sectionHeader}>
+        <div className={styles.sectionTitle}>Letzte Aufrufe</div>
+      </div>
+      <div className={styles.card}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Wann</th>
+              <th>Angebot</th>
+              <th>Verweildauer</th>
+              <th>Sections</th>
+              <th>Events</th>
+              <th>Geo / Device</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentViews.map((v) => (
+              <tr key={v.id}>
+                <td>{new Date(v.openedAt).toLocaleString('de-AT', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}</td>
+                <td>
+                  {v.offer ? (
+                    <a
+                      href={`/admin/offers/${v.offer.id}/tracking`}
+                      style={{ color: 'inherit', textDecoration: 'none' }}
+                    >
+                      <strong>{v.offer.clientCompany}</strong>
+                      <br />
+                      <span style={{ fontSize: 12, color: '#888' }}>{v.offer.projectName}</span>
+                    </a>
+                  ) : (
+                    <span style={{ color: '#888' }}>Angebot gelöscht</span>
+                  )}
+                </td>
+                <td>{formatDuration(v.activeSeconds)}</td>
+                <td>{v.sectionsSeen}</td>
+                <td>{v.eventCount}</td>
+                <td>
+                  {formatGeo(v.country, v.region)}
+                  {v.device && <span style={{ color: '#888' }}> · {v.device}</span>}
+                </td>
+              </tr>
+            ))}
+            {recentViews.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', color: '#888', padding: 40 }}>
+                  {viewsLoading ? 'Aufrufe werden geladen…' : 'Noch keine Aufrufe registriert'}
                 </td>
               </tr>
             )}
