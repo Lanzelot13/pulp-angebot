@@ -142,10 +142,37 @@ export function useTracking({ targetType, targetSlug, disabled }: TrackingOpts) 
       sendEvent('heartbeat', { activeSeconds: deltaSec })
     }, HEARTBEAT_MS)
 
-    // Beim Tab-Verlassen / Unload finalen view_close schicken
+    // Tab-Wechsel: wenn der Tab gerade unsichtbar wird, akkumulieren wir die
+    // offene Zeit seit dem letzten Heartbeat. Wenn er wieder sichtbar wird,
+    // setzen wir den Timer-Anker zurück. So gehen Tab-Switches nicht verloren.
+    function onVisibilityChange() {
+      const now = Date.now()
+      if (document.visibilityState === 'hidden') {
+        const delta = Math.round((now - lastBeatAt) / 1000)
+        if (delta >= 1 && delta <= 120) {
+          activeSecondsRef.current += delta
+          sendEvent('heartbeat', { activeSeconds: delta })
+        }
+      }
+      lastBeatAt = now
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    cleanupFns.push(() => document.removeEventListener('visibilitychange', onVisibilityChange))
+
+    // Beim Tab-Verlassen / Unload finalen view_close schicken.
+    // Wenn der Tab beim Schließen noch sichtbar war, rechnen wir die offene
+    // Zeit seit dem letzten Heartbeat dazu — sonst gehen kurze Sessions
+    // (unter dem 30s-Heartbeat-Intervall) mit 0s in die Statistik ein.
     function onPageHide() {
+      let finalSeconds = activeSecondsRef.current
+      if (document.visibilityState === 'visible') {
+        const delta = Math.round((Date.now() - lastBeatAt) / 1000)
+        if (delta >= 1 && delta <= 600) {
+          finalSeconds += delta
+        }
+      }
       sendBeacon('view_close', {
-        totalActiveSeconds: activeSecondsRef.current,
+        totalActiveSeconds: finalSeconds,
       })
     }
     window.addEventListener('pagehide', onPageHide)

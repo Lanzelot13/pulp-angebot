@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 // Casts nötig, weil Prisma-Client in der Sandbox nicht regeneriert wird.
 type PrismaTrack = {
   trackView: {
-    findUnique: (a: unknown) => Promise<{ id: string } | null>
+    findUnique: (a: unknown) => Promise<{ id: string; activeSeconds?: number } | null>
     update: (a: unknown) => Promise<unknown>
   }
   trackEvent: {
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   // View existiert?
   const view = await trackDb.trackView.findUnique({
     where: { id: viewId },
-    select: { id: true },
+    select: { id: true, activeSeconds: true },
   })
   if (!view) {
     return NextResponse.json({ error: 'View not found' }, { status: 404 })
@@ -102,13 +102,17 @@ export async function POST(req: NextRequest) {
     })
   } else if (type === 'view_close') {
     const total = Number(payload.totalActiveSeconds) || 0
-    if (total > 0) {
-      // Falls der Client einen finalen Wert mitsendet: nehmen wir als untere Grenze.
+    const current = view.activeSeconds || 0
+    // Bei mehreren view_close-Events (kommt auf iOS gern vor) nehmen wir
+    // immer das Maximum, damit eine spätere 0 keine bereits gemessene Zeit
+    // überschreibt.
+    const next = Math.max(current, total)
+    if (next > current) {
       await trackDb.trackView.update({
         where: { id: viewId },
         data: {
           lastEventAt: now,
-          activeSeconds: total,
+          activeSeconds: next,
         },
       })
     } else {
