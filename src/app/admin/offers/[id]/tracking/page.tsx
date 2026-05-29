@@ -35,6 +35,8 @@ interface TrackingResponse {
     uniqueDays: number
     totalActiveSeconds: number
     lastEventAt: string | null
+    totalSectionsSeen: number
+    totalEvents: number
   }
   statusBreakdown: Record<string, number>
   sessions: SessionRow[]
@@ -66,6 +68,110 @@ function formatDate(iso: string | null) {
   const d = new Date(iso)
   return d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
     ', ' + d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Minimal-SVG-Bar-Chart. Keine Library, damit der Bundle klein bleibt.
+function BarChart({
+  data,
+  yFormat,
+}: {
+  data: { label: string; value: number; tooltip?: string }[]
+  yFormat?: (v: number) => string
+}) {
+  if (data.length === 0) {
+    return <div className={styles.muted}>Noch keine Daten</div>
+  }
+  const W = 400
+  const H = 140
+  const PAD_TOP = 8
+  const PAD_BOTTOM = 18
+  const PAD_LEFT = 4
+  const max = Math.max(...data.map((d) => d.value), 1)
+  const innerH = H - PAD_TOP - PAD_BOTTOM
+  const slot = (W - PAD_LEFT) / data.length
+  const barWidth = Math.min(slot * 0.75, 32)
+  // Y-Achsen-Hilfslinien bei 0%, 50%, 100%
+  const yLines = [0, 0.5, 1]
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className={styles.chartSvg} role="img">
+      {yLines.map((p, idx) => (
+        <line
+          key={idx}
+          x1={PAD_LEFT}
+          y1={PAD_TOP + innerH * (1 - p)}
+          x2={W}
+          y2={PAD_TOP + innerH * (1 - p)}
+          stroke="#eee"
+          strokeWidth={1}
+        />
+      ))}
+      <text x={PAD_LEFT} y={PAD_TOP + 8} fontSize={9} fill="#999" fontFamily="'JetBrains Mono', monospace">
+        {yFormat ? yFormat(max) : max}
+      </text>
+      {data.map((d, i) => {
+        const h = (d.value / max) * innerH
+        const x = PAD_LEFT + slot * i + (slot - barWidth) / 2
+        const y = PAD_TOP + innerH - h
+        return (
+          <g key={i}>
+            <title>{d.tooltip || `${d.label}: ${d.value}`}</title>
+            <rect x={x} y={y} width={barWidth} height={Math.max(h, 1)} fill="#FF1900" rx={1.5} />
+          </g>
+        )
+      })}
+      {/* X-Achsen-Labels (max 8, sonst zu eng) */}
+      {data.length <= 8 &&
+        data.map((d, i) => {
+          const x = PAD_LEFT + slot * i + slot / 2
+          return (
+            <text
+              key={`l${i}`}
+              x={x}
+              y={H - 4}
+              fontSize={9}
+              fill="#888"
+              textAnchor="middle"
+              fontFamily="'JetBrains Mono', monospace"
+            >
+              {d.label}
+            </text>
+          )
+        })}
+    </svg>
+  )
+}
+
+function shortDuration(sec: number): string {
+  if (sec < 60) return `${sec}s`
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  if (m < 60) return s === 0 ? `${m}m` : `${m}m ${s}s`
+  return `${Math.floor(m / 60)}h ${m % 60}m`
+}
+
+function relativeTime(iso: string | null): { big: string; small: string } {
+  if (!iso) return { big: '–', small: '' }
+  const d = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60_000)
+  const exact = d.toLocaleString('de-AT', {
+    day: '2-digit', month: '2-digit', year: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  })
+  if (diffMin < 1) return { big: 'gerade eben', small: exact }
+  if (diffMin < 60) return { big: `vor ${diffMin} min`, small: exact }
+  const today = new Date(now); today.setHours(0, 0, 0, 0)
+  const dDay = new Date(d); dDay.setHours(0, 0, 0, 0)
+  const dayDiff = Math.floor((today.getTime() - dDay.getTime()) / 86_400_000)
+  if (dayDiff === 0) return {
+    big: `heute, ${d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`,
+    small: exact,
+  }
+  if (dayDiff === 1) return { big: 'gestern', small: exact }
+  if (dayDiff < 7) return { big: `vor ${dayDiff} Tagen`, small: exact }
+  if (dayDiff < 30) return { big: `vor ${Math.floor(dayDiff / 7)} Wo`, small: exact }
+  return { big: d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' }), small: exact }
 }
 
 function statusLabel(s: string | null) {
@@ -154,7 +260,10 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
             </div>
             <div className={styles.trackStatCard}>
               <div className={styles.trackStatLabel}>Letzte Aktivität</div>
-              <div className={styles.trackStatValueSmall}>{formatDate(data.stats.lastEventAt)}</div>
+              <div className={styles.trackStatValue}>{relativeTime(data.stats.lastEventAt).big}</div>
+              <div className={styles.trackStatSub}>
+                {data.stats.totalSectionsSeen} Sections · {data.stats.totalEvents} Events
+              </div>
             </div>
           </div>
 
@@ -172,6 +281,55 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
               </div>
             </div>
           )}
+
+          {/* Diagramme */}
+          {(() => {
+            // Zugriffe pro Tag (chronologisch)
+            const byDay = new Map<string, number>()
+            for (const s of data.sessions) {
+              const day = new Date(s.openedAt).toISOString().slice(0, 10)
+              byDay.set(day, (byDay.get(day) || 0) + 1)
+            }
+            const perDay = Array.from(byDay.entries())
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([day, count]) => {
+                const d = new Date(day)
+                const lbl = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`
+                return {
+                  label: lbl,
+                  value: count,
+                  tooltip: `${day}: ${count} ${count === 1 ? 'Aufruf' : 'Aufrufe'}`,
+                }
+              })
+            // Verweildauer und Sections pro Zugriff (chronologisch, älteste zuerst)
+            const chrono = [...data.sessions].reverse()
+            const durations = chrono.map((s, i) => ({
+              label: `#${i + 1}`,
+              value: s.activeSeconds,
+              tooltip: `${formatDate(s.openedAt)}: ${shortDuration(s.activeSeconds)}`,
+            }))
+            const sectionsArr = chrono.map((s, i) => ({
+              label: `#${i + 1}`,
+              value: s.sectionsSeen,
+              tooltip: `${formatDate(s.openedAt)}: ${s.sectionsSeen} Sections`,
+            }))
+            return (
+              <div className={styles.chartGrid}>
+                <div className={styles.chartCard}>
+                  <div className={styles.chartTitle}>Zugriffe pro Tag</div>
+                  <BarChart data={perDay} />
+                </div>
+                <div className={styles.chartCard}>
+                  <div className={styles.chartTitle}>Verweildauer pro Zugriff</div>
+                  <BarChart data={durations} yFormat={shortDuration} />
+                </div>
+                <div className={styles.chartCard}>
+                  <div className={styles.chartTitle}>Sections pro Zugriff</div>
+                  <BarChart data={sectionsArr} />
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Session-Tabelle */}
           <table className={styles.table}>

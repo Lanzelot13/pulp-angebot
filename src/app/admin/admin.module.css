@@ -1178,3 +1178,30 @@
 /* Tabellen-Zeile, die als Ganzes klickbar ist (z.B. Letzte Aufrufe im Dashboard) */
 .clickableRow { cursor: pointer; transition: background 0.12s; }
 .clickableRow:hover { background: #fafafa; }
+
+/* Diagramme auf der Tracking-Detailseite */
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.chartCard {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.chartTitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin-bottom: 10px;
+}
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}

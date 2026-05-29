@@ -159,6 +159,9 @@ export async function GET(
     sectionsSeen: sectionsByView.get(v.id)?.size || 0,
   }))
 
+  const totalSectionsSeen = sessions.reduce((sum, s) => sum + s.sectionsSeen, 0)
+  const totalEvents = sessions.reduce((sum, s) => sum + s.eventCount, 0)
+
   return NextResponse.json({
     offer,
     stats: {
@@ -166,6 +169,8 @@ export async function GET(
       uniqueDays,
       totalActiveSeconds,
       lastEventAt,
+      totalSectionsSeen,
+      totalEvents,
     },
     statusBreakdown,
     sessions,
