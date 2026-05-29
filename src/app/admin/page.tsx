@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AdminShell } from './AdminShell'
 import { IconFileText, IconUser, IconBuilding, IconShare2, IconEye, IconEdit, IconLink, IconCheck } from './Icons'
 import styles from './admin.module.css'
@@ -58,6 +59,7 @@ function formatDuration(totalSec: number) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentOffers, setRecentOffers] = useState<OfferRow[]>([])
   const [recentViews, setRecentViews] = useState<RecentView[]>([])
@@ -259,35 +261,43 @@ export default function DashboardPage() {
             </tr>
           </thead>
           <tbody>
-            {recentViews.map((v) => (
-              <tr key={v.id}>
-                <td>{new Date(v.openedAt).toLocaleString('de-AT', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit',
-                })}</td>
-                <td>
-                  {v.offer ? (
-                    <a
-                      href={`/admin/offers/${v.offer.id}/tracking`}
-                      style={{ color: 'inherit', textDecoration: 'none' }}
-                    >
-                      <strong>{v.offer.clientCompany}</strong>
-                      <br />
-                      <span style={{ fontSize: 12, color: '#888' }}>{v.offer.projectName}</span>
-                    </a>
-                  ) : (
-                    <span style={{ color: '#888' }}>Angebot gelöscht</span>
-                  )}
-                </td>
-                <td>{formatDuration(v.activeSeconds)}</td>
-                <td>{v.sectionsSeen}</td>
-                <td>{v.eventCount}</td>
-                <td>
-                  {formatGeo(v.country, v.region)}
-                  {v.device && <span style={{ color: '#888' }}> · {v.device}</span>}
-                </td>
-              </tr>
-            ))}
+            {recentViews.map((v) => {
+              const clickable = !!v.offer
+              return (
+                <tr
+                  key={v.id}
+                  className={clickable ? styles.clickableRow : undefined}
+                  onClick={() => {
+                    if (clickable && v.offer) {
+                      router.push(`/admin/offers/${v.offer.id}/tracking`)
+                    }
+                  }}
+                >
+                  <td>{new Date(v.openedAt).toLocaleString('de-AT', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit',
+                  })}</td>
+                  <td>
+                    {v.offer ? (
+                      <>
+                        <strong>{v.offer.clientCompany}</strong>
+                        <br />
+                        <span style={{ fontSize: 12, color: '#888' }}>{v.offer.projectName}</span>
+                      </>
+                    ) : (
+                      <span style={{ color: '#888' }}>Angebot gelöscht</span>
+                    )}
+                  </td>
+                  <td>{formatDuration(v.activeSeconds)}</td>
+                  <td>{v.sectionsSeen}</td>
+                  <td>{v.eventCount}</td>
+                  <td>
+                    {formatGeo(v.country, v.region)}
+                    {v.device && <span style={{ color: '#888' }}> · {v.device}</span>}
+                  </td>
+                </tr>
+              )
+            })}
             {recentViews.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ textAlign: 'center', color: '#888', padding: 40 }}>

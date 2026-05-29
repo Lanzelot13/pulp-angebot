@@ -43,6 +43,7 @@ interface OfferRow {
   _count: { versions: number }
   // Tracking
   viewCount: number
+  lastViewAt: string | null
   // Moco
   mocoRef: string | null
   mocoCompanyId: string | null
@@ -741,6 +742,16 @@ export default function OffersPage() {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
+  // Kurzform DD.MM.YY, HH:MM für die "letzter Zugriff"-Anzeige in der Liste
+  const formatShortDateTime = (d: string) =>
+    new Date(d).toLocaleString('de-AT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+
   const formatDateTime = (d: string) =>
     new Date(d).toLocaleString('de-AT', {
       day: '2-digit',
@@ -912,7 +923,7 @@ export default function OffersPage() {
                   <td>
                     <span className={styles.versionBadge}>v{o.version}</span>
                   </td>
-                  <td onClick={(e) => e.stopPropagation()}>
+                  <td onClick={(e) => e.stopPropagation()} className={styles.viewCountCell}>
                     {o.viewCount > 0 ? (
                       <a
                         href={`/admin/offers/${o.id}/tracking`}
@@ -923,6 +934,9 @@ export default function OffersPage() {
                       </a>
                     ) : (
                       <span className={styles.viewCountZero}>0</span>
+                    )}
+                    {o.lastViewAt && (
+                      <div className={styles.viewCountLast}>{formatShortDateTime(o.lastViewAt)}</div>
                     )}
                   </td>
                   <td>{o.contact.name}</td>
