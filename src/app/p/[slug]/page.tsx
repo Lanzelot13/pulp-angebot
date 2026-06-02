@@ -24,12 +24,12 @@ export default async function Page({ params, searchParams }: PageProps) {
   const editToken = searchParams.edit
   const isEdit = !!editToken && editToken === pitch.editToken
 
-  // Team-Daten nur laden, wenn ein team-grid-Modul vorkommt.
+  // Team-Daten nur laden, wenn ein team-Modul vorkommt.
   // Soft-Fail: bei Scrape-Fehlern liefern wir ein leeres Array,
   // das Modul rendert dann einen kleinen Hinweis statt zu crashen.
   const modules = Array.isArray(pitch.modules) ? pitch.modules : []
   const needsTeam = modules.some(
-    (m) => m && typeof m === 'object' && (m as { type?: string }).type === 'team-grid'
+    (m) => m && typeof m === 'object' && (m as { type?: string }).type === 'team'
   )
   let team: Person[] = []
   if (needsTeam) {

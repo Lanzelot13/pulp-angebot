@@ -1,22 +1,48 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+// =========================================================
+// Pulpmedia Pitch Page · Cinema Noir (v7-Port)
+// =========================================================
+// Rendert eine vollständige Pitch-Page mit allen 18 v7-Modul-Typen
+// plus der zugehörigen Interaktivität (Story/Slides-Modus,
+// Custom-Cursor, Fullscreen, Counter-Animation, Flip-Cards,
+// Embed-Adapter für YouTube/TikTok/Instagram/Video).
+//
+// Das ganze CSS lebt in pitch-deck-styles.ts und wird hier
+// per <style dangerouslySetInnerHTML> injiziert, damit das
+// Cascade-Pattern aus dem Clickdummy 1:1 funktioniert.
+
+import { useEffect, useRef, useState } from 'react'
+import Script from 'next/script'
 import type {
   PitchModuleType,
   HeroContent,
+  TeamContent,
+  NumbersContent,
   ManifestContent,
-  TextContent,
-  StatsGridContent,
-  TeamGridContent,
-  FunFactsContent,
-  ServicesGridContent,
-  ServiceDetailContent,
-  VideoContent,
-  ImageContent,
+  UwContent,
+  HeuteContent,
+  LoveBrandsContent,
+  SaeulenContent,
+  LeistungenContent,
+  CaseVideoContent,
+  CaseSocialContent,
+  MonitorContent,
+  QuoteContent,
+  ProcessContent,
+  FragenContent,
+  TippsContent,
+  OptionenContent,
   OutroContent,
+  EmbedConfig,
 } from '@/lib/pitch-types'
+import { ICON_FILES } from '@/lib/pitch-types'
 import type { Person } from '@/lib/team'
-import styles from './pitch.module.css'
+import { PITCH_DECK_CSS } from './pitch-deck-styles'
+
+// =========================================================
+// Types
+// =========================================================
 
 interface PitchModuleSnapshot {
   instanceId: string
@@ -58,210 +84,670 @@ interface Props {
   mode: 'view' | 'edit'
 }
 
-export function PitchPage({ pitch, team }: Props) {
-  const rootRef = useRef<HTMLDivElement>(null)
+// =========================================================
+// Konstanten
+// =========================================================
 
-  // Scroll reveal animations (same pattern as OfferPage2)
-  useEffect(() => {
-    const root = rootRef.current
-    if (!root) return
-    const els = root.querySelectorAll(`.${styles.reveal}`)
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const delay = parseInt(
-              (entry.target as HTMLElement).dataset.delay || '0',
-              10
-            )
-            setTimeout(() => entry.target.classList.add(styles.visible), delay)
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -50px 0px' }
+const PULP_LOGO_SVG = `
+<svg viewBox="0 0 430 100" xmlns="http://www.w3.org/2000/svg" aria-label="Pulpmedia">
+  <path d="M110,0h50v50h25V0h25v100h-50c-27.6,0-50-22.4-50-50h0V0Z"/>
+  <path d="M75,0H0v100h50v-50h25l25-25L75,0ZM18.6,40.4V9.7l18.4,15.4-18.4,15.4Z"/>
+  <path d="M295,50h-25V0h-50v50c0,27.6,22.4,50,50,50h25l25-25-25-25ZM257,37.1h-24.1V13h24.1v24.1Z"/>
+  <g><path d="M356.6,71.8v5h5c0-2.7-2.2-5-5-5Z"/><path d="M348.5,76.7h5v-5c-2.7,0-5,2.2-5,5Z"/><path d="M405,0h-75v100h50v-50h25c13.8,0,25-11.2,25-25S418.8,0,405,0ZM365,82.4h-5v5h-2.5v-4.9h-1.3v4.9h-2.3v-4.9h-1.3v4.9h-2.6v-5h-5v-9.9c0-5.5,4.4-9.9,9.9-9.9s9.9,4.4,9.9,9.9v9.9Z"/></g>
+</svg>
+`
+
+// Custom-Cursor-SVG (Pulp-Hand)
+const CURSOR_SVG = `
+<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path fill="#FF1900" d="M43.02,11.08c-4.8-4.57-10.36-.15-10.36-.15-5.6-3.82-9.99,1.73-9.99,1.73-2.67-5.87-4.93-8.12-8.03-10.99C12.15-.62,6.13-1.29,6.22,4.53c.03,1.73,2.51,5.12,4.12,8.74,3.2,7.19,5.62,10.68,5.62,10.68-5.07-4.3-11.68,.62-9.35,5.69,6.33,13.79,15.56,16.2,15.56,16.2,1.02,8.62,20.51,1.63,22.87-1.24,2.36-2.86-.04-6.22-.04-6.22,6.93-5.93,.76-24.69-1.99-27.3Zm-12.8,23c-.61-7.98-4.27-11.88-4.31-11.92l1.21-1.17c.17,.17,4.12,4.33,4.78,12.96l-1.68,.13Zm5.74-1.02c.04-7.49-3.48-11.88-3.51-11.93l1.3-1.07c.16,.2,3.94,4.87,3.89,13h-1.68Z"/>
+</svg>
+`
+
+function iconUrl(key: string | undefined): string | null {
+  if (!key) return null
+  const path = ICON_FILES[key]
+  return path ? '/' + path : null
+}
+
+// =========================================================
+// Embed-Player
+// =========================================================
+
+function EmbedPlayer({ embed }: { embed: EmbedConfig | undefined }) {
+  if (!embed || !embed.type) {
+    return (
+      <div className="slot-lbl">
+        <span>EMBED-SLOT · Typ + ID/URL fehlt</span>
+      </div>
     )
-    els.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
+  }
+  const { type, id, url, autoplay, mute, loop, controls } = embed
 
-  const sortedModules = [...pitch.modules].sort(
-    (a, b) => a.sortOrder - b.sortOrder
-  )
+  if (type === 'youtube' && id) {
+    const params = new URLSearchParams({
+      rel: '0',
+      modestbranding: '1',
+      controls: controls === false ? '0' : '1',
+      autoplay: autoplay ? '1' : '0',
+      mute: mute === false ? '0' : '1',
+      loop: loop ? '1' : '0',
+      playsinline: '1',
+    })
+    if (loop) params.set('playlist', id)
+    return (
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${id}?${params}`}
+        title="YouTube"
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerPolicy="strict-origin-when-cross-origin"
+        allowFullScreen
+      />
+    )
+  }
+
+  if (type === 'video' && (url || id)) {
+    const src = url || id || ''
+    return (
+      <video
+        src={src}
+        autoPlay={!!autoplay}
+        muted={mute !== false}
+        loop={!!loop}
+        controls={controls !== false}
+        playsInline
+      />
+    )
+  }
+
+  if (type === 'tiktok' && (id || url)) {
+    const u = url || `https://www.tiktok.com/@_/video/${id}`
+    return (
+      <blockquote
+        className="tiktok-embed embed"
+        cite={u}
+        data-video-id={id}
+        style={{ maxWidth: '100%', margin: 0 }}
+      >
+        <a href={u}> </a>
+      </blockquote>
+    )
+  }
+
+  if (type === 'instagram' && url) {
+    return (
+      <blockquote
+        className="instagram-media embed"
+        data-instgrm-permalink={url}
+        data-instgrm-version="14"
+        style={{ margin: 0, maxWidth: '100%', width: '100%' }}
+      />
+    )
+  }
 
   return (
-    <div ref={rootRef} className={styles.page}>
-      <nav className={styles.nav}>
-        <div className={styles.navLeft}>
-          <span className={styles.navLogo}>
-            <PulpLogo />
-          </span>
-          <span className={styles.navClient}>
-            Pulpmedia × {pitch.clientCompany}
-          </span>
-        </div>
-        {pitch.occasion && (
-          <span className={styles.navOccasion}>{pitch.occasion}</span>
-        )}
-      </nav>
-
-      {sortedModules.length === 0 && (
-        <div className={styles.emptyState}>
-          Diese Pitch enthält noch keine Module.
-        </div>
-      )}
-
-      {sortedModules.map((module) => (
-        <ModuleRenderer key={module.instanceId} module={module} team={team} />
-      ))}
-
-      <footer className={styles.footer}>
-        Pulpmedia × {pitch.clientCompany}
-        <div className={styles.footerContact}>
-          Fragen? Schreib an{' '}
-          <a href={`mailto:${pitch.contact.email}`}>{pitch.contact.email}</a>
-          {' oder ruf '}
-          <a href={`tel:${pitch.contact.phone.replace(/\s/g, '')}`}>
-            {pitch.contact.name}
-          </a>
-          {' an.'}
-        </div>
-      </footer>
+    <div className="slot-lbl">
+      <span>EMBED konnte nicht gerendert werden</span>
     </div>
   )
 }
 
 // =========================================================
-// Module-Renderer
+// Hauptkomponente
 // =========================================================
 
-function ModuleRenderer({
-  module,
-  team,
-}: {
-  module: PitchModuleSnapshot
-  team: Person[]
-}) {
-  const c = module.content
+export function PitchPage({ pitch, team }: Props) {
+  const [pagerLabel, setPagerLabel] = useState('')
+  const [pagerCur, setPagerCur] = useState('01')
+  const [pagerTot, setPagerTot] = useState('01')
+  const [progress, setProgress] = useState(0)
+  const [mode, setMode] = useState<'slides' | 'story'>('slides')
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const rootRef = useRef<HTMLDivElement>(null)
+  const cursorRef = useRef<HTMLDivElement>(null)
+  const lenisRef = useRef<unknown>(null)
+  const visibleModules = pitch.modules.filter((m) => m && m.type)
+
+  // ---------- MODE TOGGLE ----------
+  const setModeWith = (m: 'slides' | 'story') => {
+    setMode(m)
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem('pitch-mode', m) } catch {}
+    }
+    if (m === 'slides') {
+      // sofort nach oben scrollen
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+    }
+  }
+
+  // Load saved mode (default: slides)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pitch-mode')
+      if (saved === 'story') setMode('story')
+    } catch {}
+  }, [])
+
+  // ---------- CUSTOM CURSOR ----------
+  useEffect(() => {
+    const cursor = cursorRef.current
+    if (!cursor) return
+    const onMove = (e: MouseEvent) => {
+      cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`
+    }
+    const hoverables = 'a, button, [data-cursor=hover], .slide.saeulen .pillar, .slide.leistungen .it'
+    const onOver = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest(hoverables)) cursor.classList.add('hover')
+    }
+    const onOut = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest(hoverables)) cursor.classList.remove('hover')
+    }
+    const onDown = () => cursor.classList.add('click')
+    const onUp = () => cursor.classList.remove('click')
+    window.addEventListener('mousemove', onMove, { passive: true })
+    document.addEventListener('mouseover', onOver)
+    document.addEventListener('mouseout', onOut)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseover', onOver)
+      document.removeEventListener('mouseout', onOut)
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  // ---------- COUNTERS ----------
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const counterIO = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return
+          const el = e.target as HTMLElement
+          const target = parseFloat(el.dataset.target || '0')
+          const dec = parseInt(el.dataset.decimals || '0', 10)
+          const dur = parseInt(el.dataset.duration || '1800', 10)
+          const start = performance.now()
+          function tick(now: number) {
+            const t = Math.min(1, (now - start) / dur)
+            const ease = 1 - Math.pow(1 - t, 3)
+            const val = target * ease
+            el.textContent = dec
+              ? val.toFixed(dec)
+              : Math.round(val).toLocaleString('de-AT')
+            if (t < 1) requestAnimationFrame(tick)
+          }
+          requestAnimationFrame(tick)
+          counterIO.unobserve(el)
+        })
+      },
+      { threshold: 0.4 }
+    )
+    root.querySelectorAll<HTMLElement>('[data-counter]').forEach((el) => counterIO.observe(el))
+    return () => counterIO.disconnect()
+  }, [pitch.id])
+
+  // ---------- INTERSECTION REVEAL ----------
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add('revealed')
+        })
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+    )
+    root.querySelectorAll('.slide').forEach((s) => io.observe(s))
+    requestAnimationFrame(() => root.querySelector('.slide')?.classList.add('revealed'))
+    return () => io.disconnect()
+  }, [pitch.id])
+
+  // ---------- LENIS (story mode only) ----------
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    interface LenisCtor {
+      new (opts: { lerp: number; smoothWheel: boolean }): { raf: (t: number) => void; destroy: () => void }
+    }
+    const Lenis = (window as unknown as { Lenis?: LenisCtor }).Lenis
+    if (mode === 'story' && Lenis && !lenisRef.current) {
+      const lenis = new Lenis({ lerp: 0.085, smoothWheel: true })
+      lenisRef.current = lenis
+      const raf = (t: number) => {
+        const cur = lenisRef.current as { raf: (t: number) => void } | null
+        if (cur) {
+          cur.raf(t)
+          requestAnimationFrame(raf)
+        }
+      }
+      requestAnimationFrame(raf)
+    }
+    if (mode === 'slides' && lenisRef.current) {
+      (lenisRef.current as { destroy: () => void }).destroy()
+      lenisRef.current = null
+    }
+  }, [mode])
+
+  // ---------- FULLSCREEN ----------
+  const toggleFs = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.()
+    } else {
+      document.documentElement.requestFullscreen?.()
+    }
+  }
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
+  // ---------- KEYBOARD NAV ----------
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFs(); return }
+      const slides = Array.from(root.querySelectorAll<HTMLElement>('.slide'))
+      if (slides.length === 0) return
+      const mid = window.scrollY + window.innerHeight * 0.45
+      let idx = 0
+      slides.forEach((s, i) => { if (s.offsetTop <= mid) idx = i })
+      const goto = (n: number) => {
+        const clamped = Math.max(0, Math.min(slides.length - 1, n))
+        slides[clamped].scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+        e.preventDefault(); goto(idx + 1)
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+        e.preventDefault(); goto(idx - 1)
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goto(0)
+      } else if (e.key === 'End') {
+        e.preventDefault(); goto(slides.length - 1)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // ---------- PROGRESS + PAGER ----------
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const slides = Array.from(root.querySelectorAll<HTMLElement>('.slide'))
+    setPagerTot(String(slides.length).padStart(2, '0'))
+    const update = () => {
+      const max = Math.max(1, document.body.scrollHeight - window.innerHeight)
+      const p = Math.max(0, Math.min(1, window.scrollY / max))
+      setProgress(p * 100)
+      const mid = window.scrollY + window.innerHeight * 0.45
+      let idx = 0
+      slides.forEach((s, i) => { if (s.offsetTop <= mid) idx = i })
+      setPagerCur(String(idx + 1).padStart(2, '0'))
+      const lbl = slides[idx]?.dataset.screenLabel || ''
+      setPagerLabel(lbl.replace(/^\d+\s+/, '').slice(0, 32))
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [pitch.id])
+
+  // ---------- INSTAGRAM EMBED RENDER (nach Mount + Mode-Wechsel) ----------
+  useEffect(() => {
+    const win = window as unknown as { instgrm?: { Embeds?: { process: () => void } } }
+    if (win.instgrm?.Embeds?.process) {
+      try { win.instgrm.Embeds.process() } catch {}
+    }
+  }, [pitch.id, mode])
+
+  return (
+    <div ref={rootRef}>
+      <style dangerouslySetInnerHTML={{ __html: PITCH_DECK_CSS }} />
+
+      {/* Externe Embed-Scripts. Lenis bei story-mode geladen, plus TikTok/Instagram. */}
+      <Script src="https://www.tiktok.com/embed.js" strategy="lazyOnload" />
+      <Script src="https://www.instagram.com/embed.js" strategy="lazyOnload" />
+      <Script src="https://cdn.jsdelivr.net/npm/lenis@1.0.42/dist/lenis.min.js" strategy="afterInteractive" />
+
+      <div className="progress" style={{ width: `${progress}%` }} />
+
+      <header className="bar">
+        <a className="logo" href="#" aria-label="Pulpmedia" dangerouslySetInnerHTML={{ __html: PULP_LOGO_SVG }} />
+        <div className="center">
+          <span>{pitch.clientCompany?.toUpperCase()}</span>
+          <span className="dot" />
+          <span>{(pitch.occasion || '').toUpperCase()}</span>
+        </div>
+        <div className="right">
+          <div className="mode-toggle" role="tablist" aria-label="Lesemodus">
+            <button type="button" className={mode === 'story' ? 'on' : ''} onClick={() => setModeWith('story')}>STORY</button>
+            <button type="button" className={mode === 'slides' ? 'on' : ''} onClick={() => setModeWith('slides')}>SLIDES</button>
+          </div>
+          <button
+            type="button"
+            className="fs-btn"
+            aria-label={isFullscreen ? 'Vollbild verlassen' : 'Vollbild'}
+            title={isFullscreen ? 'Vollbild verlassen (F)' : 'Vollbild (F)'}
+            onClick={toggleFs}
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              {!isFullscreen && (
+                <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+              )}
+              {isFullscreen && (
+                <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+              )}
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main className={mode === 'slides' ? 'mode-slides' : ''}>
+        <div className={mode === 'slides' ? 'mode-slides-wrap' : ''}>
+          {visibleModules.map((m, idx) => (
+            <ModuleRouter key={m.instanceId} module={m} index={idx} team={team} />
+          ))}
+        </div>
+      </main>
+
+      <div className="pager">
+        <span className="label">FOLIE</span>
+        <span className="cur">{pagerCur}</span> / <span>{pagerTot}</span>
+        <span style={{ marginLeft: 14, opacity: 0.6 }}>{pagerLabel}</span>
+      </div>
+
+      <div id="cursor" ref={cursorRef} dangerouslySetInnerHTML={{ __html: CURSOR_SVG }} />
+
+      {/* mode-slides Klasse auf <body> übertragen */}
+      <BodyModeSync mode={mode} />
+    </div>
+  )
+}
+
+// =========================================================
+// BodyModeSync — fügt .mode-slides am <body> hinzu/entfernt es
+// =========================================================
+function BodyModeSync({ mode }: { mode: 'slides' | 'story' }) {
+  useEffect(() => {
+    if (mode === 'slides') document.body.classList.add('mode-slides')
+    else document.body.classList.remove('mode-slides')
+    return () => document.body.classList.remove('mode-slides')
+  }, [mode])
+  return null
+}
+
+// =========================================================
+// Module-Router
+// =========================================================
+
+function ModuleRouter({ module, index, team }: { module: PitchModuleSnapshot; index: number; team: Person[] }) {
+  const label = `${String(index + 1).padStart(2, '0')} ${module.type}`
+  // Content kommt aus JSON, ist also nominell `unknown`. Wir casten auf den
+  // typ-spezifischen Content. Falls Felder fehlen, rendert die Modul-Komponente
+  // mit Defaults oder leeren Werten (defensiv per `?.`/`||`).
+  const content = module.content as unknown
+
   switch (module.type) {
-    case 'hero':
-      return <HeroModule content={c as HeroContent} />
-    case 'manifest':
-      return <ManifestModule content={c as ManifestContent} />
-    case 'text':
-      return <TextModule content={c as TextContent} />
-    case 'stats-grid':
-      return <StatsGridModule content={c as StatsGridContent} />
-    case 'team-grid':
-      return <TeamGridModule content={c as TeamGridContent} team={team} />
-    case 'fun-facts':
-      return <FunFactsModule content={c as FunFactsContent} />
-    case 'services-grid':
-      return <ServicesGridModule content={c as ServicesGridContent} />
-    case 'service-detail':
-      return <ServiceDetailModule content={c as ServiceDetailContent} />
-    case 'video':
-      return <VideoModule content={c as VideoContent} />
-    case 'image':
-      return <ImageModule content={c as ImageContent} />
-    case 'outro':
-      return <OutroModule content={c as OutroContent} />
+    case 'hero':         return <HeroModule data={content as HeroContent} label={label} />
+    case 'team':         return <TeamModule data={content as TeamContent} team={team} label={label} />
+    case 'numbers':      return <NumbersModule data={content as NumbersContent} label={label} />
+    case 'manifest':     return <ManifestModule data={content as ManifestContent} label={label} />
+    case 'uw':           return <UwModule data={content as UwContent} label={label} />
+    case 'heute':        return <HeuteModule data={content as HeuteContent} label={label} />
+    case 'love-brands':  return <LoveBrandsModule data={content as LoveBrandsContent} label={label} />
+    case 'saeulen':      return <SaeulenModule data={content as SaeulenContent} label={label} />
+    case 'leistungen':   return <LeistungenModule data={content as LeistungenContent} label={label} />
+    case 'case-video':   return <CaseVideoModule data={content as CaseVideoContent} label={label} />
+    case 'case-social':  return <CaseSocialModule data={content as CaseSocialContent} label={label} />
+    case 'monitor':      return <MonitorModule data={content as MonitorContent} label={label} />
+    case 'quote':        return <QuoteModule data={content as QuoteContent} label={label} />
+    case 'process':      return <ProcessModule data={content as ProcessContent} label={label} />
+    case 'fragen':       return <FragenModule data={content as FragenContent} label={label} />
+    case 'tipps':        return <TippsModule data={content as TippsContent} label={label} />
+    case 'optionen':     return <OptionenModule data={content as OptionenContent} label={label} />
+    case 'outro':        return <OutroModule data={content as OutroContent} label={label} />
     default:
-      return null
+      return (
+        <section className="slide" data-screen-label={label}>
+          <p style={{ color: '#fff', padding: 40 }}>Unbekannter Modul-Typ: {module.type}</p>
+        </section>
+      )
   }
 }
 
-// ------------------------- HERO -------------------------
-function HeroModule({ content }: { content: HeroContent }) {
+// =========================================================
+// 01 · HERO
+// =========================================================
+function HeroModule({ data, label }: { data: HeroContent; label: string }) {
   return (
-    <section className={styles.hero}>
-      {content.eyebrow && (
-        <div className={`${styles.heroEyebrow} ${styles.reveal}`}>
-          {content.eyebrow}
-        </div>
-      )}
-      <h1
-        className={`${styles.heroTitle} ${styles.reveal}`}
-        data-delay="100"
-      >
-        {content.title}
+    <section className="slide hero" data-slide-type="hero" data-screen-label={label}>
+      <div className="meta-top reveal-fade">
+        {data.kicker1 && <span>{data.kicker1}</span>}
+        {data.kicker1 && data.kicker2 && <span className="dot" />}
+        {data.kicker2 && <span>{data.kicker2}</span>}
+        {data.kicker2 && data.kicker3 && <span className="dot" />}
+        {data.kicker3 && <span>{data.kicker3}</span>}
+      </div>
+      <h1>
+        <span className="hand hand-l" aria-hidden="true" />
+        {data.greeting || 'HALLO'}
+        <span className="hand hand-r" aria-hidden="true" />
       </h1>
-      {content.subtitle && (
-        <p
-          className={`${styles.heroSubtitle} ${styles.reveal}`}
-          data-delay="200"
-        >
-          {content.subtitle}
-        </p>
-      )}
-      {content.image && (
-        <div className={`${styles.heroImage} ${styles.reveal}`} data-delay="300">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={content.image} alt="" />
-        </div>
-      )}
+      <div className="meta-bottom reveal-fade delay-3">
+        {data.meetingWith && <div className="it"><span className="k">Gespräch mit</span><span className="v">{data.meetingWith}</span></div>}
+        {data.meetingFrom && <div className="it"><span className="k">Unsererseits</span><span className="v">{data.meetingFrom}</span></div>}
+        {data.meetingPlace && <div className="it"><span className="k">Ort</span><span className="v">{data.meetingPlace}</span></div>}
+      </div>
+      <div className="scroll-hint reveal-fade delay-5">
+        <span>SCROLL</span><span className="line" />
+      </div>
     </section>
   )
 }
 
-// ------------------------- MANIFEST -------------------------
-function ManifestModule({ content }: { content: ManifestContent }) {
+// =========================================================
+// 02 · TEAM
+// =========================================================
+function TeamModule({ data, team, label }: { data: TeamContent; team: Person[]; label: string }) {
+  const attending = new Set(data.attendingSlugs || [])
+  const attendingCount = attending.size
+  // Reihenfolge: die Anwesenden zuerst (in der gewählten Reihenfolge), dann der Rest
+  const attendingSorted = (data.attendingSlugs || [])
+    .map((slug) => team.find((p) => p.slug === slug))
+    .filter((p): p is Person => !!p)
+  const others = team.filter((p) => !attending.has(p.slug))
+  const list = [...attendingSorted, ...others]
+  const headline = data.headline || `${team.length} Pulpies, ${attendingCount} sind heute dabei`
+  // Den dynamischen Akzent-Part nach dem Komma rot färben, wenn keine Custom-Headline
   return (
-    <section className={styles.manifest}>
-      <h2 className={`${styles.manifestStatement} ${styles.reveal}`}>
-        {content.statement}
-      </h2>
-      {content.attribution && (
-        <div
-          className={`${styles.manifestAttribution} ${styles.reveal}`}
-          data-delay="200"
-        >
-          — {content.attribution}
-        </div>
-      )}
+    <section className="slide team" data-slide-type="team" data-screen-label={label}>
+      <div className="intro intro-team">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Wer heute dabei ist</span></div>
+        <h2 className="slide-title reveal-fade delay-2">
+          {data.headline ? (
+            headline
+          ) : (
+            <>
+              {team.length} Pulpies, <span className="red">{attendingCount} sind heute dabei</span>
+            </>
+          )}
+          <span className="title-ico" aria-hidden="true" />
+        </h2>
+      </div>
+      <div className="all-pulpies reveal-fade delay-3">
+        {list.map((p) => {
+          const first = p.name?.split(' ')[0] || p.name
+          const isAttending = attending.has(p.slug)
+          return (
+            <div key={p.slug} className="pulpie" data-attending={isAttending ? '1' : undefined}>
+              <div className="photo">
+                {p.imageUrl && <img src={p.imageUrl} alt={p.name} />}
+              </div>
+              <span className="nm">{first}</span>
+            </div>
+          )
+        })}
+      </div>
     </section>
   )
 }
 
-// ------------------------- TEXT -------------------------
-function TextModule({ content }: { content: TextContent }) {
+// =========================================================
+// 03 · NUMBERS
+// =========================================================
+function NumbersModule({ data, label }: { data: NumbersContent; label: string }) {
   return (
-    <section className={styles.section}>
-      <div className={styles.textBlock}>
-        {content.headline && (
-          <h2 className={`${styles.sectionHeadline} ${styles.reveal}`}>
-            {content.headline}
-          </h2>
-        )}
-        <div
-          className={`${styles.textBody} ${styles.reveal}`}
-          data-delay="100"
-        >
-          {content.body}
+    <section className="slide numbers" data-slide-type="numbers" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Pulpmedia in Zahlen</span></div>
+      </div>
+      <div className="grid">
+        {data.items?.map((item, i) => {
+          const ico = iconUrl(item.iconKey)
+          return (
+            <div key={i} className={`num-item reveal-fade delay-${i + 2}`}>
+              {ico && <div className="icon"><img src={ico} alt="" /></div>}
+              <div className="num">
+                <span data-counter="" data-target={item.target}>0</span>
+                {item.suffix && <span className="suffix">{item.suffix}</span>}
+              </div>
+              <div className="lbl">{item.label}</div>
+              {item.description && <div className="desc">{item.description}</div>}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 04 · MANIFEST
+// =========================================================
+function ManifestModule({ data, label }: { data: ManifestContent; label: string }) {
+  const heart = iconUrl('pixel-heart')
+  return (
+    <section className="slide manifest" data-slide-type="manifest" data-screen-label={label}>
+      {heart && <div className="icon-wm"><img src={heart} alt="" /></div>}
+      <div className="wrap">
+        <div className="eyebrow reveal-fade" style={{ marginBottom: 48 }}><span className="bar" /><span>Unser Manifest</span></div>
+        <h2>
+          <span className="reveal-mask"><span>{data.line1}</span></span><br />
+          <span className="punch">
+            <span className="reveal-mask"><span className="red">{data.line2}</span></span>
+            {heart && <span className="ic"><img src={heart} alt="" /></span>}
+          </span>
+        </h2>
+        {data.body && <p className="body reveal-fade delay-4">{data.body}</p>}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 05 · UNNÜTZES WISSEN (UW)
+// =========================================================
+function UwModule({ data, label }: { data: UwContent; label: string }) {
+  return (
+    <section className="slide uw" data-slide-type="uw" data-screen-label={label}>
+      <div className="uw-head">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Origin Story</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Unnützes <span className="red">Wissen</span><span className="title-ico" aria-hidden="true" /></h2>
+      </div>
+      <div className="uw-cols">
+        {data.cols?.map((col, i) => (
+          <figure key={i} className={`uw-col reveal-fade delay-${i + 2}`}>
+            {col.imageUrl && (
+              <div className="uw-img uw-img-logo">
+                <img src={col.imageUrl.startsWith('/') ? col.imageUrl : '/' + col.imageUrl} alt={col.heading} />
+              </div>
+            )}
+            {col.imageStack && col.imageStack.length > 0 && (
+              <div className="uw-img uw-img-books">
+                {col.imageStack.map((url, j) => (
+                  <img key={j} className={`book b${j + 1}`} src={url.startsWith('/') ? url : '/' + url} alt="" />
+                ))}
+              </div>
+            )}
+            <figcaption>
+              <h3 className="uw-h">{col.heading}</h3>
+              <p className="uw-p">{col.sub}</p>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 06 · HEUTE / SPOTLIGHT (Wassertransferdruck-Style)
+// =========================================================
+function HeuteModule({ data, label }: { data: HeuteContent; label: string }) {
+  const ico = iconUrl('smiley')
+  return (
+    <section className="slide heute" data-slide-type="heute" data-screen-label={label}>
+      <div className="layout">
+        <div className="copy">
+          <div className="eyebrow reveal-fade"><span className="bar" /><span>Heute. Hier. Jetzt.</span></div>
+          <h2 className="reveal-fade delay-2">{data.title}<span className="title-ico" aria-hidden="true" /></h2>
+          <div className="stats reveal-fade delay-4">
+            {data.metrics?.map((m, i) => (
+              <div key={i} className="m">
+                <div className="v">
+                  <span data-counter="" data-target={m.target}>0</span>
+                  {m.unit && <span className="u">{m.unit}</span>}
+                </div>
+                <div className="l">{m.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="phone-frame reveal-fade delay-3">
+          <div className="screen">
+            {ico && (
+              <div className="slot-lbl" style={{ display: data.embed?.type ? 'none' : undefined }}>
+                <span className="ic"><img src={ico} alt="" /></span>
+                <span>TIKTOK · INSTAGRAM oder VIDEO-SLOT</span>
+              </div>
+            )}
+            <EmbedPlayer embed={data.embed} />
+          </div>
         </div>
       </div>
     </section>
   )
 }
 
-// ------------------------- STATS -------------------------
-function StatsGridModule({ content }: { content: StatsGridContent }) {
+// =========================================================
+// 07 · LOVE BRANDS
+// =========================================================
+function LoveBrandsModule({ data, label }: { data: LoveBrandsContent; label: string }) {
   return (
-    <section className={styles.section}>
-      {content.headline && (
-        <h2 className={`${styles.sectionHeadline} ${styles.reveal}`}>
-          {content.headline}
-        </h2>
-      )}
-      <div className={styles.statsGrid}>
-        {(content.items || []).map((item, i) => (
-          <div
-            key={i}
-            className={`${styles.statItem} ${styles.reveal}`}
-            data-delay={i * 80}
-          >
-            <div className={styles.statNumber}>{item.number}</div>
-            <div className={styles.statLabel}>{item.label}</div>
+    <section className="slide love-brands" data-slide-type="love-brands" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Mit wem wir arbeiten dürfen</span></div>
+        <h2 className="slide-title reveal-fade delay-2"><span className="red">Brandlove</span><span className="title-ico" aria-hidden="true" /></h2>
+      </div>
+      <div className="grid">
+        {data.brands?.map((b, i) => (
+          <div key={i} className="brand" data-shape={b.shape && b.shape !== 'default' ? b.shape : undefined}>
+            <div className="logo-slot">
+              <img src={b.logoUrl.startsWith('/') ? b.logoUrl : '/' + b.logoUrl} alt={b.name} />
+            </div>
           </div>
         ))}
       </div>
@@ -269,244 +755,383 @@ function StatsGridModule({ content }: { content: StatsGridContent }) {
   )
 }
 
-// ------------------------- TEAM -------------------------
-function TeamGridModule({
-  content,
-  team,
-}: {
-  content: TeamGridContent
-  team: Person[]
-}) {
-  // Wir filtern in der Reihenfolge der personSlugs (so kann im Admin sortiert
-  // werden). Personen, die in der personSlugs-Liste sind, aber nicht mehr im
-  // Live-Team auftauchen (oder pulpmedia.at gerade nicht erreichbar war),
-  // werden still verworfen.
-  const slugs = content.personSlugs || []
-  const selected = slugs
-    .map((slug) => team.find((p) => p.slug === slug))
-    .filter((p): p is Person => !!p)
-
+// =========================================================
+// 08 · SÄULEN
+// =========================================================
+function SaeulenModule({ data, label }: { data: SaeulenContent; label: string }) {
   return (
-    <section className={styles.section}>
-      <h2 className={`${styles.sectionHeadline} ${styles.reveal}`}>
-        {content.headline || 'Wer ist heute da'}
-      </h2>
-      {selected.length === 0 ? (
-        <div className={`${styles.teamPlaceholder} ${styles.reveal}`}>
-          Noch keine Personen ausgewählt
-          {slugs.length > 0 && team.length === 0
-            ? ' (Team-Daten konnten gerade nicht von pulpmedia.at geladen werden).'
-            : '.'}
-        </div>
-      ) : (
-        <div className={styles.teamGrid}>
-          {selected.map((p, i) => (
-            <div
-              key={p.slug}
-              className={`${styles.teamCard} ${styles.reveal}`}
-              data-delay={i * 80}
-            >
-              <div className={styles.teamAvatar}>
-                {p.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.imageUrl} alt={p.name} />
-                ) : (
-                  p.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                )}
-              </div>
-              <div className={styles.teamName}>{p.name}</div>
-              {p.role && <div className={styles.teamRole}>{p.role}</div>}
+    <section className="slide saeulen" data-slide-type="saeulen" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Fünf Säulen für Brand Love</span></div>
+        <h2 className="slide-title reveal-fade delay-2">So bauen wir <span className="red">Lovebrands</span><span className="title-ico" aria-hidden="true" /></h2>
+      </div>
+      <div className="pillars reveal-fade delay-2">
+        {data.pillars?.map((p, i) => {
+          const ico = iconUrl(p.iconKey)
+          return (
+            <div key={i} className="pillar">
+              <div className="num">{String(i + 1).padStart(2, '0')}</div>
+              {ico && <div className="icon"><img src={ico} alt="" /></div>}
+              <h3>
+                <span className="t">{p.title}</span>
+                <span className="s">{p.subtitle}</span>
+              </h3>
+              <p>{p.body}</p>
             </div>
+          )
+        })}
+      </div>
+      <div className="indicator reveal-fade delay-4"><span className="pulse" /><span>→ Hover, um zu vertiefen</span></div>
+    </section>
+  )
+}
+
+// =========================================================
+// 09 · LEISTUNGEN
+// =========================================================
+function LeistungenModule({ data, label }: { data: LeistungenContent; label: string }) {
+  return (
+    <section className="slide leistungen" data-slide-type="leistungen" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Was wir tagtäglich tun</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Unsere <span className="red">Leistungen</span><span className="title-ico" aria-hidden="true" /></h2>
+      </div>
+      <div className="grid">
+        {data.items?.map((it, i) => {
+          const ico = iconUrl(it.iconKey)
+          return (
+            <div key={i} className={`it reveal-fade delay-${(i % 3) + 1}`}>
+              <div className="row">
+                {ico && <div className="icon"><img src={ico} alt="" /></div>}
+                <div>
+                  <div className="num">{String(i + 1).padStart(2, '0')}</div>
+                  <h3>{it.title}</h3>
+                </div>
+              </div>
+              <p>{it.description}</p>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 10 · CASE VIDEO (Hero, full-bleed)
+// =========================================================
+function CaseVideoModule({ data, label }: { data: CaseVideoContent; label: string }) {
+  return (
+    <section className="slide case" data-slide-type="case-video" data-screen-label={label}>
+      <div className="media">
+        <EmbedPlayer embed={data.embed} />
+      </div>
+      <div className="case-overlay">
+        <div className="top">
+          {data.topQuote && (
+            <div className="quote-box">
+              <span className="ic">&ldquo;</span>
+              <p className="q">{data.topQuote.text}</p>
+              {data.topQuote.by && <div className="by">{data.topQuote.by}</div>}
+            </div>
+          )}
+        </div>
+        <div className="bottom">
+          <div className="client">{data.bottom?.client}</div>
+          <h3>
+            {data.bottom?.headline}{' '}
+            {data.bottom?.headlineAccent && <span className="red">{data.bottom.headlineAccent}</span>}
+          </h3>
+          <div className="metrics">
+            {data.bottom?.metrics?.map((m, i) => (
+              <div key={i} className="m">
+                <div className="v">{m.value}</div>
+                <div className="l">{m.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 11 · CASE SOCIAL (Phone Frame)
+// =========================================================
+function CaseSocialModule({ data, label }: { data: CaseSocialContent; label: string }) {
+  return (
+    <section className="slide social-case" data-slide-type="case-social" data-screen-label={label}>
+      <div className="layout">
+        <div className="copy">
+          <div className="client reveal-fade delay-1">{data.client}</div>
+          <h3 className="reveal-fade delay-2">
+            {data.title}{' '}
+            {data.titleAccent && <span className="red">{data.titleAccent}</span>}
+            <span className="title-ico" aria-hidden="true" />
+          </h3>
+          <p className="lead reveal-fade delay-3">{data.body}</p>
+          <div className="metrics reveal-fade delay-4">
+            {data.metrics?.map((m, i) => (
+              <div key={i} className="m">
+                <div className="v"><span className={m.accent ? 'red' : ''}>{m.value}</span></div>
+                <div className="l">{m.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="platform-tag reveal-fade delay-5"><span className="ic" /><span>{data.platform}</span></div>
+        </div>
+        <div className="phone-frame reveal-fade delay-3">
+          <div className="screen">
+            <EmbedPlayer embed={data.embed} />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 12 · MONITOR (TikTok Brand Monitor)
+// =========================================================
+function MonitorModule({ data, label }: { data: MonitorContent; label: string }) {
+  return (
+    <section className="slide monitor" data-slide-type="monitor" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>TikTok Brand Monitor</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Wo <span className="red">{data.brand}</span> auf TikTok steht<span className="title-ico" aria-hidden="true" /></h2>
+      </div>
+      <div className="bm-card reveal-fade delay-2">
+        <div className="bm-head">
+          <div className="acct">
+            <span className="at">@</span>
+            <span>{data.handle}</span>
+          </div>
+          <div className={`rank-badge r-${data.rank}`}>
+            <span className="rk">{data.rank.toUpperCase()}</span>
+            <span className="rl">Rank · Eng.-Rate &gt; 1,5%</span>
+          </div>
+        </div>
+        <div className="bm-stats">
+          <div className="st"><div className="v">{data.posts}</div><div className="l">Posts</div></div>
+          <div className="st"><div className="v">{data.views}</div><div className="l">Views</div></div>
+          <div className="st"><div className="v">{data.interactions}</div><div className="l">Interaktionen</div></div>
+          <div className="st accent"><div className="v">{data.engagementRate}</div><div className="l">Engagement-Rate</div></div>
+        </div>
+        <div className="bm-compare">
+          <div className="cmp-head">
+            <span className="lbl">Engagement-Rate im Vergleich</span>
+            <span className="zones">
+              <span className="z d">D</span><span className="z c">C</span><span className="z b">B</span><span className="z a">A</span>
+            </span>
+          </div>
+          <div className="cmp-rows">
+            {data.comparison?.map((row, i) => (
+              <div key={i} className={`row ${row.focus ? 'focus' : ''}`}>
+                <span className="nm">{row.name}</span>
+                <span className="track"><span className={`fill ${row.ghost ? 'ghost' : ''}`} style={{ width: `${row.percent}%` }} /></span>
+                <span className="pct">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 13 · QUOTE
+// =========================================================
+function QuoteModule({ data, label }: { data: QuoteContent; label: string }) {
+  const ico = iconUrl('blitz')
+  return (
+    <section className="slide quote" data-slide-type="quote" data-screen-label={label}>
+      <div className="wrap">
+        {ico && <div className="ic reveal-fade"><img src={ico} alt="" /></div>}
+        <p className="q reveal-fade delay-2">{data.text}</p>
+        <div className="by reveal-fade delay-3">
+          <div className="avatar"><img alt="" /></div>
+          <div className="info">
+            <div className="n">{data.name}</div>
+            <div className="r">{data.role}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 14 · PROCESS TIMELINE
+// =========================================================
+function ProcessModule({ data, label }: { data: ProcessContent; label: string }) {
+  const colsClass = `cols-${Math.max(1, Math.min(7, data.steps?.length || 7))}`
+  return (
+    <section className="slide process" data-slide-type="process" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>So läuft&apos;s ab</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Ein typischer <span className="red">Ablauf</span><span className="title-ico" aria-hidden="true" /></h2>
+        <p className="sub reveal-fade delay-3">Vorlaufzeit und Dauer im Überblick. Im Detail stimmen wir alles gemeinsam ab.</p>
+      </div>
+      <div className={`timeline ${colsClass}`}>
+        {data.steps?.map((step, i) => (
+          <div key={i} className={`step reveal-fade delay-${i + 1}`}>
+            <div className="dot" />
+            <div className="num">{String(i + 1).padStart(2, '0')}</div>
+            <div className="when">{step.when}</div>
+            <h3>{step.title}</h3>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 15 · FRAGEN (Flip-Cards)
+// =========================================================
+function FragenModule({ data, label }: { data: FragenContent; label: string }) {
+  const [flipped, setFlipped] = useState<Set<number>>(new Set())
+  const toggle = (i: number) => {
+    setFlipped((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i); else next.add(i)
+      return next
+    })
+  }
+  return (
+    <section className="slide tipps fragen" data-slide-type="fragen" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Fragen an euch</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Bevor wir <span className="red">loslegen</span><span className="title-ico" aria-hidden="true" /></h2>
+        <p className="sub reveal-fade delay-3">Damit wir nicht ins Blaue planen, würden wir gern zuerst von euch hören.</p>
+      </div>
+      <div className="grid flip-grid">
+        {data.items?.map((q, i) => (
+          <button key={i} type="button" className={`flip-card reveal-fade delay-${i + 1} ${flipped.has(i) ? 'flipped' : ''}`} onClick={() => toggle(i)}>
+            <div className="flip-inner">
+              <div className="flip-face flip-front">
+                <div className="num">FRAGE {String(i + 1).padStart(2, '0')}</div>
+                <div className="qmark">?</div>
+                <span className="flip-hint">Antippen</span>
+              </div>
+              <div className="flip-face flip-back">
+                <div className="num">FRAGE {String(i + 1).padStart(2, '0')}</div>
+                <h3>
+                  {q.title}{' '}
+                  {q.titleAccent && <span className="red">{q.titleAccent}</span>}
+                </h3>
+                <p>{q.body}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 16 · TIPPS (Flip-Cards)
+// =========================================================
+function TippsModule({ data, label }: { data: TippsContent; label: string }) {
+  const [flipped, setFlipped] = useState<Set<number>>(new Set())
+  const toggle = (i: number) => {
+    setFlipped((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i); else next.add(i)
+      return next
+    })
+  }
+  return (
+    <section className="slide tipps" data-slide-type="tipps" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Tipps für euch</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Egal ob mit oder <span className="red">ohne uns</span><span className="title-ico" aria-hidden="true" /></h2>
+        <p className="sub reveal-fade delay-3">Was wir aus Jahren Brand-Filmmaking als Gold-Standards mitgenommen haben.</p>
+      </div>
+      <div className="grid flip-grid">
+        {data.items?.map((t, i) => {
+          const ico = iconUrl(t.iconKey)
+          return (
+            <button key={i} type="button" className={`flip-card reveal-fade delay-${i + 1} ${flipped.has(i) ? 'flipped' : ''}`} onClick={() => toggle(i)}>
+              <div className="flip-inner">
+                <div className="flip-face flip-front">
+                  <div className="num">TIPP {String(i + 1).padStart(2, '0')}</div>
+                  {ico && <div className="icon"><img src={ico} alt="" /></div>}
+                  <span className="flip-hint">Antippen</span>
+                </div>
+                <div className="flip-face flip-back">
+                  <div className="num">TIPP {String(i + 1).padStart(2, '0')}</div>
+                  <h3>
+                    {t.title}{' '}
+                    {t.titleAccent && <span className="red">{t.titleAccent}</span>}
+                  </h3>
+                  <p>{t.body}</p>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 17 · OPTIONEN
+// =========================================================
+function OptionenModule({ data, label }: { data: OptionenContent; label: string }) {
+  return (
+    <section className="slide optionen" data-slide-type="optionen" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Einstiegspunkte</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Wie wir <span className="red">starten können</span><span className="title-ico" aria-hidden="true" /></h2>
+      </div>
+      <div className="grid">
+        {data.options?.map((opt, i) => {
+          const ico = iconUrl(opt.iconKey)
+          return (
+            <div key={i} className={`opt reveal-fade delay-${i + 1}`}>
+              <span className="pkg-name">{opt.pkgName}</span>
+              {ico && <div className="icon-large"><img src={ico} alt="" /></div>}
+              <h3>{opt.title}</h3>
+              <p className="desc">{opt.description}</p>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// 18 · OUTRO
+// =========================================================
+function OutroModule({ data, label }: { data: OutroContent; label: string }) {
+  const ico = iconUrl('pixel-heart')
+  return (
+    <section className="slide outro" data-slide-type="outro" data-screen-label={label}>
+      {ico && <div className="icon reveal-fade"><img src={ico} alt="" /></div>}
+      <h2>
+        <span className="reveal-mask"><span>LET&apos;S</span></span>
+        <span className="reveal-mask"><span className="red">TALK.</span></span>
+      </h2>
+      <div className="contact reveal-fade delay-4">
+        {data.email && <a href={`mailto:${data.email}`}>{data.email}</a>}
+        {data.phone && <a href={`tel:${data.phone.replace(/[^+\d]/g, '')}`}>{data.phone}</a>}
+        {data.web && <a href={data.web.startsWith('http') ? data.web : `https://${data.web}`} target="_blank" rel="noopener noreferrer">{data.web}</a>}
+      </div>
+      {data.sig && (
+        <div className="sig">
+          {data.sig.split('.').map((part, i, arr) => (
+            <span key={i}>
+              {i === arr.length - 2 ? <span className="red">{part}.</span> : part + (i < arr.length - 1 ? '.' : '')}
+            </span>
           ))}
         </div>
       )}
     </section>
-  )
-}
-
-// ------------------------- FUN FACTS -------------------------
-function FunFactsModule({ content }: { content: FunFactsContent }) {
-  return (
-    <section className={styles.section}>
-      {content.headline && (
-        <h2 className={`${styles.sectionHeadline} ${styles.reveal}`}>
-          {content.headline}
-        </h2>
-      )}
-      <div className={styles.funFactsGrid}>
-        {(content.items || []).map((item, i) => (
-          <div
-            key={i}
-            className={`${styles.funFactCard} ${styles.reveal}`}
-            data-delay={i * 80}
-          >
-            {item.emoji && (
-              <div className={styles.funFactEmoji}>{item.emoji}</div>
-            )}
-            <div className={styles.funFactText}>{item.text}</div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// ------------------------- SERVICES GRID -------------------------
-function ServicesGridModule({ content }: { content: ServicesGridContent }) {
-  return (
-    <section className={styles.section}>
-      {content.headline && (
-        <h2 className={`${styles.sectionHeadline} ${styles.reveal}`}>
-          {content.headline}
-        </h2>
-      )}
-      <div className={`${styles.servicesGrid} ${styles.reveal}`} data-delay="100">
-        {(content.items || []).map((item, i) => (
-          <div key={i} className={styles.serviceCell}>
-            {item.icon && <div className={styles.serviceIcon}>{item.icon}</div>}
-            <div className={styles.serviceTitle}>{item.title}</div>
-            <div className={styles.serviceTagline}>{item.tagline}</div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// ------------------------- SERVICE DETAIL -------------------------
-function ServiceDetailModule({ content }: { content: ServiceDetailContent }) {
-  return (
-    <section className={styles.section}>
-      <div className={styles.serviceDetail}>
-        {content.eyebrow && (
-          <div className={`${styles.serviceDetailEyebrow} ${styles.reveal}`}>
-            {content.eyebrow}
-          </div>
-        )}
-        <h2
-          className={`${styles.serviceDetailHeadline} ${styles.reveal}`}
-          data-delay="80"
-        >
-          {content.headline}
-        </h2>
-        {content.slogan && (
-          <p
-            className={`${styles.serviceDetailSlogan} ${styles.reveal}`}
-            data-delay="160"
-          >
-            {content.slogan}
-          </p>
-        )}
-        {content.body && (
-          <div
-            className={`${styles.serviceDetailBody} ${styles.reveal}`}
-            data-delay="200"
-          >
-            {content.body}
-          </div>
-        )}
-        {content.promises && content.promises.length > 0 && (
-          <div className={styles.serviceDetailPromises}>
-            {content.promises.map((p, i) => (
-              <div
-                key={i}
-                className={`${styles.serviceDetailPromise} ${styles.reveal}`}
-                data-delay={240 + i * 60}
-              >
-                {p}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// ------------------------- VIDEO -------------------------
-function VideoModule({ content }: { content: VideoContent }) {
-  // Plain HTML5 video. Cloud-Hosted MP4 / WebM URLs.
-  // YouTube/Vimeo Embeds machen wir in einer späteren Iteration.
-  return (
-    <section className={styles.section}>
-      <div className={`${styles.mediaBlock} ${styles.reveal}`}>
-        <video
-          src={content.url}
-          poster={content.poster}
-          controls
-          playsInline
-        />
-        {content.caption && (
-          <div className={styles.mediaCaption}>{content.caption}</div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// ------------------------- IMAGE -------------------------
-function ImageModule({ content }: { content: ImageContent }) {
-  return (
-    <section className={styles.section}>
-      <div className={`${styles.mediaBlock} ${styles.reveal}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={content.url} alt={content.alt || ''} />
-        {content.caption && (
-          <div className={styles.mediaCaption}>{content.caption}</div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// ------------------------- OUTRO -------------------------
-function OutroModule({ content }: { content: OutroContent }) {
-  return (
-    <section className={styles.outro}>
-      {content.headline && (
-        <h2 className={`${styles.outroHeadline} ${styles.reveal}`}>
-          {content.headline}
-        </h2>
-      )}
-      {content.text && (
-        <p className={`${styles.outroText} ${styles.reveal}`} data-delay="100">
-          {content.text}
-        </p>
-      )}
-    </section>
-  )
-}
-
-// ------------------------- LOGO -------------------------
-function PulpLogo() {
-  // Inline-Logo, damit wir keine Asset-Pfad-Sorgen haben.
-  // Falls /pulp-logo.svg im public-Ordner existiert, kann das gegen ein <img>
-  // getauscht werden.
-  return (
-    <svg viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg" aria-label="Pulpmedia">
-      <text
-        x="0"
-        y="28"
-        fontFamily="Anton, sans-serif"
-        fontSize="28"
-        fill="#FF1900"
-        letterSpacing="1"
-      >
-        PULP
-      </text>
-      <text
-        x="68"
-        y="28"
-        fontFamily="Anton, sans-serif"
-        fontSize="28"
-        fill="#ffffff"
-        letterSpacing="1"
-      >
-        MEDIA
-      </text>
-    </svg>
   )
 }

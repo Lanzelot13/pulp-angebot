@@ -70,15 +70,17 @@ const STATUS_LABELS: Record<Pitch['status'], string> = {
   ARCHIVED: 'Archiv',
 }
 
-// Brücke zwischen JSON-Editor und TeamPicker für team-grid Module
-function TeamGridFields({
+// Brücke zwischen JSON-Editor und TeamPicker für team-Module (v7-Schema).
+// Im neuen Schema sind die Slug-Liste der heute Anwesenden in
+// `attendingSlugs`; die volle Pulpie-Liste kommt aus dem Live-Fetch.
+function TeamFields({
   contentJson,
   onChange,
 }: {
   contentJson: string
   onChange: (json: string) => void
 }) {
-  let parsed: { headline?: string; personSlugs?: string[] } = {}
+  let parsed: { headline?: string; attendingSlugs?: string[] } = {}
   try {
     const p = JSON.parse(contentJson || '{}')
     if (p && typeof p === 'object') parsed = p
@@ -87,14 +89,22 @@ function TeamGridFields({
   }
   const headline =
     typeof parsed.headline === 'string' ? parsed.headline : ''
-  const personSlugs = Array.isArray(parsed.personSlugs)
-    ? parsed.personSlugs.filter((x): x is string => typeof x === 'string')
+  const attendingSlugs = Array.isArray(parsed.attendingSlugs)
+    ? parsed.attendingSlugs.filter((x): x is string => typeof x === 'string')
     : []
   return (
     <TeamPicker
       headline={headline}
-      personSlugs={personSlugs}
-      onChange={(next) => onChange(JSON.stringify(next, null, 2))}
+      personSlugs={attendingSlugs}
+      onChange={(next) =>
+        onChange(
+          JSON.stringify(
+            { headline: next.headline, attendingSlugs: next.personSlugs },
+            null,
+            2
+          )
+        )
+      }
     />
   )
 }
@@ -117,11 +127,12 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
   const [pickerTab, setPickerTab] = useState<'global' | 'custom'>('global')
   const [pickerFilter, setPickerFilter] = useState<PitchModuleType | 'all'>('all')
 
-  // Custom-block draft state
+  // Custom-block draft state. Default-Typ ist "hero" – v7 hat kein generisches
+  // "text"-Modul mehr, jeder Typ ist semantisch eindeutig.
   const [customDraft, setCustomDraft] = useState({
-    type: 'text' as PitchModuleType,
+    type: 'hero' as PitchModuleType,
     name: '',
-    contentJson: JSON.stringify(DEFAULT_CONTENT['text'], null, 2),
+    contentJson: JSON.stringify(DEFAULT_CONTENT['hero'], null, 2),
   })
   const [customError, setCustomError] = useState<string | null>(null)
   const [customSaving, setCustomSaving] = useState(false)
@@ -259,9 +270,9 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
     setPitch(updated)
     setPickerOpen(false)
     setCustomDraft({
-      type: 'text',
+      type: 'hero',
       name: '',
-      contentJson: JSON.stringify(DEFAULT_CONTENT['text'], null, 2),
+      contentJson: JSON.stringify(DEFAULT_CONTENT['hero'], null, 2),
     })
   }
 
@@ -780,8 +791,8 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                       placeholder="z.B. Was wir für euch sehen"
                     />
                   </div>
-                  {customDraft.type === 'team-grid' && (
-                    <TeamGridFields
+                  {customDraft.type === 'team' && (
+                    <TeamFields
                       contentJson={customDraft.contentJson}
                       onChange={(json) =>
                         setCustomDraft((d) => ({ ...d, contentJson: json }))
@@ -791,7 +802,7 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>
-                      {customDraft.type === 'team-grid'
+                      {customDraft.type === 'team'
                         ? 'Inhalt (JSON, Quelle der Wahrheit)'
                         : 'Inhalt (JSON)'}
                     </label>
@@ -878,8 +889,8 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                   }
                 />
               </div>
-              {editingModule.type === 'team-grid' && (
-                <TeamGridFields
+              {editingModule.type === 'team' && (
+                <TeamFields
                   contentJson={editForm.contentJson}
                   onChange={(json) =>
                     setEditForm((f) => ({ ...f, contentJson: json }))
@@ -889,7 +900,7 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  {editingModule.type === 'team-grid'
+                  {editingModule.type === 'team'
                     ? 'Inhalt (JSON, Quelle der Wahrheit)'
                     : 'Inhalt (JSON)'}
                 </label>

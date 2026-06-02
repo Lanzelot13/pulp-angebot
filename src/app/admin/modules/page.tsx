@@ -34,23 +34,21 @@ interface FormState {
 }
 
 // =========================================================
-// TeamGridFields
+// TeamFields
 // =========================================================
 //
 // Brücke zwischen dem TeamPicker (strukturiertes UI) und dem rohen JSON-
 // Editor. Wir parsen den aktuellen JSON-String, lassen den TeamPicker
 // daran arbeiten und schreiben das Ergebnis als neuen JSON-String zurück.
-// Bei ungültigem JSON zeigt der Picker leere Defaults und überschreibt
-// den JSON-String, sobald der User etwas auswählt – das ist verträglich,
-// weil das Vorlagen-JSON für team-grid sehr klein und einfach ist.
-function TeamGridFields({
+// Im neuen v7-Schema heißt der Typ "team" und das Feld "attendingSlugs".
+function TeamFields({
   contentJson,
   onChange,
 }: {
   contentJson: string
   onChange: (json: string) => void
 }) {
-  let parsed: { headline?: string; personSlugs?: string[] } = {}
+  let parsed: { headline?: string; attendingSlugs?: string[] } = {}
   try {
     const p = JSON.parse(contentJson || '{}')
     if (p && typeof p === 'object') parsed = p
@@ -59,21 +57,27 @@ function TeamGridFields({
   }
   const headline =
     typeof parsed.headline === 'string' ? parsed.headline : ''
-  const personSlugs = Array.isArray(parsed.personSlugs)
-    ? parsed.personSlugs.filter((x): x is string => typeof x === 'string')
+  const attendingSlugs = Array.isArray(parsed.attendingSlugs)
+    ? parsed.attendingSlugs.filter((x): x is string => typeof x === 'string')
     : []
   return (
     <TeamPicker
       headline={headline}
-      personSlugs={personSlugs}
+      personSlugs={attendingSlugs}
       onChange={(next) =>
-        onChange(JSON.stringify(next, null, 2))
+        onChange(
+          JSON.stringify(
+            { headline: next.headline, attendingSlugs: next.personSlugs },
+            null,
+            2
+          )
+        )
       }
     />
   )
 }
 
-const emptyForm = (type: PitchModuleType = 'text'): FormState => ({
+const emptyForm = (type: PitchModuleType = 'hero'): FormState => ({
   type,
   name: '',
   description: '',
@@ -385,8 +389,8 @@ export default function ModulesPage() {
                 />
               </div>
 
-              {form.type === 'team-grid' && (
-                <TeamGridFields
+              {form.type === 'team' && (
+                <TeamFields
                   contentJson={form.contentJson}
                   onChange={(json) =>
                     setForm((f) => ({ ...f, contentJson: json }))
@@ -404,7 +408,7 @@ export default function ModulesPage() {
                   }}
                 >
                   <label className={styles.formLabel} style={{ margin: 0 }}>
-                    {form.type === 'team-grid'
+                    {form.type === 'team'
                       ? 'Inhalt (JSON, Quelle der Wahrheit)'
                       : 'Inhalt (JSON)'}
                   </label>

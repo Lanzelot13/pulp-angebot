@@ -1,13 +1,14 @@
 // =========================================================
-// Seed-Skript für die Pulpmedia-Standard-Präsentation
+// Seed-Skript für die Pulpmedia-Standard-Präsentation (v7-Deck)
 // =========================================================
 //
-// Legt den Modul-Pool an (Hero, Manifest, Stats, Team, Fun Facts,
-// Services Grid, 5x Service Detail, Outro) und baut daraus eine
-// fertige Demo-Pitch. Idempotent: Module werden anhand von Name+Typ
-// erkannt und nicht doppelt angelegt. Die Demo-Pitch hat einen festen
-// Slug ("pulpmedia-standard-praesentation") und wird beim Re-Run neu
-// mit Snapshots aufgefüllt.
+// Legt den Modul-Pool mit den 18 v7-Modul-Typen an und baut daraus
+// eine fertige Demo-Pitch in der korrekten v7-Reihenfolge.
+//
+// Idempotent: Module werden anhand von Name+Typ erkannt und nicht
+// doppelt angelegt. Die Demo-Pitch hat einen festen Slug
+// ("pulpmedia-standard-praesentation") und wird beim Re-Run mit
+// frischen Snapshots aufgefüllt.
 //
 // Aufruf:
 //   npx tsx prisma/seed-pitch.ts
@@ -16,9 +17,9 @@
 // ---------------------------------------------------------
 // Env loading
 // ---------------------------------------------------------
-// Prisma lädt automatisch nur `.env`, aber bei uns liegen die echten
-// Neon-Credentials in `.env.local` (Next.js-Konvention). Wir parsen
-// `.env.local` zu Fuß, damit das Skript ohne extra Dependency läuft.
+// Prisma lädt automatisch nur `.env`, aber unsere echten Neon-Credentials
+// liegen in `.env.local` (Next.js-Konvention). Wir parsen `.env.local`
+// zu Fuß, damit das Skript ohne extra Dependency läuft.
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
@@ -32,14 +33,12 @@ function loadEnvFile(path: string) {
     if (eq === -1) continue
     const key = trimmed.slice(0, eq).trim()
     let value = trimmed.slice(eq + 1).trim()
-    // Strip wrapping quotes
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1)
     }
-    // .env.local soll .env überschreiben (gleiche Reihenfolge wie Next.js)
     process.env[key] = value
   }
 }
@@ -48,233 +47,122 @@ loadEnvFile(join(process.cwd(), '.env.local'))
 
 import { PrismaClient, Prisma } from '@prisma/client'
 import { randomUUID } from 'crypto'
+import {
+  DEFAULT_CONTENT,
+  PITCH_MODULE_TYPES,
+  PITCH_MODULE_LABELS,
+  type PitchModuleType,
+} from '../src/lib/pitch-types'
 
 const prisma = new PrismaClient()
 
 // ---------------------------------------------------------
 // Modul-Definitionen
 // ---------------------------------------------------------
-// type, name, description, content
+// Pro v7-Typ legen wir genau EIN Standard-Modul an, das die Default-Inhalte
+// trägt. Pro Pitch wird dieses Modul später kopiert und angepasst.
 
-const MODULES: Array<{
-  type: string
+interface ModuleDef {
+  type: PitchModuleType
   name: string
   description: string
-  content: Record<string, unknown>
-}> = [
-  {
-    type: 'hero',
-    name: 'Standard Hero',
-    description: 'Begrüßung am Anfang jeder Präsentation. Pro Pitch optional anpassen ("Hallo Fronius!").',
-    content: {
-      eyebrow: 'Hallo!',
-      title: 'Wir sind Pulpmedia.',
-      subtitle: 'Nice to meet you. Dürfen wir uns vorstellen?',
-    },
-  },
-  {
-    type: 'manifest',
-    name: 'Manifest: Make love, not ads.',
-    description: 'Unser Markenversprechen als Statement.',
-    content: {
-      statement: 'Make love. Not ads.',
-      attribution: 'Pulpmedia Manifest',
-    },
-  },
-  {
-    type: 'stats-grid',
-    name: 'Pulpmedia Eckdaten',
-    description: 'Gründung, Größe, Reichweite. Einmal pro Jahr aktualisieren.',
-    content: {
-      headline: 'Pulpmedia in Zahlen',
-      items: [
-        { number: '2005', label: 'Gegründet' },
-        { number: '25', label: 'Pulpies' },
-        { number: '1 Mio+', label: 'Fans betreut' },
-        { number: '500+', label: 'Projekte' },
-      ],
-    },
-  },
-  {
-    type: 'team-grid',
-    name: 'Wer ist heute da',
-    description: 'Pro Pitch einkopieren und individuell anpassen — wer ist beim Termin dabei?',
-    content: {
-      headline: 'Wer ist heute da',
-      personSlugs: [],
-    },
-  },
-  {
-    type: 'fun-facts',
-    name: 'Unnützes Wissen',
-    description: 'Vier kurze Eigenheiten, die Pulpmedia ausmachen.',
-    content: {
-      headline: 'Unnützes Wissen',
-      items: [
-        { emoji: '🎯', text: 'Über 1 Mio. Fans auf den Kanälen unserer Kund:innen' },
-        { emoji: '📚', text: '3 Bücher geschrieben (und gelesen)' },
-        { emoji: '💸', text: 'Mehrere Millionärsmacher-Kampagnen umgesetzt' },
-        { emoji: '🎲', text: 'Brettspiel-Abende sind unbezahltes Pflichtprogramm' },
-      ],
-    },
-  },
-  {
-    type: 'services-grid',
-    name: 'Unsere fünf Säulen',
-    description: 'Übersicht aller fünf Pulpmedia-Säulen mit Kurztagline.',
-    content: {
-      headline: 'Unsere fünf Säulen',
-      items: [
-        { title: 'Hero Videos', tagline: 'User fesseln, Geschichten erzählen', icon: '🎬' },
-        { title: 'Social Media', tagline: 'Community, Content, Conversation', icon: '📱' },
-        { title: 'Ambassadors', tagline: 'Glaubwürdige Stimmen, echte Reichweite', icon: '🎤' },
-        { title: 'Experiences', tagline: 'Events, Pop-ups, Aktivierungen', icon: '🎪' },
-        { title: 'Merchandise', tagline: 'Konzept, Design, Shop', icon: '👕' },
-      ],
-    },
-  },
-  {
-    type: 'service-detail',
-    name: 'Service: Hero Videos',
-    description: 'Detail-Folie zu Säule 1.',
-    content: {
-      eyebrow: 'Säule 01',
-      headline: 'Hero Videos',
-      slogan: 'User fesseln, statt nur zu unterhalten.',
-      body: 'Wir produzieren Bewegtbild, das hängen bleibt. Vom ersten Konzept-Workshop bis zum finalen Schnitt — Storytelling ist kein Etikett, sondern unser Handwerk. Distribution denken wir mit, damit dein Video nicht nur schön ist, sondern auch wirkt.',
-      promises: [
-        'Konzept, das deine Zielgruppe abholt',
-        'Produktion in voller Bandbreite, vom Schnellbeitrag bis zum Kino-Look',
-        'Schnitt mit Gefühl für Rhythmus und Plattform',
-        'Distribution mitgedacht, nicht angeflanscht',
-      ],
-    },
-  },
-  {
-    type: 'service-detail',
-    name: 'Service: Social Media',
-    description: 'Detail-Folie zu Säule 2.',
-    content: {
-      eyebrow: 'Säule 02',
-      headline: 'Social Media',
-      slogan: 'Wir bauen Communities, keine Reichweiten-Friedhöfe.',
-      body: 'Tägliche Betreuung deiner Kanäle. Content, der Menschen anspricht, nicht nur Algorithmen. Wir kombinieren Redaktion, Design und Performance zu einer Marke, die jeden Tag stärker wird.',
-      promises: [
-        'Redaktion und Content-Planung im Pulpmedia-Takt',
-        'Performance-Mediabudgets effizient eingesetzt',
-        'Community Management mit Haltung',
-        'Reporting, das tatsächlich Aufschluss gibt',
-      ],
-    },
-  },
-  {
-    type: 'service-detail',
-    name: 'Service: Ambassadors',
-    description: 'Detail-Folie zu Säule 3 (Influencer / Corporate Ambassadors).',
-    content: {
-      eyebrow: 'Säule 03',
-      headline: 'Ambassadors',
-      slogan: 'Echte Stimmen schlagen jedes Werbeplakat.',
-      body: 'Wir finden Menschen, die zu deiner Marke passen, und bringen ihre Glaubwürdigkeit auf die Spur deiner Botschaft. Von der Selektion über Briefing bis zur Performance-Auswertung.',
-      promises: [
-        'Sorgsame Auswahl statt Reichweiten-Roulette',
-        'Briefings, die Kreativität nicht abwürgen',
-        'Faire, transparente Kooperationen',
-        'Wirkungs-Reporting auf Augenhöhe',
-      ],
-    },
-  },
-  {
-    type: 'service-detail',
-    name: 'Service: Experiences',
-    description: 'Detail-Folie zu Säule 4 (Events & Aktivierungen).',
-    content: {
-      eyebrow: 'Säule 04',
-      headline: 'Experiences',
-      slogan: 'Marken werden erlebt, nicht gelesen.',
-      body: 'Events, Pop-ups, Aktivierungen. Wir bauen Momente, an die sich Menschen erinnern. Vom Konzept über Produktion bis zur Inszenierung vor Ort.',
-      promises: [
-        'Konzept, das genau deine Zielgruppe trifft',
-        'Produktion mit Liebe zum Detail',
-        'Live-Inszenierung, die hängenbleibt',
-        'Content für den After-Glow auf Social',
-      ],
-    },
-  },
-  {
-    type: 'service-detail',
-    name: 'Service: Merchandise',
-    description: 'Detail-Folie zu Säule 5.',
-    content: {
-      eyebrow: 'Säule 05',
-      headline: 'Merchandise',
-      slogan: 'Vom Werbeartikel zum Liebhaberstück.',
-      body: 'Merch, das deine Fans gerne tragen, kaufen, verschenken. Von Konzept über Design bis zum eigenen Shop — alles aus einer Hand.',
-      promises: [
-        'Konzept entlang der Markenwelt',
-        'Design, das Lust auf Träger:innen macht',
-        'Produktion mit verantwortungsvollen Partnern',
-        'Shop-Lösung inklusive Fulfillment',
-      ],
-    },
-  },
-  {
-    type: 'outro',
-    name: 'Standard Outro',
-    description: 'Letzte Folie. Klare Aufforderung, in den Dialog zu gehen.',
-    content: {
-      headline: 'Danke!',
-      text: 'Lass uns sprechen. Wir freuen uns auf den nächsten Schritt mit euch.',
-    },
-  },
+}
+
+const MODULES: ModuleDef[] = [
+  { type: 'hero',         name: 'Hero · Begrüßung',                description: 'Erste Folie. Eyebrow oben, "HALLO" groß, Beteiligte + Ort + Anlass unten.' },
+  { type: 'team',         name: 'Team · Alle Pulpies',             description: 'Bild-Grid aller 28+ Pulpies. Pro Pitch markieren welche heute dabei sind.' },
+  { type: 'numbers',      name: 'Drei Zahlen · Counter',           description: 'Drei Counter-Zahlen mit Hochzähl-Animation: Jahre, Produktionen, Marken.' },
+  { type: 'manifest',     name: 'Manifest · Don\'t make Ads',      description: '"DON\'T MAKE ADS. MAKE LOVE." mit Pulp-Pixel-Herz.' },
+  { type: 'uw',           name: 'Origin Story · Unnützes Wissen',  description: 'Drei-Spalten-Editorial: Logo, Bücherstapel, Jauch-Foto.' },
+  { type: 'heute',        name: 'Spotlight · Heute (WTD)',          description: 'Phone-Frame mit Vertikalvideo plus drei großen Aufmerksamkeits-Zahlen. Wassertransferdruck als Default-Beispiel.' },
+  { type: 'love-brands',  name: 'Love Brands · Logo-Grid',         description: '6x2 Logo-Grid mit Marken, mit denen wir arbeiten.' },
+  { type: 'saeulen',      name: 'Fünf Säulen · Hover-Reveal',      description: 'Video, Social, Influencer, Live, Merch. Hover fährt eine Säule groß auf.' },
+  { type: 'leistungen',   name: 'Leistungen · 3x3 Pakete',         description: 'Neun konkrete Leistungspakete im 3x3-Raster.' },
+  { type: 'case-video',   name: 'Case · Hero Video (16:9)',        description: 'Full-bleed 16:9 Video mit Overlay-Quote oben und Metriken unten. Default: Rosenbauer.' },
+  { type: 'case-social',  name: 'Case · Social (Phone)',           description: 'Phone-Frame links/rechts, KPIs daneben. Default: Zipfer Instagram-Reel.' },
+  { type: 'monitor',      name: 'TikTok Brand Monitor',             description: 'Scorecard mit Rank-Badge, Big Stats, Vergleichsbalken.' },
+  { type: 'quote',        name: 'Quote · Testimonial',             description: 'Eine Kunden-Stimme groß und ruhig.' },
+  { type: 'process',      name: 'Process · Timeline',              description: 'Sieben Schritte von Angebot bis Review.' },
+  { type: 'fragen',       name: 'Fragen · Flip-Cards (3)',         description: 'Drei Karten, die sich beim Antippen drehen.' },
+  { type: 'tipps',        name: 'Tipps · Flip-Cards (3)',          description: 'Drei Tipps für die Empfänger. Flip-Cards mit Icon.' },
+  { type: 'optionen',     name: 'Optionen · Drei Pakete',          description: 'Einstieg, Projekt, Partner. Drei Karten mit Icon.' },
+  { type: 'outro',        name: 'Outro · Let\'s talk',             description: 'Abschluss mit Email, Telefon, Web und Pulp-Sig.' },
 ]
 
-// Reihenfolge der Demo-Pitch (gleich wie das Fronius-Deck)
-const DEMO_ORDER = [
-  'Standard Hero',
-  'Manifest: Make love, not ads.',
-  'Pulpmedia Eckdaten',
-  'Wer ist heute da',
-  'Unnützes Wissen',
-  'Unsere fünf Säulen',
-  'Service: Hero Videos',
-  'Service: Social Media',
-  'Service: Ambassadors',
-  'Service: Experiences',
-  'Service: Merchandise',
-  'Standard Outro',
-]
+// Konsistenz-Check: alle 18 Typen müssen ein Modul haben.
+const seenTypes = new Set(MODULES.map((m) => m.type))
+for (const t of PITCH_MODULE_TYPES) {
+  if (!seenTypes.has(t)) {
+    throw new Error(
+      `Modul-Typ "${t}" ist in PITCH_MODULE_TYPES, aber nicht in seed-pitch.ts MODULES.`
+    )
+  }
+}
+
+// ---------------------------------------------------------
+// Demo-Pitch
+// ---------------------------------------------------------
 
 const DEMO_PITCH = {
   slug: 'pulpmedia-standard-praesentation',
-  clientCompany: 'Pulpmedia Standard-Präsentation',
-  occasion: 'Beispiel-Pitch (Demo)',
+  clientCompany: 'Pulpmedia Demo',
+  occasion: 'Standard-Pitch · Live-Vorschau',
 }
+
+// Reihenfolge der Module in der Demo-Pitch (= v7-Folien-Reihenfolge).
+const DEMO_ORDER: PitchModuleType[] = [
+  'hero',
+  'team',
+  'numbers',
+  'manifest',
+  'uw',
+  'heute',
+  'love-brands',
+  'saeulen',
+  'leistungen',
+  'case-video',
+  'case-social',
+  'monitor',
+  'quote',
+  'process',
+  'fragen',
+  'tipps',
+  'optionen',
+  'outro',
+]
 
 // ---------------------------------------------------------
 // Run
 // ---------------------------------------------------------
 
 async function main() {
-  console.log('Seede Pulpmedia-Standard-Präsentation …\n')
+  console.log('Seede Pitch-Module (18 Typen) …\n')
 
-  // 1) Module pflegen
-  const moduleByName = new Map<string, { id: string; type: string; name: string; content: unknown; updatedAt: Date }>()
+  // 0) Beim Roll-out vom v7-System komplett zurücksetzen.
+  //    Per Env-Flag, damit das nicht ungefragt produktive Daten löscht.
+  if (process.env.PITCH_RESET === '1') {
+    console.log('PITCH_RESET=1 erkannt – lösche alle Pitches und Pitch-Module …')
+    const dp = await prisma.pitch.deleteMany({})
+    const dm = await prisma.pitchModule.deleteMany({})
+    console.log(`  gelöscht: ${dp.count} Pitches, ${dm.count} Module\n`)
+  }
+
+  // 1) Module idempotent anlegen
+  const moduleByType = new Map<PitchModuleType, Awaited<ReturnType<typeof prisma.pitchModule.create>>>()
   for (const def of MODULES) {
     const existing = await prisma.pitchModule.findFirst({
-      where: { name: def.name, type: def.type },
+      where: { type: def.type, name: def.name, archivedAt: null },
     })
+    const content = DEFAULT_CONTENT[def.type]
     if (existing) {
-      // Bei Re-Run aktualisieren wir Content + Description, damit das Seed
-      // wirklich Quelle der Wahrheit bleibt.
       const updated = await prisma.pitchModule.update({
         where: { id: existing.id },
         data: {
           description: def.description,
-          content: def.content as Prisma.InputJsonValue,
+          content: content as unknown as Prisma.InputJsonValue,
         },
       })
-      moduleByName.set(def.name, updated)
+      moduleByType.set(def.type, updated)
       console.log(`  aktualisiert: ${def.name}`)
     } else {
       const created = await prisma.pitchModule.create({
@@ -282,11 +170,11 @@ async function main() {
           type: def.type,
           name: def.name,
           description: def.description,
-          content: def.content as Prisma.InputJsonValue,
+          content: content as unknown as Prisma.InputJsonValue,
           createdBy: 'seed-script',
         },
       })
-      moduleByName.set(def.name, created)
+      moduleByType.set(def.type, created)
       console.log(`  angelegt:     ${def.name}`)
     }
   }
@@ -330,9 +218,9 @@ async function main() {
   )
 
   // 4) Module als Snapshots in die Pitch packen (in DEMO_ORDER)
-  const snapshots = DEMO_ORDER.map((name, i) => {
-    const m = moduleByName.get(name)
-    if (!m) throw new Error(`Modul "${name}" wurde nicht gefunden`)
+  const snapshots = DEMO_ORDER.map((type, i) => {
+    const m = moduleByType.get(type)
+    if (!m) throw new Error(`Modul für Typ "${type}" wurde nicht gefunden`)
     return {
       instanceId: randomUUID(),
       moduleId: m.id,
@@ -350,11 +238,16 @@ async function main() {
   })
   console.log(`Pitch enthält jetzt ${snapshots.length} Modul-Snapshots.\n`)
 
-  console.log('Fertig. Demo-Pitch ansehen:')
+  console.log(`Fertig. ${MODULES.length} Module im Pool, ${snapshots.length} in der Demo-Pitch.`)
+  console.log('\nDemo-Pitch ansehen:')
   console.log(`  • lokal:      http://localhost:3000/p/${pitch.slug}`)
   console.log(`  • production: https://angebot.pulpmedia.at/p/${pitch.slug}`)
-  console.log('\nTipp: Die Demo-Pitch hat kein "Wer ist heute da" befüllt –')
-  console.log('öffne sie im Editor und wähle Personen aus.')
+
+  // Label-Übersicht für Paul
+  console.log('\nModul-Pool:')
+  for (const def of MODULES) {
+    console.log(`  ${def.type.padEnd(14)} → ${PITCH_MODULE_LABELS[def.type]}`)
+  }
 }
 
 main()
