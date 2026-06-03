@@ -123,6 +123,11 @@ export interface MocoCompany {
   website?: string
   email?: string
   vat_identifier?: string | null
+  // Per-Kunden-Texte: stehen in den Moco-Company-Stammdaten unter
+  // "Erweiterte Einstellungen". Wenn dort etwas hinterlegt ist, wollen wir
+  // das bei Angeboten/Rechnungen bevorzugt nutzen.
+  footer?: string | null
+  info?: string | null
 }
 
 export interface MocoDeal {

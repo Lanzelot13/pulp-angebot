@@ -124,12 +124,17 @@ export async function POST(
 
   const title = `${offer.projectName} — ${pkg.name}`
 
-  // Recipient address: use exactly what is stored on the Moco-Company. This
-  // avoids overwriting the address with the per-offer client name we have locally.
+  // Recipient address und Kunden-Footer aus den Moco-Company-Stammdaten holen.
+  // - recipient_address bleibt wie gehabt: nutzt das, was in Moco gepflegt ist
+  // - closingText kommt aus dem company.footer-Feld. Wenn leer, lassen wir
+  //   das Feld weg, damit Moco den Account-Default automatisch übernimmt.
   let recipientAddress = ''
+  let closingText: string | undefined
   try {
     const company = await getCompany(Number(mocoCompanyId))
     recipientAddress = (company.address || company.name || '').trim()
+    const footer = (company.footer || '').trim()
+    if (footer.length > 0) closingText = footer
   } catch {
     recipientAddress = offer.clientCompany || ''
   }
@@ -148,6 +153,7 @@ export async function POST(
       title,
       recipient_address: recipientAddress,
       salutation,
+      closing_text: closingText,
       currency: 'EUR',
       tax: 20,
       items,
