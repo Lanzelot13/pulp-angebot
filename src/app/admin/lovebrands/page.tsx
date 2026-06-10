@@ -42,6 +42,27 @@ export default function LoveBrandsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const handleFileUpload = async (file: File) => {
+    setError(null)
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      if (form.name.trim()) fd.append('name', form.name.trim())
+      const res = await fetch('/api/admin/lovebrands/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        setError(data.error || 'Upload fehlgeschlagen')
+      } else {
+        setForm((f) => ({ ...f, logoUrl: data.url }))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload fehlgeschlagen')
+    }
+    setUploading(false)
+  }
 
   const load = useCallback(() => {
     fetch('/api/admin/lovebrands')
@@ -251,18 +272,76 @@ export default function LoveBrandsPage() {
                   placeholder="rosenbauer"
                 />
               </label>
-              <label className={styles.formLabel}>
-                Logo-Pfad <span style={{ color: '#888', fontWeight: 400 }}>(unterhalb /public/)</span>
-                <input
-                  className={styles.formInput}
-                  value={form.logoUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                  placeholder="/pitch/lovebrands/rosenbauer.svg"
-                />
-                <small style={{ color: '#888', fontSize: 11, marginTop: 4, display: 'block' }}>
-                  Datei vorher ins Repo committen unter public/pitch/lovebrands/.
-                </small>
-              </label>
+              <div className={styles.formLabel} style={{ display: 'block' }}>
+                Logo
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    marginTop: 6,
+                  }}
+                >
+                  {form.logoUrl && (
+                    <div
+                      style={{
+                        background: '#0a0a0a',
+                        borderRadius: 6,
+                        padding: 14,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: 80,
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={form.logoUrl}
+                        alt="Logo-Vorschau"
+                        style={{ maxHeight: 60, maxWidth: '80%', filter: 'brightness(0) invert(1)' }}
+                      />
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      style={{ cursor: 'pointer', opacity: uploading ? 0.5 : 1 }}
+                    >
+                      {uploading ? 'Lädt hoch...' : form.logoUrl ? 'Anderes Logo wählen' : 'Logo hochladen'}
+                      <input
+                        type="file"
+                        accept="image/svg+xml,image/png,image/jpeg,image/webp"
+                        style={{ display: 'none' }}
+                        disabled={uploading}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0]
+                          if (f) handleFileUpload(f)
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                    {form.logoUrl && (
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                        onClick={() => setForm((f) => ({ ...f, logoUrl: '' }))}
+                      >
+                        Entfernen
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    className={styles.formInput}
+                    value={form.logoUrl}
+                    onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
+                    placeholder="URL oder Pfad (wird beim Upload automatisch gefüllt)"
+                    style={{ fontSize: 12, fontFamily: 'monospace' }}
+                  />
+                  <small style={{ color: '#888', fontSize: 11 }}>
+                    SVG, PNG, JPG oder WebP. Max 2 MB. Wird in Vercel Blob abgelegt.
+                  </small>
+                </div>
+              </div>
               <label className={styles.formLabel}>
                 Form
                 <select
