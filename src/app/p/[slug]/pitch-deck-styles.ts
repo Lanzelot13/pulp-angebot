@@ -622,7 +622,7 @@ body.mode-slides .slide.hero .scroll-hint { display: none; }
 .slide.love-brands .brand .logo-slot img {
   max-height: 62%; max-width: 80%;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  filter: grayscale(1) invert(1);
   opacity: 0.92;
   transition: opacity 0.25s ease;
 }

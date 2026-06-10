@@ -93,7 +93,7 @@ export function LoveBrandPicker({ brandSlugs, onChange }: Props) {
           <img
             src={b.logoUrl}
             alt={b.name}
-            style={{ maxWidth: '90%', maxHeight: '100%', filter: isSelected ? 'brightness(0) invert(1)' : 'brightness(0.6)' }}
+            style={{ maxWidth: '90%', maxHeight: '100%', filter: isSelected ? 'grayscale(1) invert(1)' : 'grayscale(1) brightness(0.6)' }}
           />
         )}
       </div>

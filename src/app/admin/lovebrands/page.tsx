@@ -195,7 +195,7 @@ export default function LoveBrandsPage() {
                         <img
                           src={b.logoUrl}
                           alt={b.name}
-                          style={{ maxWidth: '100%', maxHeight: '100%', filter: 'brightness(0) invert(1)' }}
+                          style={{ maxWidth: '100%', maxHeight: '100%', filter: 'grayscale(1) invert(1)' }}
                         />
                       )}
                     </div>
@@ -298,7 +298,7 @@ export default function LoveBrandsPage() {
                       <img
                         src={form.logoUrl}
                         alt="Logo-Vorschau"
-                        style={{ maxHeight: 60, maxWidth: '80%', filter: 'brightness(0) invert(1)' }}
+                        style={{ maxHeight: 60, maxWidth: '80%', filter: 'grayscale(1) invert(1)' }}
                       />
                     </div>
                   )}
