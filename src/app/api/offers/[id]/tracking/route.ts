@@ -114,10 +114,11 @@ export async function GET(
     return NextResponse.json({ view })
   }
 
-  // Übersicht
+  // Übersicht — nach lastEventAt sortiert, damit zuletzt aktive Sessions
+  // oben stehen (Sessions können durch wiederkehrende Ansichten upgedatet werden).
   const views = await trackDb.trackView.findMany({
     where: { targetType: 'OFFER', targetId: offerId },
-    orderBy: { openedAt: 'desc' },
+    orderBy: { lastEventAt: 'desc' },
     include: {
       _count: { select: { events: true } },
     },

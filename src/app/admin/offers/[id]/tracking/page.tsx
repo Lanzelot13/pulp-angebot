@@ -345,9 +345,23 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
               </tr>
             </thead>
             <tbody>
-              {data.sessions.map((s) => (
+              {data.sessions.map((s) => {
+                // "Wiederkehrende Ansicht": gleiche Session-ID, mehrfach geöffnet.
+                // Wenn lastEventAt deutlich nach openedAt liegt (mehr als 5 Min),
+                // zeigen wir beides, sonst nur den Open-Zeitpunkt.
+                const opened = new Date(s.openedAt).getTime()
+                const last = new Date(s.lastEventAt).getTime()
+                const reopened = last - opened > 5 * 60_000
+                return (
                 <tr key={s.id}>
-                  <td>{formatDate(s.openedAt)}</td>
+                  <td>
+                    {formatDate(s.openedAt)}
+                    {reopened && (
+                      <div className={styles.muted}>
+                        zuletzt {relativeTime(s.lastEventAt).big}
+                      </div>
+                    )}
+                  </td>
                   <td>{formatDuration(s.activeSeconds)}</td>
                   <td>{s.sectionsSeen}</td>
                   <td>{s.eventCount}</td>
@@ -362,7 +376,8 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
                     </button>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </>

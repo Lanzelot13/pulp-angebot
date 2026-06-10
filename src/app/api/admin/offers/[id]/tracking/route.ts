@@ -94,10 +94,12 @@ export async function GET(
     return NextResponse.json({ error: 'Angebot nicht gefunden' }, { status: 404 })
   }
 
-  // Übersicht
+  // Übersicht — sortiert nach lastEventAt, damit Sessions, die durch eine
+  // wiederkehrende Ansicht aktualisiert wurden, oben stehen (statt nur nach
+  // ursprünglichem Öffnungs-Zeitpunkt).
   const views = await trackDb.trackView.findMany({
     where: { targetType: 'OFFER', targetId: offerId },
-    orderBy: { openedAt: 'desc' },
+    orderBy: { lastEventAt: 'desc' },
     include: {
       _count: {
         select: { events: true },

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   const ext = (dot >= 0 ? originalName.slice(dot + 1) : '').toLowerCase()
   if (!ALLOWED.has(ext)) {
     return NextResponse.json(
-      { error: `Format nicht erlaubt. Nur ${[...ALLOWED].join(', ')}` },
+      { error: `Format nicht erlaubt. Nur ${Array.from(ALLOWED).join(', ')}` },
       { status: 400 }
     )
   }
