@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiKey } from '@/lib/auth'
-import { createSlug } from '@/lib/slug'
-import { CreateOfferRequest, DEFAULT_NOT_INCLUDED } from '@/lib/types'
+import { buildSlug } from '@/lib/slug'
+import { CreateOfferRequest, DEFAULT_NOT_INCLUDED, DEFAULT_STATS } from '@/lib/types'
+import { fullOfferUrl, fullEditUrl, fullCleanUrl, PUBLIC_BASE_URL } from '@/lib/config'
 
 // Helper: convert value to Prisma-compatible JSON or DbNull
 function jsonOrNull(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
@@ -77,14 +78,21 @@ export async function POST(request: NextRequest) {
           `Falls das absichtlich ist, ändere clientCompany oder projectName.`,
         existingOfferId: existing.id,
         existingSlug: existing.slug,
-        existingUrl: `/o/${existing.slug}`,
-        existingEditUrl: `/o/${existing.slug}?edit=${existing.editToken}`,
+        existingUrl: fullOfferUrl(existing.slug),
+        existingEditUrl: fullEditUrl(existing.slug, existing.editToken),
       },
       { status: 409 }
     )
   }
 
-  const slug = createSlug(body.clientCompany, body.offerNumber)
+  // Slug aus Firma + Projekt bauen, damit der Link spricht. Wenn der Skill nur
+  // den Firmennamen schickt (Bestandskunden, dasselbe Projekt mehrfach), würde
+  // der Slug nichtssagend sein.
+  const slug = buildSlug({
+    company: body.clientCompany,
+    project: body.projectName,
+    offerNumber: body.offerNumber,
+  })
 
   // Check slug uniqueness, append suffix if needed
   let finalSlug = slug
@@ -93,6 +101,13 @@ export async function POST(request: NextRequest) {
     finalSlug = `${slug}-${counter}`
     counter++
   }
+
+  // Stats: wenn der Skill nichts oder ein leeres Array mitschickt, nehmen wir
+  // die Pulpmedia-Default-Zahlen. So sieht jedes Angebot wenigstens generisch
+  // kompetent aus, selbst wenn die KI keine projektspezifischen Zahlen findet.
+  const incomingStats = Array.isArray(body.stats) ? body.stats : null
+  const finalStats =
+    incomingStats && incomingStats.length > 0 ? incomingStats : DEFAULT_STATS
 
   const offer = await prisma.offer.create({
     data: {
@@ -112,7 +127,7 @@ export async function POST(request: NextRequest) {
       // new offer ships with a sensible "what's not included" section.
       notIncluded: jsonOrNull(body.notIncluded ?? DEFAULT_NOT_INCLUDED),
       timeline: jsonOrNull(body.timeline),
-      stats: jsonOrNull(body.stats),
+      stats: jsonOrNull(finalStats),
       referenceIds: body.referenceIds || [],
       channelIds: body.channelIds || [],
       legal: jsonOrNull(body.legal),
@@ -120,10 +135,16 @@ export async function POST(request: NextRequest) {
     include: { contact: true },
   })
 
-  return NextResponse.json({
-    ...offer,
-    url: `/o/${offer.slug}`,
-    editUrl: `/o/${offer.slug}?edit=${offer.editToken}`,
-    cleanUrl: `/o/${offer.slug}?clean=1`,
-  }, { status: 201 })
+  return NextResponse.json(
+    {
+      ...offer,
+      // Volle Links, damit der Skill (oder welcher Client auch immer) niemals
+      // die Vercel-Default-Domain raten muss.
+      url: fullOfferUrl(offer.slug),
+      editUrl: fullEditUrl(offer.slug, offer.editToken),
+      cleanUrl: fullCleanUrl(offer.slug),
+      baseUrl: PUBLIC_BASE_URL,
+    },
+    { status: 201 }
+  )
 }

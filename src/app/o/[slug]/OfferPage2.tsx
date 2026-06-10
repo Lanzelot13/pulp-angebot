@@ -43,6 +43,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     !!((initialOffer.timeline as unknown as TimelineSection)?.hidden)
   )
   const [channelsHidden, setChannelsHidden] = useState(!!initialOffer.channelsHidden)
+  const [referencesHidden, setReferencesHidden] = useState(
+    !!(initialOffer as unknown as { referencesHidden?: boolean }).referencesHidden
+  )
+  const [statsHidden, setStatsHidden] = useState(
+    !!(initialOffer as unknown as { statsHidden?: boolean }).statsHidden
+  )
   const [dragChIdx, setDragChIdx] = useState<number | null>(null)
 
   const isEdit = mode === 'edit'
@@ -122,7 +128,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     try {
       // Collect changed fields
       const changes: Record<string, unknown> = { changedBy: 'editor' }
-      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'statsHeadline', 'legal', 'referenceIds', 'referencesHeadline', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
+      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'statsHeadline', 'statsHidden', 'legal', 'referenceIds', 'referencesHeadline', 'referencesHidden', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
       for (const f of fields) {
         const draftValue = (draft as unknown as Record<string, unknown>)[f]
         const savedValue = (savedOffer as unknown as Record<string, unknown>)[f]
@@ -447,8 +453,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   if (services || isEdit) sectionNumbers.services = String(++sectionNum).padStart(2, '0')
   if (packages || isEdit) sectionNumbers.packages = String(++sectionNum).padStart(2, '0')
   if ((timeline || isEdit) && !timelineHidden) sectionNumbers.timeline = String(++sectionNum).padStart(2, '0')
-  if (stats.length > 0 || isEdit) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
-  sectionNumbers.references = String(++sectionNum).padStart(2, '0')
+  if ((stats.length > 0 || isEdit) && !statsHidden) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
+  if (!referencesHidden) sectionNumbers.references = String(++sectionNum).padStart(2, '0')
   if ((displayChannels.length > 0 || isEdit) && !channelsHidden) sectionNumbers.channels = String(++sectionNum).padStart(2, '0')
 
   // In edit mode, skip reveal animation (opacity:0) so all elements are visible
@@ -1354,10 +1360,29 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       )}
 
       {/* STATS */}
-      {(stats.length > 0 || isEdit) && (
-        <section className={styles.section} data-track-section="stats" data-track-type="stats" data-track-index="7">
+      {(stats.length > 0 || isEdit) && (!statsHidden || isEdit) && (
+        <section
+          className={styles.section}
+          style={isEdit && statsHidden ? { opacity: 0.4 } : undefined}
+          data-track-section="stats"
+          data-track-type="stats"
+          data-track-index="7"
+        >
           <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
-            {sectionNumbers.stats} — Warum Pulpmedia
+            {sectionNumbers.stats || '—'} — Warum Pulpmedia {isEdit && statsHidden && '(ausgeblendet)'}
+            {isEdit && (
+              <button
+                className={styles.toggleBtn}
+                style={{ marginLeft: '1rem' }}
+                onClick={() => {
+                  const newHidden = !statsHidden
+                  setStatsHidden(newHidden)
+                  updateDraft('statsHidden', newHidden)
+                }}
+              >
+                {statsHidden ? '👁 Einblenden' : '👁 Ausblenden'}
+              </button>
+            )}
           </div>
           <Editable
             tag="h2"
@@ -1423,9 +1448,29 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       )}
 
       {/* REFERENCES */}
-      <section className={styles.section} data-track-section="references" data-track-type="references" data-track-index="8">
+      {(!referencesHidden || isEdit) && (
+      <section
+        className={styles.section}
+        style={isEdit && referencesHidden ? { opacity: 0.4 } : undefined}
+        data-track-section="references"
+        data-track-type="references"
+        data-track-index="8"
+      >
         <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
-          {sectionNumbers.references} — Referenzen
+          {sectionNumbers.references || '—'} — Referenzen {isEdit && referencesHidden && '(ausgeblendet)'}
+          {isEdit && (
+            <button
+              className={styles.toggleBtn}
+              style={{ marginLeft: '1rem' }}
+              onClick={() => {
+                const newHidden = !referencesHidden
+                setReferencesHidden(newHidden)
+                updateDraft('referencesHidden', newHidden)
+              }}
+            >
+              {referencesHidden ? '👁 Einblenden' : '👁 Ausblenden'}
+            </button>
+          )}
         </div>
         <Editable
           tag="h2"
@@ -1492,6 +1537,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>Noch keine Referenzen. Klicke oben auf &quot;Referenzen auswählen&quot;.</p>
         )}
       </section>
+      )}
 
       {/* CHANNELS */}
       {(displayChannels.length > 0 || isEdit) && (!channelsHidden || isEdit) && (

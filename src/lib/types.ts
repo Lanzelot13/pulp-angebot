@@ -90,12 +90,20 @@ export const DEFAULT_NOT_INCLUDED: NotIncludedSection = {
   items: [
     { title: 'Darsteller:innen-Gagen, Castings und Buyouts' },
     { title: 'Locations und Drehgenehmigungen' },
-    { title: 'Reisespesen außerhalb von Linz' },
+    { title: 'Reisespesen außerhalb von OÖ' },
     { title: 'Sonderausstattung und Sonderanfertigungen' },
     { title: 'Mediabudget (AdSpend) für bezahlte Werbung' },
   ],
   note: 'Diese Posten rechnen wir separat ab oder ihr stellt sie direkt bei.',
 }
+
+// Pulpmedia-Standard-Stats, die zum Einsatz kommen, wenn der Skill keine
+// projektspezifischen Zahlen liefert. Bewusst kurz und prägnant gehalten.
+export const DEFAULT_STATS: StatItem[] = [
+  { number: '21+', label: 'Jahre Agentur', detail: 'Seit 2005. Inhabergeführt.' },
+  { number: '500+', label: 'Produktionen', detail: 'Hero Videos, Brand Stories, Social Cuts' },
+  { number: '30+', label: 'betreute Lovebrands', detail: 'im gesamten DACH-Raum' },
+]
 
 export interface TimelineStep {
   label: string

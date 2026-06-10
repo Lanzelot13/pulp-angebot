@@ -95,6 +95,15 @@ export async function PATCH(
   if (body.mocoLeadStatus !== undefined) {
     data.mocoLeadStatus = body.mocoLeadStatus === null || body.mocoLeadStatus === '' ? null : String(body.mocoLeadStatus)
   }
+  if (typeof body.channelsHidden === 'boolean') {
+    data.channelsHidden = body.channelsHidden
+  }
+  if (typeof body.referencesHidden === 'boolean') {
+    data.referencesHidden = body.referencesHidden
+  }
+  if (typeof body.statsHidden === 'boolean') {
+    data.statsHidden = body.statsHidden
+  }
   if (typeof body.slug === 'string') {
     const newSlug = normalizeSlug(body.slug)
     if (!newSlug) {
