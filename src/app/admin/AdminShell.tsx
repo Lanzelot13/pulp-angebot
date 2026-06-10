@@ -55,6 +55,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     .join('')
     .toUpperCase()
 
+  // Pulpies und Lovebrands sind Pitch-Submenüs unter /admin/modules
+  // (siehe ModulesSubnav). Sie tauchen nicht in der Sidebar als eigene
+  // Punkte auf, damit das Hauptmenü ruhig bleibt.
   const nav = [
     { href: '/admin', label: 'Dashboard', icon: <IconDashboard size={18} /> },
     { href: '/admin/offers', label: 'Angebote', icon: <IconFileText size={18} /> },
@@ -64,6 +67,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     { href: '/admin/references', label: 'Referenzen', icon: <IconBuilding size={18} /> },
     { href: '/admin/channels', label: 'Kanäle', icon: <IconShare2 size={18} /> },
   ]
+
+  // Module-Subnav highlighting: /admin/modules, /admin/pulpies, /admin/lovebrands
+  // sollen alle den "Module"-Eintrag aktiv markieren.
+  const moduleSubpaths = ['/admin/modules', '/admin/pulpies', '/admin/lovebrands']
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -81,7 +88,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             const isActive =
               item.href === '/admin'
                 ? pathname === '/admin'
-                : pathname.startsWith(item.href)
+                : item.href === '/admin/modules'
+                  ? moduleSubpaths.some((p) => pathname.startsWith(p))
+                  : pathname.startsWith(item.href)
             return (
               <a
                 key={item.href}

@@ -17,11 +17,11 @@ export type PitchModuleType =
   | 'numbers'
   | 'manifest'
   | 'uw'              // Unnützes Wissen · Origin Story
-  | 'heute'           // Spotlight (Wassertransferdruck-Style): Phone-Video + Big Numbers
+  | 'spotlight'       // Spotlight (Wassertransferdruck-Style): Phone-Video + Big Numbers
   | 'love-brands'
   | 'saeulen'         // 5 Säulen Hover-Reveal
   | 'leistungen'      // 9 Pakete 3x3
-  | 'case-video'      // Hero-Case: Full-bleed 16:9 + Overlay
+  | 'case-video'      // Hero-Case: Full-bleed 16:9 (clean, ohne Overlay)
   | 'case-social'     // Social-Case: Phone-Frame + KPIs
   | 'monitor'         // TikTok Brand Monitor Scorecard
   | 'quote'           // Testimonial
@@ -37,7 +37,7 @@ export const PITCH_MODULE_TYPES: PitchModuleType[] = [
   'numbers',
   'manifest',
   'uw',
-  'heute',
+  'spotlight',
   'love-brands',
   'saeulen',
   'leistungen',
@@ -58,7 +58,7 @@ export const PITCH_MODULE_LABELS: Record<PitchModuleType, string> = {
   'numbers': 'Drei Zahlen · Counter',
   'manifest': 'Manifest · Don\'t make Ads',
   'uw': 'Unnützes Wissen · Origin Story',
-  'heute': 'Spotlight · Heute. Hier. Jetzt.',
+  'spotlight': 'Spotlight · Phone + Big Numbers',
   'love-brands': 'Love Brands · Logo-Grid',
   'saeulen': 'Fünf Säulen · Brandlove-System',
   'leistungen': 'Leistungen · 3x3 Pakete',
@@ -79,7 +79,7 @@ export const PITCH_MODULE_DESCRIPTIONS: Record<PitchModuleType, string> = {
   'numbers': 'Drei Counter-Zahlen mit Hochzähl-Animation beim Reinscrollen.',
   'manifest': '"Don\'t make Ads. Make Love." — unser Manifest groß.',
   'uw': 'Origin Story: 3-Spalten-Editorial mit Logo, Buchstapel und Jauch-Foto.',
-  'heute': 'Phone-Frame mit Vertical-Video plus große Aufmerksamkeits-Zahlen daneben.',
+  'spotlight': 'Phone-Frame mit Vertical-Video plus große Aufmerksamkeits-Zahlen daneben (Counter mit Mio/Mrd). Optionaler Fließtext und Channel-Link.',
   'love-brands': 'Logo-Grid mit den Marken, mit denen wir arbeiten.',
   'saeulen': 'Fünf Säulen interaktiv, fährt eine auseinander wenn man drüber hovert.',
   'leistungen': 'Neun Leistungspakete im 3x3-Raster.',
@@ -112,14 +112,20 @@ export interface EmbedConfig {
 // Content-Strukturen pro Typ
 // =========================================================
 
+export interface HeroPerson {
+  name: string
+}
+
 export interface HeroContent {
-  kicker1?: string         // "ERSTGESPRÄCH"
-  kicker2?: string         // "27.05.2026 · 14:00"
-  kicker3?: string         // "FRONIUS"
-  greeting?: string        // "HALLO"
-  meetingWith?: string     // Kunden-Personen
-  meetingFrom?: string     // Pulp-Personen
-  meetingPlace?: string    // Ort
+  kicker1?: string             // "ERSTGESPRÄCH"
+  kicker2?: string             // "27.05.2026 · 14:00"
+  kicker3?: string             // "FRONIUS"
+  greeting?: string            // "HALLO"
+  // Zwei flexible Personen-Listen. Pulp-Seite zuerst, Kundenseite kann leer
+  // bleiben (zb wenn wir nicht wissen, wer da kommt). Layout passt sich an.
+  fromPulp?: HeroPerson[]
+  fromClient?: HeroPerson[]
+  meetingPlace?: string
 }
 
 export interface TeamContent {
@@ -160,20 +166,29 @@ export interface UwContent {
   cols: UwColumn[]         // typischerweise 3
 }
 
-export interface HeuteContent {
-  title: string            // "Wassertransferdruck"
+export interface SpotlightContent {
+  title: string                    // "Wassertransferdruck"
+  body?: string                    // optionaler Fließtext
+  channelUrl?: string              // Klickbarer Channel-Link
+  channelLabel?: string            // Label für den Link, zb "@wassertransferdruck auf TikTok"
+  // Big Counter-Metriken mit Mio/Mrd-Suffix.
   metrics: { target: number; unit?: string; label: string }[]
   embed: EmbedConfig
 }
 
-export interface LoveBrandItem {
-  name: string
-  logoUrl: string
-  shape?: 'default' | 'badge' | 'tall'
+// Lovebrands kommen aus dem LoveBrand-Pool (siehe Prisma-Model). Pro Pitch
+// werden hier nur die Slugs der gezeigten Brands gespeichert. Beim Render
+// wird auf den Pool ge-join-t. So sind Logo, Name und Form zentral pflegbar.
+export interface LoveBrandsContent {
+  brandSlugs: string[]
 }
 
-export interface LoveBrandsContent {
-  brands: LoveBrandItem[]
+// Render-Helper-Type für die Public-Page nach dem Pool-Join
+export interface RenderedLoveBrand {
+  slug: string
+  name: string
+  logoUrl: string
+  shape: 'default' | 'badge' | 'tall'
 }
 
 export interface PillarItem {
@@ -197,24 +212,20 @@ export interface LeistungenContent {
   items: LeistungItem[]    // typischerweise 9 für 3x3
 }
 
+// Case-Video ist absichtlich minimalistisch: nur das Video, kein Overlay-Text.
+// Falls Begleittext gewünscht ist, wird der case-social Typ verwendet.
 export interface CaseVideoContent {
   embed: EmbedConfig
-  topQuote?: { text: string; by?: string }
-  bottom: {
-    client: string         // "CASE · ROSENBAUER · GROUP"
-    headline: string       // mit <span class="red"> erlaubt? Hier als plain
-    headlineAccent?: string  // optionaler Akzent-Teil in Rot
-    metrics: { value: string; label: string }[]
-  }
 }
 
 export interface CaseSocialContent {
-  client: string           // "CASE · ZIPFER · TIKTOK"
+  client: string                   // "CASE · ZIPFER · TIKTOK"
   title: string
-  titleAccent?: string     // Akzent-Teil in Rot
-  body: string
+  titleAccent?: string             // Akzent-Teil in Rot
+  body?: string                    // Fließtext, jetzt optional
   metrics: { value: string; label: string; accent?: boolean }[]
-  platform: string         // "TIKTOK · @ZIPFER"
+  platform: string                 // "TIKTOK · @ZIPFER" (Anzeige-Label)
+  channelUrl?: string              // Klick öffnet Channel im neuen Tab
   embed: EmbedConfig
 }
 
@@ -227,9 +238,10 @@ export interface MonitorRow {
 }
 
 export interface MonitorContent {
-  brand: string            // "Rosenbauer"
-  handle: string           // "rosenbauergroup"
+  brand: string                    // "Rosenbauer"
+  handle: string                   // "rosenbauergroup"
   rank: 'a' | 'b' | 'c' | 'd'
+  placement?: string               // "Platz 12 von 66" – neben dem Rank-Badge
   posts: string
   views: string
   interactions: string
@@ -297,7 +309,7 @@ export type ModuleContent =
   | NumbersContent
   | ManifestContent
   | UwContent
-  | HeuteContent
+  | SpotlightContent
   | LoveBrandsContent
   | SaeulenContent
   | LeistungenContent
@@ -375,8 +387,11 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     kicker2: 'TT.MM.JJJJ · HH:MM',
     kicker3: 'KUNDE',
     greeting: 'HALLO',
-    meetingWith: 'Vorname Nachname · Vorname Nachname',
-    meetingFrom: 'Paul Lanzerstorfer · Robert Bogner',
+    fromPulp: [
+      { name: 'Paul Lanzerstorfer' },
+      { name: 'Robert Bogner' },
+    ],
+    fromClient: [],
     meetingPlace: 'HQ Linz oder online',
   } as HeroContent,
   'team': {
@@ -384,9 +399,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
   } as TeamContent,
   'numbers': {
     items: [
-      { iconKey: 'skull',    target: 21,  suffix: '+', label: 'Jahre Agentur',    description: 'Seit 2005. Inhabergeführt.' },
-      { iconKey: 'smiley',   target: 500, suffix: '+', label: 'Produktionen',     description: 'Hero Videos, Brand Stories, Social Cuts seit 2012.' },
-      { iconKey: 'heart',    target: 30,  suffix: '+', label: 'Betreute Marken',  description: 'Im DACH-Raum.' },
+      { iconKey: 'skull',       target: 21,  suffix: '+', label: 'Jahre Agentur',       description: 'Seit 2005. Inhabergeführt.' },
+      { iconKey: 'smiley',      target: 500, suffix: '+', label: 'Produktionen',        description: 'Hero Videos, Brand Stories, Social Cuts seit 2012.' },
+      { iconKey: 'pixel-heart', target: 30,  suffix: '+', label: 'Betreute Lovebrands', description: 'Im DACH-Raum.' },
     ],
   } as NumbersContent,
   'manifest': {
@@ -401,8 +416,11 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
       { imageUrl: 'pitch/30f097ff-2056-487e-8813-f707717c571d.jpg', heading: 'Millionärsmacher', sub: 'Sebastian Langrock bei Günther Jauch' },
     ],
   } as UwContent,
-  'heute': {
+  'spotlight': {
     title: 'Wassertransferdruck',
+    body: '',
+    channelUrl: 'https://www.tiktok.com/@wassertransferdruck',
+    channelLabel: '@wassertransferdruck auf TikTok',
     metrics: [
       { target: 945, unit: 'Mio', label: 'Views auf 1 Video' },
       { target: 6,   unit: 'Mio', label: 'Follower' },
@@ -414,21 +432,13 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
       url: 'https://www.tiktok.com/@wassertransferdruck/video/7605516061701672214',
       mute: true,
     },
-  } as HeuteContent,
+  } as SpotlightContent,
   'love-brands': {
-    brands: [
-      { name: 'Zipfer',     logoUrl: 'pitch/08ef8993-f847-4975-9294-81e9d03c5807.svg' },
-      { name: 'Lidl',       logoUrl: 'pitch/4b00a028-caa4-4e5d-b129-3795b28f3953.svg', shape: 'badge' },
-      { name: 'Rosenbauer', logoUrl: 'pitch/7eba9b91-11fb-47f9-84ea-105e352bc486.svg' },
-      { name: 'Efko',       logoUrl: 'pitch/3c167d3f-8a79-44f2-94e4-ba3b7900e921.png', shape: 'tall' },
-      { name: 'Husqvarna',  logoUrl: 'pitch/81a35c1d-5054-4cf8-8797-3fbc985c3cdf.svg' },
-      { name: 'Hornbach',   logoUrl: 'pitch/1442e076-1328-47ce-9f44-50de6a39f6e4.svg' },
-      { name: 'Weber',      logoUrl: 'pitch/dac440cd-e652-458a-b8af-73ff8065efae.png' },
-      { name: 'Internorm',  logoUrl: 'pitch/55613670-f25c-49df-9f0c-a30c8e692222.svg' },
-      { name: 'PEZ',        logoUrl: 'pitch/6b1dbc21-03f3-47ca-bfa6-4c62c026d0f3.svg' },
-      { name: 'Pago',       logoUrl: 'pitch/c0edaf2e-1592-4474-a2dc-4fd2c8428ff8.svg' },
-      { name: 'YO',         logoUrl: 'pitch/4990b2f1-879b-42a7-931b-021f558630bb.png', shape: 'badge' },
-      { name: 'Hohes C',    logoUrl: 'pitch/6cd41bdc-7cf6-4d78-a5c0-612b286ec52d.png' },
+    // Pro Pitch entscheidet der Editor welche Brands gezeigt werden. Standard:
+    // alle aktiven aus dem Pool — wird beim Render gefiltert.
+    brandSlugs: [
+      'zipfer', 'lidl', 'rosenbauer', 'efko', 'husqvarna', 'hornbach',
+      'weber', 'internorm', 'pez', 'pago', 'yo', 'hohes-c',
     ],
   } as LoveBrandsContent,
   'saeulen': {
@@ -459,28 +469,19 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
       id: 'sbzBRcDysLs',
       mute: true,
     },
-    bottom: {
-      client: 'CASE · ROSENBAUER · GROUP',
-      headline: 'Markenfilm, der',
-      headlineAccent: 'unter die Haut geht',
-      metrics: [
-        { value: '4.2M', label: 'Views · 12 Wochen' },
-        { value: '+18%', label: 'Brand Recall' },
-        { value: '6:31', label: 'Avg. Watchtime' },
-      ],
-    },
   } as CaseVideoContent,
   'case-social': {
-    client: 'CASE · ZIPFER · TIKTOK',
+    client: 'CASE · ZIPFER · INSTAGRAM',
     title: 'Bier-Content, der',
     titleAccent: 'angeschaut wird',
     body: 'Native-Series mit fünf Creators, 12 Wochen, 0 Werbeblock-Feel. Vom Sport-Stammtisch bis zur WG-Küche – Zipfer als Begleiter, nicht als Sponsor.',
     metrics: [
-      { value: '8.4M', label: 'Views · 90 Tage' },
+      { value: '8.4M',  label: 'Views · 90 Tage' },
       { value: '12,8%', label: 'Engagement-Rate', accent: true },
-      { value: '+24k', label: 'Follower-Lift' },
+      { value: '+24k',  label: 'Follower-Lift' },
     ],
-    platform: 'TIKTOK · @ZIPFER',
+    platform: '@zipferbier auf Instagram',
+    channelUrl: 'https://www.instagram.com/zipferbier/',
     embed: {
       type: 'instagram',
       url: 'https://www.instagram.com/reel/DSPIlM1iPy1/',
@@ -492,14 +493,15 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     brand: 'Rosenbauer',
     handle: 'rosenbauergroup',
     rank: 'a',
+    placement: 'Platz 12 von 66',
     posts: '105',
     views: '10,2M',
     interactions: '664,2K',
     engagementRate: '6,51%',
     comparison: [
-      { name: '@rosenbauergroup',  percent: 81, value: '6,51%', focus: true },
+      { name: '@rosenbauergroup',       percent: 81, value: '6,51%', focus: true },
       { name: '@zotterschokolade · #1', percent: 88, value: '7,01%', ghost: true },
-      { name: 'Ø aller 66 Marken', percent: 24, value: '1,9%',  ghost: true },
+      { name: 'Ø aller 66 Marken',      percent: 24, value: '1,9%',  ghost: true },
     ],
   } as MonitorContent,
   'quote': {
@@ -525,11 +527,12 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
       { title: 'Welche', titleAccent: 'KPIs', body: 'zählen wirklich? Auf welche Zahlen schaut ihr besonders — und woran macht ihr Erfolg am Ende fest?' },
     ],
   } as FragenContent,
+  // Tipps werden PRO KUNDE konkret befüllt. Default ist nur Platzhalter.
   'tipps': {
     items: [
-      { iconKey: 'smiley',   title: 'Hook in', titleAccent: '3 Sekunden.', body: 'Auf TikTok entscheidet die erste Sekunde. Aufbau, der erst nach 8 Sek. landet, sieht 12% der Audience.' },
-      { iconKey: 'bomb',     title: 'Menschen,', titleAccent: 'nicht Maschinen.', body: 'Industrie-Filme wirken, wenn die Crew erzählt — nicht die Produktbroschüre. Avg. Watchtime ×4.' },
-      { iconKey: 'heart',    title: 'Hero +', titleAccent: 'Native-Cuts.', body: 'Ein Hero-Cut produzieren, daraus 12 Native-Snippets schneiden. Reichweiten-Multiplikator 6–8×.' },
+      { iconKey: 'smiley',   title: 'Hier individuell für', titleAccent: '[Kunde] anpassen.', body: 'Konkreter Vorschlag, den der Kunde mit oder ohne uns umsetzen kann. Beispiel: "Langfristige Kooperationen mit drei bis fünf Creators statt One-Shots."' },
+      { iconKey: 'bomb',     title: 'Zweiter konkreter', titleAccent: 'Vorschlag.', body: 'Etwas das auffällt wenn man die Kommunikation des Kunden beobachtet. Kein generisches Wissen.' },
+      { iconKey: 'heart',    title: 'Dritter konkreter', titleAccent: 'Vorschlag.', body: 'Beispiel: "Eure Techniker-Insights auf LinkedIn aktivieren, das authentische Material liegt schon da."' },
     ],
   } as TippsContent,
   'optionen': {

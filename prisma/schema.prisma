@@ -129,6 +129,56 @@ model Channel {
 }
 
 // ============================================================
+// Pulpies – Pulpmedia-Belegschaft (lokaler Cache)
+// ============================================================
+//
+// Pulpies werden NICHT bei jedem Page-Load live von pulpmedia.at gefetcht,
+// sondern liegen lokal in der DB. Admin kann per Button im /admin/pulpies
+// gegen die Website synchronisieren. Weggegangene Pulpies werden mit
+// `archivedAt` markiert (nicht gelöscht), damit ältere Pitches mit alten
+// `attendingSlugs` weiterhin matchen.
+
+model Pulpie {
+  id          String   @id @default(cuid())
+  slug        String   @unique               // "paul", "robert", "jawe", ...
+  name        String                          // "Paul Lanzerstorfer"
+  role        String?                         // "Geschäftsführung"
+  imageUrl    String?
+  email       String?
+  phone       String?
+  sortOrder   Int      @default(0)
+  archivedAt  DateTime?                       // null = aktiv im Pulp-Team
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lastSyncedAt DateTime?                      // wann zuletzt von pulpmedia.at gezogen
+
+  @@index([archivedAt])
+  @@index([sortOrder])
+}
+
+// ============================================================
+// LoveBrand – Logo-Bibliothek der betreuten Marken
+// ============================================================
+//
+// Marken-Pool für die Lovebrands-Folie. Pro Pitch wählt man im Editor aus,
+// welche Brands gezeigt werden. Logo-Datei liegt unter public/pitch/lovebrands/.
+
+model LoveBrand {
+  id         String   @id @default(cuid())
+  slug       String   @unique                // "rosenbauer", "zipfer", ...
+  name       String                           // "Rosenbauer"
+  logoUrl    String                           // "/pitch/lovebrands/rosenbauer.svg"
+  shape      String   @default("default")    // "default" | "badge" | "tall"
+  sortOrder  Int      @default(0)
+  archivedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([archivedAt])
+  @@index([sortOrder])
+}
+
+// ============================================================
 // Pitches – Agenturpräsentationen pro Kunde
 // ============================================================
 //

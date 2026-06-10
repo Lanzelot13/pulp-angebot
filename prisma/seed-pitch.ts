@@ -69,12 +69,12 @@ interface ModuleDef {
 }
 
 const MODULES: ModuleDef[] = [
-  { type: 'hero',         name: 'Hero · Begrüßung',                description: 'Erste Folie. Eyebrow oben, "HALLO" groß, Beteiligte + Ort + Anlass unten.' },
-  { type: 'team',         name: 'Team · Alle Pulpies',             description: 'Bild-Grid aller 28+ Pulpies. Pro Pitch markieren welche heute dabei sind.' },
-  { type: 'numbers',      name: 'Drei Zahlen · Counter',           description: 'Drei Counter-Zahlen mit Hochzähl-Animation: Jahre, Produktionen, Marken.' },
+  { type: 'hero',         name: 'Hero · Begrüßung',                description: 'Erste Folie. Eyebrow oben, "HALLO" groß, Beteiligte (zwei freie Listen "Wir"/"Ihr") + Ort unten.' },
+  { type: 'team',         name: 'Team · Alle Pulpies',             description: 'Bild-Grid aller Pulpies aus dem lokalen Cache. Pro Pitch markieren welche heute dabei sind.' },
+  { type: 'numbers',      name: 'Drei Zahlen · Counter',           description: 'Drei Counter-Zahlen mit Hochzähl-Animation: Jahre, Produktionen, Lovebrands.' },
   { type: 'manifest',     name: 'Manifest · Don\'t make Ads',      description: '"DON\'T MAKE ADS. MAKE LOVE." mit Pulp-Pixel-Herz.' },
   { type: 'uw',           name: 'Origin Story · Unnützes Wissen',  description: 'Drei-Spalten-Editorial: Logo, Bücherstapel, Jauch-Foto.' },
-  { type: 'heute',        name: 'Spotlight · Heute (WTD)',          description: 'Phone-Frame mit Vertikalvideo plus drei großen Aufmerksamkeits-Zahlen. Wassertransferdruck als Default-Beispiel.' },
+  { type: 'spotlight',    name: 'Spotlight · Phone + Big Numbers', description: 'Phone-Frame mit Vertikalvideo plus großen Aufmerksamkeits-Zahlen (Counter). Channel-Link optional. Wassertransferdruck als Default-Beispiel.' },
   { type: 'love-brands',  name: 'Love Brands · Logo-Grid',         description: '6x2 Logo-Grid mit Marken, mit denen wir arbeiten.' },
   { type: 'saeulen',      name: 'Fünf Säulen · Hover-Reveal',      description: 'Video, Social, Influencer, Live, Merch. Hover fährt eine Säule groß auf.' },
   { type: 'leistungen',   name: 'Leistungen · 3x3 Pakete',         description: 'Neun konkrete Leistungspakete im 3x3-Raster.' },
@@ -116,7 +116,7 @@ const DEMO_ORDER: PitchModuleType[] = [
   'numbers',
   'manifest',
   'uw',
-  'heute',
+  'spotlight',
   'love-brands',
   'saeulen',
   'leistungen',
@@ -135,8 +135,31 @@ const DEMO_ORDER: PitchModuleType[] = [
 // Run
 // ---------------------------------------------------------
 
+// ---------------------------------------------------------
+// Default-Lovebrands (Pool für die Lovebrands-Folie)
+// ---------------------------------------------------------
+const DEFAULT_LOVEBRANDS: Array<{
+  slug: string
+  name: string
+  logoUrl: string
+  shape: 'default' | 'badge' | 'tall'
+}> = [
+  { slug: 'zipfer',     name: 'Zipfer',     logoUrl: '/pitch/lovebrands/zipfer.svg' },
+  { slug: 'lidl',       name: 'Lidl',       logoUrl: '/pitch/lovebrands/lidl.svg',       shape: 'badge' },
+  { slug: 'rosenbauer', name: 'Rosenbauer', logoUrl: '/pitch/lovebrands/rosenbauer.svg' },
+  { slug: 'efko',       name: 'Efko',       logoUrl: '/pitch/lovebrands/efko.png',       shape: 'tall' },
+  { slug: 'husqvarna',  name: 'Husqvarna',  logoUrl: '/pitch/lovebrands/husqvarna.svg' },
+  { slug: 'hornbach',   name: 'Hornbach',   logoUrl: '/pitch/lovebrands/hornbach.svg' },
+  { slug: 'weber',      name: 'Weber',      logoUrl: '/pitch/lovebrands/weber.png' },
+  { slug: 'internorm',  name: 'Internorm',  logoUrl: '/pitch/lovebrands/internorm.svg' },
+  { slug: 'pez',        name: 'PEZ',        logoUrl: '/pitch/lovebrands/pez.svg' },
+  { slug: 'pago',       name: 'Pago',       logoUrl: '/pitch/lovebrands/pago.svg' },
+  { slug: 'yo',         name: 'YO',         logoUrl: '/pitch/lovebrands/yo.png',         shape: 'badge' },
+  { slug: 'hohes-c',    name: 'Hohes C',    logoUrl: '/pitch/lovebrands/hohes-c.png' },
+].map((b) => ({ ...b, shape: (b as { shape?: 'default' | 'badge' | 'tall' }).shape || 'default' }))
+
 async function main() {
-  console.log('Seede Pitch-Module (18 Typen) …\n')
+  console.log('Seede Pitch-System …\n')
 
   // 0) Beim Roll-out vom v7-System komplett zurücksetzen.
   //    Per Env-Flag, damit das nicht ungefragt produktive Daten löscht.
@@ -146,6 +169,28 @@ async function main() {
     const dm = await prisma.pitchModule.deleteMany({})
     console.log(`  gelöscht: ${dp.count} Pitches, ${dm.count} Module\n`)
   }
+
+  // 0b) Lovebrands idempotent anlegen
+  console.log('Lovebrand-Pool …')
+  for (let i = 0; i < DEFAULT_LOVEBRANDS.length; i++) {
+    const b = DEFAULT_LOVEBRANDS[i]
+    await prisma.loveBrand.upsert({
+      where: { slug: b.slug },
+      create: { slug: b.slug, name: b.name, logoUrl: b.logoUrl, shape: b.shape, sortOrder: i },
+      update: { name: b.name, logoUrl: b.logoUrl, shape: b.shape, sortOrder: i, archivedAt: null },
+    })
+  }
+  console.log(`  ${DEFAULT_LOVEBRANDS.length} Lovebrands im Pool\n`)
+
+  // 0c) Pulpies sind beim ersten Lauf evtl. leer. Hinweis ausgeben statt zu blockieren.
+  const pulpieCount = await prisma.pulpie.count({ where: { archivedAt: null } })
+  if (pulpieCount === 0) {
+    console.log('Hinweis: Pulpie-Pool ist leer. Im Admin auf /admin/pulpies den')
+    console.log('Sync-Button klicken, damit die Team-Folie befüllt wird.\n')
+  } else {
+    console.log(`Pulpie-Pool hat ${pulpieCount} aktive Einträge.\n`)
+  }
+
 
   // 1) Module idempotent anlegen
   const moduleByType = new Map<PitchModuleType, Awaited<ReturnType<typeof prisma.pitchModule.create>>>()

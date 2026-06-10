@@ -91,7 +91,7 @@ interface ContactOption {
   role: string
 }
 
-type Filter = 'active' | 'archived'
+type Filter = 'active' | 'all' | 'archived'
 
 interface MetaForm {
   clientName: string
@@ -192,7 +192,13 @@ export default function OffersPage() {
         params.set('archived', f === 'archived' ? 'true' : 'false')
         if (q) params.set('search', q)
         if (contactSlug) params.set('contactSlug', contactSlug)
-        if (status) params.set('status', status)
+        // Status-Filter: explizit gewählter Status hat Vorrang. Wenn nichts
+        // gewählt ist, aber der Tab "Aktiv" ist, zeigen wir nur DRAFT + PRICED.
+        if (status) {
+          params.set('status', status)
+        } else if (f === 'active') {
+          params.set('status', 'DRAFT,PRICED')
+        }
         const res = await fetch(`/api/admin/offers?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
@@ -785,8 +791,16 @@ export default function OffersPage() {
         <button
           className={`${styles.filterTab} ${filter === 'active' ? styles.filterTabActive : ''}`}
           onClick={() => setFilter('active')}
+          title="Nur offene Angebote: Optionsfindung und Angebot"
         >
           Aktiv
+        </button>
+        <button
+          className={`${styles.filterTab} ${filter === 'all' ? styles.filterTabActive : ''}`}
+          onClick={() => setFilter('all')}
+          title="Alle Angebote außer dem Archiv"
+        >
+          Alle
         </button>
         <button
           className={`${styles.filterTab} ${filter === 'archived' ? styles.filterTabActive : ''}`}
@@ -878,7 +892,6 @@ export default function OffersPage() {
               </th>
               <th style={{ width: 30 }}></th>
               <th>Kunde / Projekt</th>
-              <th>Angebotsnr.</th>
               <th>Status</th>
               <th>Version</th>
               <th>Aufrufe</th>
@@ -916,7 +929,6 @@ export default function OffersPage() {
                     <br />
                     <span style={{ fontSize: 13, color: '#888' }}>{o.projectName}</span>
                   </td>
-                  <td>{o.offerNumber || '–'}</td>
                   <td>
                     <span className={`${styles.statusPill} ${statusClass(o.status)}`}>{statusLabel(o.status)}</span>
                   </td>
@@ -1040,7 +1052,7 @@ export default function OffersPage() {
                 </tr>
                 {expandedId === o.id && (
                   <tr>
-                    <td colSpan={11} style={{ padding: 0 }}>
+                    <td colSpan={10} style={{ padding: 0 }}>
                       <div className={styles.versionsPanel}>
                         <h4>Versionshistorie</h4>
                         {versions[o.id]?.length === 0 && (
@@ -1099,7 +1111,7 @@ export default function OffersPage() {
             ))}
             {offers.length === 0 && (
               <tr>
-                <td colSpan={11} className={styles.emptyState}>
+                <td colSpan={10} className={styles.emptyState}>
                   <div className={styles.emptyText}>
                     {loading
                       ? 'Angebote werden geladen…'

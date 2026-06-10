@@ -36,8 +36,18 @@ export async function GET(request: NextRequest) {
     where.contactSlug = contactSlug
   }
 
-  if (statusParam && VALID_STATUS.has(statusParam)) {
-    where.status = statusParam
+  // Status-Filter akzeptiert auch Komma-getrennte Listen, z.B. "DRAFT,PRICED"
+  // für den Filter-Tab "Aktiv".
+  if (statusParam) {
+    const candidates = statusParam
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => VALID_STATUS.has(s))
+    if (candidates.length === 1) {
+      where.status = candidates[0]
+    } else if (candidates.length > 1) {
+      where.status = { in: candidates }
+    }
   }
 
   if (search) {

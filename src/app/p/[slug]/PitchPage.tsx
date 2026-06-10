@@ -21,8 +21,9 @@ import type {
   NumbersContent,
   ManifestContent,
   UwContent,
-  HeuteContent,
+  SpotlightContent,
   LoveBrandsContent,
+  RenderedLoveBrand,
   SaeulenContent,
   LeistungenContent,
   CaseVideoContent,
@@ -81,6 +82,7 @@ interface Pitch {
 interface Props {
   pitch: Pitch
   team: Person[]
+  lovebrands: RenderedLoveBrand[]
   mode: 'view' | 'edit'
 }
 
@@ -197,7 +199,7 @@ function EmbedPlayer({ embed }: { embed: EmbedConfig | undefined }) {
 // Hauptkomponente
 // =========================================================
 
-export function PitchPage({ pitch, team }: Props) {
+export function PitchPage({ pitch, team, lovebrands }: Props) {
   const [pagerLabel, setPagerLabel] = useState('')
   const [pagerCur, setPagerCur] = useState('01')
   const [pagerTot, setPagerTot] = useState('01')
@@ -458,7 +460,7 @@ export function PitchPage({ pitch, team }: Props) {
       <main className={mode === 'slides' ? 'mode-slides' : ''}>
         <div className={mode === 'slides' ? 'mode-slides-wrap' : ''}>
           {visibleModules.map((m, idx) => (
-            <ModuleRouter key={m.instanceId} module={m} index={idx} team={team} />
+            <ModuleRouter key={m.instanceId} module={m} index={idx} team={team} lovebrands={lovebrands} />
           ))}
         </div>
       </main>
@@ -493,11 +495,18 @@ function BodyModeSync({ mode }: { mode: 'slides' | 'story' }) {
 // Module-Router
 // =========================================================
 
-function ModuleRouter({ module, index, team }: { module: PitchModuleSnapshot; index: number; team: Person[] }) {
+function ModuleRouter({
+  module,
+  index,
+  team,
+  lovebrands,
+}: {
+  module: PitchModuleSnapshot
+  index: number
+  team: Person[]
+  lovebrands: RenderedLoveBrand[]
+}) {
   const label = `${String(index + 1).padStart(2, '0')} ${module.type}`
-  // Content kommt aus JSON, ist also nominell `unknown`. Wir casten auf den
-  // typ-spezifischen Content. Falls Felder fehlen, rendert die Modul-Komponente
-  // mit Defaults oder leeren Werten (defensiv per `?.`/`||`).
   const content = module.content as unknown
 
   switch (module.type) {
@@ -506,8 +515,8 @@ function ModuleRouter({ module, index, team }: { module: PitchModuleSnapshot; in
     case 'numbers':      return <NumbersModule data={content as NumbersContent} label={label} />
     case 'manifest':     return <ManifestModule data={content as ManifestContent} label={label} />
     case 'uw':           return <UwModule data={content as UwContent} label={label} />
-    case 'heute':        return <HeuteModule data={content as HeuteContent} label={label} />
-    case 'love-brands':  return <LoveBrandsModule data={content as LoveBrandsContent} label={label} />
+    case 'spotlight':    return <SpotlightModule data={content as SpotlightContent} label={label} />
+    case 'love-brands':  return <LoveBrandsModule data={content as LoveBrandsContent} pool={lovebrands} label={label} />
     case 'saeulen':      return <SaeulenModule data={content as SaeulenContent} label={label} />
     case 'leistungen':   return <LeistungenModule data={content as LeistungenContent} label={label} />
     case 'case-video':   return <CaseVideoModule data={content as CaseVideoContent} label={label} />
@@ -532,6 +541,10 @@ function ModuleRouter({ module, index, team }: { module: PitchModuleSnapshot; in
 // 01 · HERO
 // =========================================================
 function HeroModule({ data, label }: { data: HeroContent; label: string }) {
+  const pulpPeople = (data.fromPulp || []).filter((p) => p && p.name)
+  const clientPeople = (data.fromClient || []).filter((p) => p && p.name)
+  const hasPulp = pulpPeople.length > 0
+  const hasClient = clientPeople.length > 0
   return (
     <section className="slide hero" data-slide-type="hero" data-screen-label={label}>
       <div className="meta-top reveal-fade">
@@ -547,9 +560,32 @@ function HeroModule({ data, label }: { data: HeroContent; label: string }) {
         <span className="hand hand-r" aria-hidden="true" />
       </h1>
       <div className="meta-bottom reveal-fade delay-3">
-        {data.meetingWith && <div className="it"><span className="k">Gespräch mit</span><span className="v">{data.meetingWith}</span></div>}
-        {data.meetingFrom && <div className="it"><span className="k">Unsererseits</span><span className="v">{data.meetingFrom}</span></div>}
-        {data.meetingPlace && <div className="it"><span className="k">Ort</span><span className="v">{data.meetingPlace}</span></div>}
+        {hasPulp && (
+          <div className="it">
+            <span className="k">Wir</span>
+            <span className="v">
+              {pulpPeople.map((p, i) => (
+                <span key={i} className="hero-person">{p.name}</span>
+              ))}
+            </span>
+          </div>
+        )}
+        {hasClient && (
+          <div className="it">
+            <span className="k">Ihr</span>
+            <span className="v">
+              {clientPeople.map((p, i) => (
+                <span key={i} className="hero-person">{p.name}</span>
+              ))}
+            </span>
+          </div>
+        )}
+        {data.meetingPlace && (
+          <div className="it">
+            <span className="k">Ort</span>
+            <span className="v">{data.meetingPlace}</span>
+          </div>
+        )}
       </div>
       <div className="scroll-hint reveal-fade delay-5">
         <span>SCROLL</span><span className="line" />
@@ -694,36 +730,42 @@ function UwModule({ data, label }: { data: UwContent; label: string }) {
 }
 
 // =========================================================
-// 06 · HEUTE / SPOTLIGHT (Wassertransferdruck-Style)
+// 06 · SPOTLIGHT (Layout wie Case-Social, mit Counter-Zahlen)
 // =========================================================
-function HeuteModule({ data, label }: { data: HeuteContent; label: string }) {
-  const ico = iconUrl('smiley')
+function SpotlightModule({ data, label }: { data: SpotlightContent; label: string }) {
   return (
-    <section className="slide heute" data-slide-type="heute" data-screen-label={label}>
+    <section className="slide social-case spotlight" data-slide-type="spotlight" data-screen-label={label}>
       <div className="layout">
         <div className="copy">
-          <div className="eyebrow reveal-fade"><span className="bar" /><span>Heute. Hier. Jetzt.</span></div>
-          <h2 className="reveal-fade delay-2">{data.title}<span className="title-ico" aria-hidden="true" /></h2>
-          <div className="stats reveal-fade delay-4">
+          <h3 className="reveal-fade delay-2">{data.title}<span className="title-ico" aria-hidden="true" /></h3>
+          {data.body && <p className="lead reveal-fade delay-3">{data.body}</p>}
+          <div className="metrics metrics-big reveal-fade delay-4">
             {data.metrics?.map((m, i) => (
               <div key={i} className="m">
                 <div className="v">
-                  <span data-counter="" data-target={m.target}>0</span>
-                  {m.unit && <span className="u">{m.unit}</span>}
+                  <span className="red">
+                    <span data-counter="" data-target={m.target}>0</span>
+                  </span>
+                  {m.unit && <span className="u"> {m.unit}</span>}
                 </div>
                 <div className="l">{m.label}</div>
               </div>
             ))}
           </div>
+          {data.channelUrl && (
+            <a
+              className="platform-tag reveal-fade delay-5"
+              href={data.channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="ic" />
+              <span>{data.channelLabel || data.channelUrl}</span>
+            </a>
+          )}
         </div>
         <div className="phone-frame reveal-fade delay-3">
           <div className="screen">
-            {ico && (
-              <div className="slot-lbl" style={{ display: data.embed?.type ? 'none' : undefined }}>
-                <span className="ic"><img src={ico} alt="" /></span>
-                <span>TIKTOK · INSTAGRAM oder VIDEO-SLOT</span>
-              </div>
-            )}
             <EmbedPlayer embed={data.embed} />
           </div>
         </div>
@@ -735,18 +777,30 @@ function HeuteModule({ data, label }: { data: HeuteContent; label: string }) {
 // =========================================================
 // 07 · LOVE BRANDS
 // =========================================================
-function LoveBrandsModule({ data, label }: { data: LoveBrandsContent; label: string }) {
+function LoveBrandsModule({
+  data,
+  pool,
+  label,
+}: {
+  data: LoveBrandsContent
+  pool: RenderedLoveBrand[]
+  label: string
+}) {
+  // Lookup gegen den Pool, behalte die Pitch-Reihenfolge.
+  const slugs = Array.isArray(data.brandSlugs) ? data.brandSlugs : []
+  const poolBySlug = new Map(pool.map((b) => [b.slug, b]))
+  const brands = slugs.map((s) => poolBySlug.get(s)).filter((b): b is RenderedLoveBrand => !!b)
   return (
     <section className="slide love-brands" data-slide-type="love-brands" data-screen-label={label}>
       <div className="intro">
         <div className="eyebrow reveal-fade"><span className="bar" /><span>Mit wem wir arbeiten dürfen</span></div>
-        <h2 className="slide-title reveal-fade delay-2"><span className="red">Brandlove</span><span className="title-ico" aria-hidden="true" /></h2>
+        <h2 className="slide-title reveal-fade delay-2"><span className="red">Lovebrands</span><span className="title-ico" aria-hidden="true" /></h2>
       </div>
       <div className="grid">
-        {data.brands?.map((b, i) => (
-          <div key={i} className="brand" data-shape={b.shape && b.shape !== 'default' ? b.shape : undefined}>
+        {brands.map((b) => (
+          <div key={b.slug} className="brand" data-shape={b.shape && b.shape !== 'default' ? b.shape : undefined}>
             <div className="logo-slot">
-              <img src={b.logoUrl.startsWith('/') ? b.logoUrl : '/' + b.logoUrl} alt={b.name} />
+              <img src={b.logoUrl} alt={b.name} />
             </div>
           </div>
         ))}
@@ -821,36 +875,11 @@ function LeistungenModule({ data, label }: { data: LeistungenContent; label: str
 // 10 · CASE VIDEO (Hero, full-bleed)
 // =========================================================
 function CaseVideoModule({ data, label }: { data: CaseVideoContent; label: string }) {
+  // Plain and simple: nur das Video, kein Overlay.
   return (
     <section className="slide case" data-slide-type="case-video" data-screen-label={label}>
       <div className="media">
         <EmbedPlayer embed={data.embed} />
-      </div>
-      <div className="case-overlay">
-        <div className="top">
-          {data.topQuote && (
-            <div className="quote-box">
-              <span className="ic">&ldquo;</span>
-              <p className="q">{data.topQuote.text}</p>
-              {data.topQuote.by && <div className="by">{data.topQuote.by}</div>}
-            </div>
-          )}
-        </div>
-        <div className="bottom">
-          <div className="client">{data.bottom?.client}</div>
-          <h3>
-            {data.bottom?.headline}{' '}
-            {data.bottom?.headlineAccent && <span className="red">{data.bottom.headlineAccent}</span>}
-          </h3>
-          <div className="metrics">
-            {data.bottom?.metrics?.map((m, i) => (
-              <div key={i} className="m">
-                <div className="v">{m.value}</div>
-                <div className="l">{m.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   )
@@ -870,7 +899,7 @@ function CaseSocialModule({ data, label }: { data: CaseSocialContent; label: str
             {data.titleAccent && <span className="red">{data.titleAccent}</span>}
             <span className="title-ico" aria-hidden="true" />
           </h3>
-          <p className="lead reveal-fade delay-3">{data.body}</p>
+          {data.body && <p className="lead reveal-fade delay-3">{data.body}</p>}
           <div className="metrics reveal-fade delay-4">
             {data.metrics?.map((m, i) => (
               <div key={i} className="m">
@@ -879,7 +908,19 @@ function CaseSocialModule({ data, label }: { data: CaseSocialContent; label: str
               </div>
             ))}
           </div>
-          <div className="platform-tag reveal-fade delay-5"><span className="ic" /><span>{data.platform}</span></div>
+          {data.channelUrl ? (
+            <a
+              className="platform-tag reveal-fade delay-5"
+              href={data.channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="ic" />
+              <span>{data.platform}</span>
+            </a>
+          ) : (
+            <div className="platform-tag reveal-fade delay-5"><span className="ic" /><span>{data.platform}</span></div>
+          )}
         </div>
         <div className="phone-frame reveal-fade delay-3">
           <div className="screen">
@@ -909,7 +950,9 @@ function MonitorModule({ data, label }: { data: MonitorContent; label: string })
           </div>
           <div className={`rank-badge r-${data.rank}`}>
             <span className="rk">{data.rank.toUpperCase()}</span>
-            <span className="rl">Rank · Eng.-Rate &gt; 1,5%</span>
+            <span className="rl">
+              Rank{data.placement ? ` · ${data.placement}` : ' · Eng.-Rate > 1,5%'}
+            </span>
           </div>
         </div>
         <div className="bm-stats">
@@ -1047,9 +1090,9 @@ function TippsModule({ data, label }: { data: TippsContent; label: string }) {
   return (
     <section className="slide tipps" data-slide-type="tipps" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Tipps für euch</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Egal ob mit oder <span className="red">ohne uns</span><span className="title-ico" aria-hidden="true" /></h2>
-        <p className="sub reveal-fade delay-3">Was wir aus Jahren Brand-Filmmaking als Gold-Standards mitgenommen haben.</p>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Tipps</span></div>
+        <h2 className="slide-title reveal-fade delay-2">Drei Tipps <span className="red">für euch</span><span className="title-ico" aria-hidden="true" /></h2>
+        <p className="sub reveal-fade delay-3">Konkrete Hebel, die ihr mit oder ohne uns umsetzen könnt. Pro Pitch individuell.</p>
       </div>
       <div className="grid flip-grid">
         {data.items?.map((t, i) => {

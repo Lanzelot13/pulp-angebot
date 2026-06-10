@@ -268,10 +268,10 @@
 }
 .statusDraft { background: #fff3e0; color: #e65100; }
 .statusDraft::before { background: #ff9800; }
-.statusPriced { background: #e8f5e9; color: #2e7d32; }
-.statusPriced::before { background: #4caf50; }
-.statusAccepted { background: #e3f2fd; color: #1565c0; }
-.statusAccepted::before { background: #2196f3; }
+.statusPriced { background: #e3f2fd; color: #1565c0; }
+.statusPriced::before { background: #2196f3; }
+.statusAccepted { background: #e8f5e9; color: #2e7d32; }
+.statusAccepted::before { background: #4caf50; }
 .statusDeclined { background: #fbe9e9; color: #b71c1c; }
 .statusDeclined::before { background: #e53935; }
 

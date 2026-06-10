@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server'
-import { fetchTeam } from '@/lib/team'
+import { getActivePulpies } from '@/lib/pulpies'
 
-// Keine Auth: die Daten sind sowieso öffentlich auf pulpmedia.at zu sehen,
-// und der Pitch-Renderer für Kunden braucht den Endpunkt.
+// Liefert die aktiven Pulpies aus dem lokalen DB-Cache.
+// Wird vom TeamPicker im Admin und (indirekt) vom Pitch-Renderer genutzt.
+// Sync gegen pulpmedia.at läuft über POST /api/admin/pulpies/refresh.
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const { people, fetchedAt, fromCache } = await fetchTeam()
-    return NextResponse.json({ people, fetchedAt, fromCache })
+    const pulpies = await getActivePulpies()
+    const people = pulpies.map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      role: p.role || '',
+      imageUrl: p.imageUrl || '',
+      email: p.email,
+      phone: p.phone,
+    }))
+    return NextResponse.json({
+      people,
+      fromCache: true,    // immer aus DB
+      fetchedAt: Date.now(),
+    })
   } catch (err) {
     return NextResponse.json(
       {
@@ -16,9 +29,9 @@ export async function GET() {
         fetchedAt: null,
         fromCache: false,
         error:
-          err instanceof Error ? err.message : 'Team konnte nicht geladen werden',
+          err instanceof Error ? err.message : 'Pulpies konnten nicht geladen werden',
       },
-      { status: 200 } // Soft-Fail: leeres Team statt 500, damit die Pitch trotzdem läuft
+      { status: 200 }
     )
   }
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
 import { TeamPicker } from '../TeamPicker'
+import { LoveBrandFields } from '../LoveBrandPicker'
+import { ModulesSubnav } from '../ModulesSubnav'
 import { IconEdit, IconTrash, IconPlus } from '../Icons'
 import styles from '../admin.module.css'
 import {
@@ -214,6 +216,7 @@ export default function ModulesPage() {
 
   return (
     <AdminShell>
+      <ModulesSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Module</h1>
         <div className={styles.pageSub}>
@@ -391,6 +394,15 @@ export default function ModulesPage() {
 
               {form.type === 'team' && (
                 <TeamFields
+                  contentJson={form.contentJson}
+                  onChange={(json) =>
+                    setForm((f) => ({ ...f, contentJson: json }))
+                  }
+                />
+              )}
+
+              {form.type === 'love-brands' && (
+                <LoveBrandFields
                   contentJson={form.contentJson}
                   onChange={(json) =>
                     setForm((f) => ({ ...f, contentJson: json }))

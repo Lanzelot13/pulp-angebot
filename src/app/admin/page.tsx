@@ -101,8 +101,8 @@ export default function DashboardPage() {
   }
   const statusDotColor = (s: OfferStatus) => {
     if (s === 'DRAFT') return '#ff9800'
-    if (s === 'PRICED') return '#4caf50'
-    if (s === 'ACCEPTED') return '#2196f3'
+    if (s === 'PRICED') return '#2196f3'
+    if (s === 'ACCEPTED') return '#4caf50'
     if (s === 'DECLINED') return '#e53935'
     return '#888'
   }

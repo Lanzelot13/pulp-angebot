@@ -1514,4 +1514,109 @@ body.mode-slides .slide.pulppattern .pp-overlay { min-height: 0; height: 100vh; 
   .slide.monitor .cell.span-3, .slide.monitor .cell.span-4, .slide.monitor .cell.span-6 { grid-column: span 1; }
   .slide.monitor .bm-stats { grid-template-columns: 1fr 1fr; }
 }
+
+/* =====================================================================
+   ITERATION 2 · Detail-Patches (überschreibt obige Regeln per Cascade)
+   ===================================================================== */
+
+/* Hero: Personen-Listen statt feste meetingWith/From-Strings.
+   Mehrere Namen pro Spalte werden untereinander gestapelt. */
+.slide.hero .meta-bottom .it .v {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.slide.hero .meta-bottom .hero-person {
+  display: block;
+  font: inherit;
+}
+
+/* UW: jede Spalte bekommt einen dunklen Card-Hintergrund. */
+.slide.uw .uw-col {
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.slide.uw .uw-col .uw-img {
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+}
+
+/* Säulen kompakter, damit es auf 13"-Laptops nicht überläuft */
+.slide.saeulen .pillars { min-height: 0; }
+.slide.saeulen .pillar {
+  padding: 22px 22px;
+  min-height: 0;
+}
+.slide.saeulen .pillar .icon { width: 44px; height: 44px; margin-bottom: 6px; }
+.slide.saeulen .pillar h3 .t { font-size: clamp(20px, 1.7vw, 24px); }
+.slide.saeulen .pillar h3 .s { font-size: 13px; }
+.slide.saeulen .pillar p {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+/* Leistungen kompakter: nur Padding-Gap kleiner, Schrift bleibt lesbar.
+   Body-Text rutscht via Hover-Reveal ein und braucht keine vertikale Reduktion. */
+.slide.leistungen .grid { gap: 14px; }
+.slide.leistungen .it { padding: 22px 22px; gap: 10px; }
+
+/* Case-Video: kein Overlay mehr nötig. Falls noch CSS für .case-overlay
+   im DOM steht (z.B. veralteter Snapshot), schalten wir es weg. */
+.slide.case .case-overlay { display: none; }
+
+/* TikTok-iframe: erzwingt 100% Höhe damit das innere Scrollen wegfällt.
+   TikTok injiziert per default eine feste Höhe – die übersteuern wir. */
+.phone-frame .screen blockquote.tiktok-embed,
+.phone-frame .screen blockquote.tiktok-embed > iframe,
+.phone-frame .screen iframe.tiktok-iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  border: 0 !important;
+}
+.phone-frame .screen { overflow: hidden; }
+
+/* Spotlight nutzt das Case-Social-Layout. Counter-Zahlen mit Mio/Mrd-Suffix
+   sollen größer wirken als die kleinen KPI-Cards. */
+.slide.spotlight .metrics-big { gap: 28px; flex-wrap: wrap; }
+.slide.spotlight .metrics-big .m .v {
+  font-family: Anton, sans-serif;
+  font-size: clamp(40px, 4vw, 60px);
+  line-height: 1;
+  color: #fff;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
+}
+.slide.spotlight .metrics-big .m .v .u {
+  font-size: 0.55em;
+  color: var(--soft);
+}
+.slide.spotlight .metrics-big .m .l {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--softer);
+  margin-top: 6px;
+}
+
+/* Platform-Tag als Link: Hover-State */
+.slide.social-case .platform-tag,
+.slide.spotlight .platform-tag {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.slide.social-case a.platform-tag:hover,
+.slide.spotlight a.platform-tag:hover {
+  color: var(--red);
+}
 `

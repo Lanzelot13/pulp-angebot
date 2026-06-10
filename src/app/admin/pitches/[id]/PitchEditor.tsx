@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { AdminShell } from '../../AdminShell'
 import { TeamPicker } from '../../TeamPicker'
+import { LoveBrandFields } from '../../LoveBrandPicker'
 import {
   IconEye,
   IconEdit,
@@ -799,6 +800,14 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                       }
                     />
                   )}
+                  {customDraft.type === 'love-brands' && (
+                    <LoveBrandFields
+                      contentJson={customDraft.contentJson}
+                      onChange={(json) =>
+                        setCustomDraft((d) => ({ ...d, contentJson: json }))
+                      }
+                    />
+                  )}
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>
@@ -889,6 +898,14 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                   }
                 />
               </div>
+              {editingModule.type === 'love-brands' && (
+                <LoveBrandFields
+                  contentJson={editForm.contentJson}
+                  onChange={(json) =>
+                    setEditForm((f) => ({ ...f, contentJson: json }))
+                  }
+                />
+              )}
               {editingModule.type === 'team' && (
                 <TeamFields
                   contentJson={editForm.contentJson}
