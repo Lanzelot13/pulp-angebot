@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { AdminShell } from '../../../AdminShell'
 import { IconArrowLeft, IconExternalLink } from '../../../Icons'
@@ -141,6 +141,35 @@ function BarChart({
   )
 }
 
+// Klickbarer Spaltenheader. Zeigt einen Pfeil, wenn nach dieser Spalte sortiert wird.
+function SortHeader({
+  label,
+  field,
+  sortField,
+  sortDir,
+  onClick,
+}: {
+  label: string
+  field: SortField
+  sortField: SortField
+  sortDir: SortDir
+  onClick: (f: SortField) => void
+}) {
+  const active = sortField === field
+  return (
+    <th
+      onClick={() => onClick(field)}
+      className={styles.sortHeader}
+      title={`Sortieren nach ${label}`}
+    >
+      {label}
+      <span className={styles.sortIndicator}>
+        {active ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ' '}
+      </span>
+    </th>
+  )
+}
+
 function shortDuration(sec: number): string {
   if (sec < 60) return `${sec}s`
   const m = Math.floor(sec / 60)
@@ -149,41 +178,60 @@ function shortDuration(sec: number): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`
 }
 
-function relativeTime(iso: string | null): { big: string; small: string } {
-  if (!iso) return { big: '–', small: '' }
-  const d = new Date(iso)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMin = Math.floor(diffMs / 60_000)
-  const exact = d.toLocaleString('de-AT', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  })
-  if (diffMin < 1) return { big: 'gerade eben', small: exact }
-  if (diffMin < 60) return { big: `vor ${diffMin} min`, small: exact }
-  const today = new Date(now); today.setHours(0, 0, 0, 0)
-  const dDay = new Date(d); dDay.setHours(0, 0, 0, 0)
-  const dayDiff = Math.floor((today.getTime() - dDay.getTime()) / 86_400_000)
-  if (dayDiff === 0) return {
-    big: `heute, ${d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`,
-    small: exact,
-  }
-  if (dayDiff === 1) return { big: 'gestern', small: exact }
-  if (dayDiff < 7) return { big: `vor ${dayDiff} Tagen`, small: exact }
-  if (dayDiff < 30) return { big: `vor ${Math.floor(dayDiff / 7)} Wo`, small: exact }
-  return { big: d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' }), small: exact }
-}
-
 function statusLabel(s: string | null) {
   if (!s) return '–'
   return STATUS_LABELS[s as OfferStatus] || s
 }
+
+type SortField = 'openedAt' | 'lastEventAt' | 'activeSeconds' | 'sectionsSeen' | 'eventCount' | 'targetStatus' | 'country'
+type SortDir = 'asc' | 'desc'
 
 export default function OfferTrackingPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<TrackingResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [detailView, setDetailView] = useState<DetailResponse['view'] | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [sortField, setSortField] = useState<SortField>('openedAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  // Letzte Session = die zuletzt geöffnete (nach openedAt). Brauchen wir für
+  // die "Letzte Aktivität"-Stat-Card und als Basis für sinnvolle Sub-Texte.
+  const latestSession = useMemo(() => {
+    if (!data || data.sessions.length === 0) return null
+    return data.sessions.reduce((latest, s) =>
+      !latest || new Date(s.openedAt) > new Date(latest.openedAt) ? s : latest,
+      null as TrackingResponse['sessions'][number] | null
+    )
+  }, [data])
+
+  // Client-seitige Sortierung der Tabelle nach Klick auf einen Header.
+  const sortedSessions = useMemo(() => {
+    if (!data) return []
+    const arr = [...data.sessions]
+    const dir = sortDir === 'asc' ? 1 : -1
+    arr.sort((a, b) => {
+      const va = a[sortField]
+      const vb = b[sortField]
+      // Strings (Datum als ISO, Status, Land): lexikografisch — bei ISO-Daten
+      // ist das chronologisch korrekt.
+      if (typeof va === 'string' && typeof vb === 'string') {
+        return va.localeCompare(vb) * dir
+      }
+      const na = typeof va === 'number' ? va : 0
+      const nb = typeof vb === 'number' ? vb : 0
+      return (na - nb) * dir
+    })
+    return arr
+  }, [data, sortField, sortDir])
+
+  function clickSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -260,9 +308,13 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
             </div>
             <div className={styles.trackStatCard}>
               <div className={styles.trackStatLabel}>Letzte Aktivität</div>
-              <div className={styles.trackStatValue}>{relativeTime(data.stats.lastEventAt).big}</div>
+              <div className={styles.trackStatValueSmall}>
+                {latestSession ? formatDate(latestSession.openedAt) : '–'}
+              </div>
               <div className={styles.trackStatSub}>
-                {data.stats.totalSectionsSeen} Sections · {data.stats.totalEvents} Events
+                {latestSession
+                  ? `${latestSession.sectionsSeen} Sections · ${latestSession.eventCount} Events`
+                  : ''}
               </div>
             </div>
           </div>
@@ -335,33 +387,21 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Datum</th>
-                <th>Verweildauer</th>
-                <th>Sections</th>
-                <th>Events</th>
-                <th>Status</th>
-                <th>Geo / Device</th>
+                <SortHeader label="Geöffnet" field="openedAt" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
+                <SortHeader label="Letzte Aktivität" field="lastEventAt" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
+                <SortHeader label="Verweildauer" field="activeSeconds" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
+                <SortHeader label="Sections" field="sectionsSeen" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
+                <SortHeader label="Events" field="eventCount" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
+                <SortHeader label="Status" field="targetStatus" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
+                <SortHeader label="Geo / Device" field="country" sortField={sortField} sortDir={sortDir} onClick={clickSort} />
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {data.sessions.map((s) => {
-                // "Wiederkehrende Ansicht": gleiche Session-ID, mehrfach geöffnet.
-                // Wenn lastEventAt deutlich nach openedAt liegt (mehr als 5 Min),
-                // zeigen wir beides, sonst nur den Open-Zeitpunkt.
-                const opened = new Date(s.openedAt).getTime()
-                const last = new Date(s.lastEventAt).getTime()
-                const reopened = last - opened > 5 * 60_000
-                return (
+              {sortedSessions.map((s) => (
                 <tr key={s.id}>
-                  <td>
-                    {formatDate(s.openedAt)}
-                    {reopened && (
-                      <div className={styles.muted}>
-                        zuletzt {relativeTime(s.lastEventAt).big}
-                      </div>
-                    )}
-                  </td>
+                  <td>{formatDate(s.openedAt)}</td>
+                  <td>{formatDate(s.lastEventAt)}</td>
                   <td>{formatDuration(s.activeSeconds)}</td>
                   <td>{s.sectionsSeen}</td>
                   <td>{s.eventCount}</td>
@@ -376,8 +416,7 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
                     </button>
                   </td>
                 </tr>
-                )
-              })}
+              ))}
             </tbody>
           </table>
         </>

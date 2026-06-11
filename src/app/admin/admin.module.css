@@ -1179,6 +1179,20 @@
 .clickableRow { cursor: pointer; transition: background 0.12s; }
 .clickableRow:hover { background: #fafafa; }
 
+/* Klickbarer Spaltenheader für die Tracking-Tabelle */
+.sortHeader {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortHeader:hover { color: #111; }
+.sortIndicator {
+  display: inline-block;
+  width: 12px;
+  font-size: 10px;
+  color: #FF1900;
+}
+
 /* Diagramme auf der Tracking-Detailseite */
 .chartGrid {
   display: grid;
