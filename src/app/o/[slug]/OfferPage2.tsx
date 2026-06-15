@@ -1043,7 +1043,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     }}
                   />
                   <ul className={styles.packageFeatures}>
-                    {pkg.features.map((f, fi) => (
+                    {(pkg.features || []).map((f, fi) => (
                       <li key={fi} className={f.included ? '' : styles.featureNotIncluded} draggable={isEdit} onDragStart={isEdit ? () => handleFeatureDragStart(i, fi) : undefined} onDragOver={isEdit ? (e) => handleFeatureDragOver(e, i, fi) : undefined} onDragEnd={isEdit ? handleFeatureDragEnd : undefined}>
                         {isEdit ? (
                           <button onClick={() => {
@@ -1226,9 +1226,10 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   {/* View mode: items joined with commas, last with "sowie" */}
                   {!isEdit && (
                     <span className={styles.notIncludedItems}>
-                      {notIncluded.items.map((item, i) => {
-                        const isLast = i === notIncluded.items.length - 1
-                        const isSecondLast = i === notIncluded.items.length - 2
+                      {(notIncluded.items || []).map((item, i) => {
+                        const total = (notIncluded.items || []).length
+                        const isLast = i === total - 1
+                        const isSecondLast = i === total - 2
                         const sep = isLast ? '.' : isSecondLast ? ' sowie ' : ', '
                         return (
                           <span key={i} className={styles.notIncludedItem}>
@@ -1244,7 +1245,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   {isEdit && (
                     <>
                       <div className={styles.notIncludedEditList}>
-                        {notIncluded.items.map((item, i) => (
+                        {(notIncluded.items || []).map((item, i) => (
                           <span key={i} className={styles.notIncludedChip}>
                             <Editable
                               tag="span"
@@ -1509,7 +1510,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       <div className={styles.referenceName}>{ref.name}</div>
                       <div className={styles.referenceDesc}>{ref.description}</div>
                       <div className={styles.referenceTags}>
-                        {ref.tags.map((tag, ti) => (
+                        {(ref.tags || []).map((tag, ti) => (
                           <span key={ti} className={styles.referenceTag}>{tag}</span>
                         ))}
                       </div>
@@ -1522,7 +1523,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       <div className={styles.referenceName}>{ref.name}</div>
                       <div className={styles.referenceDesc}>{ref.description}</div>
                       <div className={styles.referenceTags}>
-                        {ref.tags.map((tag, ti) => (
+                        {(ref.tags || []).map((tag, ti) => (
                           <span key={ti} className={styles.referenceTag}>{tag}</span>
                         ))}
                       </div>
