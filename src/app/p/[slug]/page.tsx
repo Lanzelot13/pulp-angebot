@@ -46,6 +46,7 @@ export default async function Page({ params, searchParams }: PageProps) {
     name: b.name,
     logoUrl: b.logoUrl,
     shape: (b.shape as 'default' | 'badge' | 'tall') || 'default',
+    invertOnDark: b.invertOnDark,
   }))
 
   return (

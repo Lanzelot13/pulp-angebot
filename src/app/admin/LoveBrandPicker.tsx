@@ -11,6 +11,7 @@ interface LoveBrand {
   name: string
   logoUrl: string
   shape: 'default' | 'badge' | 'tall'
+  invertOnDark: boolean
   archivedAt: string | null
 }
 
@@ -93,7 +94,13 @@ export function LoveBrandPicker({ brandSlugs, onChange }: Props) {
           <img
             src={b.logoUrl}
             alt={b.name}
-            style={{ maxWidth: '90%', maxHeight: '100%', filter: isSelected ? 'grayscale(1) invert(1)' : 'grayscale(1) brightness(0.6)' }}
+            style={{
+              maxWidth: '90%',
+              maxHeight: '100%',
+              filter: isSelected
+                ? (b.invertOnDark ? 'grayscale(1) invert(1)' : 'none')
+                : (b.invertOnDark ? 'grayscale(1) brightness(0.6)' : 'grayscale(1) opacity(0.55)'),
+            }}
           />
         )}
       </div>

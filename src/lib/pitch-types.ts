@@ -189,6 +189,7 @@ export interface RenderedLoveBrand {
   name: string
   logoUrl: string
   shape: 'default' | 'badge' | 'tall'
+  invertOnDark: boolean
 }
 
 export interface PillarItem {

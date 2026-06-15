@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
         name: body.name,
         logoUrl: body.logoUrl || '',
         shape,
+        invertOnDark: typeof body.invertOnDark === 'boolean' ? body.invertOnDark : true,
         sortOrder: body.sortOrder ?? 0,
       },
     })

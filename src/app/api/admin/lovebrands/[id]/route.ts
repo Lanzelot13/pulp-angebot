@@ -20,6 +20,7 @@ export async function PATCH(
     data.shape = body.shape
   }
   if (typeof body.sortOrder === 'number') data.sortOrder = body.sortOrder
+  if (typeof body.invertOnDark === 'boolean') data.invertOnDark = body.invertOnDark
   if (body.archive === true) data.archivedAt = new Date()
   if (body.archive === false) data.archivedAt = null
 

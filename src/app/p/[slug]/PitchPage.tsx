@@ -798,7 +798,12 @@ function LoveBrandsModule({
       </div>
       <div className="grid">
         {brands.map((b) => (
-          <div key={b.slug} className="brand" data-shape={b.shape && b.shape !== 'default' ? b.shape : undefined}>
+          <div
+            key={b.slug}
+            className="brand"
+            data-shape={b.shape && b.shape !== 'default' ? b.shape : undefined}
+            data-invert={b.invertOnDark ? undefined : 'false'}
+          >
             <div className="logo-slot">
               <img src={b.logoUrl} alt={b.name} />
             </div>

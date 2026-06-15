@@ -164,15 +164,21 @@ model Pulpie {
 // welche Brands gezeigt werden. Logo-Datei liegt unter public/pitch/lovebrands/.
 
 model LoveBrand {
-  id         String   @id @default(cuid())
-  slug       String   @unique                // "rosenbauer", "zipfer", ...
-  name       String                           // "Rosenbauer"
-  logoUrl    String                           // "/pitch/lovebrands/rosenbauer.svg"
-  shape      String   @default("default")    // "default" | "badge" | "tall"
-  sortOrder  Int      @default(0)
-  archivedAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(cuid())
+  slug         String   @unique                // "rosenbauer", "zipfer", ...
+  name         String                           // "Rosenbauer"
+  logoUrl      String                           // "/pitch/lovebrands/rosenbauer.svg"
+  shape        String   @default("default")    // "default" | "badge" | "tall"
+  // true (default): Logo ist eine schwarze Wordmark auf weißem Hintergrund,
+  //                 Filter grayscale(1) invert(1) wird angewendet damit es auf
+  //                 dunklem Bg lesbar wird.
+  // false:          Logo ist bereits weiß/grau für dunklen Bg aufbereitet,
+  //                 wird unverändert angezeigt.
+  invertOnDark Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  archivedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([archivedAt])
   @@index([sortOrder])

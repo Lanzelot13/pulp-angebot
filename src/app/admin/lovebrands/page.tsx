@@ -12,6 +12,7 @@ interface LoveBrand {
   name: string
   logoUrl: string
   shape: 'default' | 'badge' | 'tall'
+  invertOnDark: boolean
   sortOrder: number
   archivedAt: string | null
   createdAt: string
@@ -23,6 +24,7 @@ interface FormState {
   slug: string
   logoUrl: string
   shape: 'default' | 'badge' | 'tall'
+  invertOnDark: boolean
   sortOrder: number
 }
 
@@ -31,6 +33,7 @@ const emptyForm = (): FormState => ({
   slug: '',
   logoUrl: '',
   shape: 'default',
+  invertOnDark: true,
   sortOrder: 0,
 })
 
@@ -89,6 +92,7 @@ export default function LoveBrandsPage() {
       slug: b.slug,
       logoUrl: b.logoUrl,
       shape: b.shape,
+      invertOnDark: b.invertOnDark ?? true,
       sortOrder: b.sortOrder,
     })
     setError(null)
@@ -195,7 +199,11 @@ export default function LoveBrandsPage() {
                         <img
                           src={b.logoUrl}
                           alt={b.name}
-                          style={{ maxWidth: '100%', maxHeight: '100%', filter: 'grayscale(1) invert(1)' }}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            filter: b.invertOnDark ? 'grayscale(1) invert(1)' : 'none',
+                          }}
                         />
                       )}
                     </div>
@@ -298,7 +306,11 @@ export default function LoveBrandsPage() {
                       <img
                         src={form.logoUrl}
                         alt="Logo-Vorschau"
-                        style={{ maxHeight: 60, maxWidth: '80%', filter: 'grayscale(1) invert(1)' }}
+                        style={{
+                          maxHeight: 60,
+                          maxWidth: '80%',
+                          filter: form.invertOnDark ? 'grayscale(1) invert(1)' : 'none',
+                        }}
                       />
                     </div>
                   )}
@@ -353,6 +365,33 @@ export default function LoveBrandsPage() {
                   <option value="badge">badge (quadratisches Logo)</option>
                   <option value="tall">tall (höher als breit)</option>
                 </select>
+              </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: '12px 14px',
+                  background: '#f8f8f8',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={!form.invertOnDark}
+                  onChange={(e) => setForm((f) => ({ ...f, invertOnDark: !e.target.checked }))}
+                  style={{ marginTop: 2 }}
+                />
+                <span style={{ fontSize: 13 }}>
+                  <strong style={{ display: 'block', marginBottom: 2 }}>
+                    Logo ist bereits für dunklen Hintergrund aufbereitet
+                  </strong>
+                  <span style={{ color: '#888', fontSize: 12 }}>
+                    Aktivieren wenn das SVG schon weiße oder graue Füllungen hat. Sonst wendet das Deck einen
+                    Invert-Filter an, der dann das weiße Logo schwarz färbt.
+                  </span>
+                </span>
               </label>
               <label className={styles.formLabel}>
                 Reihenfolge
