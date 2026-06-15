@@ -85,6 +85,7 @@ const MODULES: ModuleDef[] = [
   { type: 'process',      name: 'Process · Timeline',              description: 'Sieben Schritte von Angebot bis Review.' },
   { type: 'fragen',       name: 'Fragen · Flip-Cards (3)',         description: 'Drei Karten, die sich beim Antippen drehen.' },
   { type: 'tipps',        name: 'Tipps · Flip-Cards (3)',          description: 'Drei Tipps für die Empfänger. Flip-Cards mit Icon.' },
+  { type: 'ideas',        name: 'Vorschläge · Pro Pitch ausfüllen', description: 'Vier konkrete Ideen, was wir für genau diesen Kunden tun würden. Pro Karte Säulen-Icon, Headline, Body und optional Bild.' },
   { type: 'optionen',     name: 'Optionen · Drei Pakete',          description: 'Einstieg, Projekt, Partner. Drei Karten mit Icon.' },
   { type: 'outro',        name: 'Outro · Let\'s talk',             description: 'Abschluss mit Email, Telefon, Web und Pulp-Sig.' },
 ]
@@ -287,6 +288,206 @@ async function main() {
   console.log('\nDemo-Pitch ansehen:')
   console.log(`  • lokal:      http://localhost:3000/p/${pitch.slug}`)
   console.log(`  • production: https://angebot.pulpmedia.at/p/${pitch.slug}`)
+
+  // ---------------------------------------------------------
+  // 5) Konkrete Pitch: Fritz Holter GmbH
+  //
+  // Eine echte Beispiel-Pitch mit individuell befüllten Modul-Snapshots.
+  // Hier werden die Inhalte direkt zusammengebaut (nicht aus dem Modul-Pool
+  // kopiert), damit Holter-spezifische Texte und Zahlen sofort drin sind.
+  // ---------------------------------------------------------
+
+  const HOLTER_SLUG = 'holter'
+  const holterModules = [
+    // 1 · Hero
+    {
+      type: 'hero', name: 'Hero · Holter', content: {
+        kicker1: 'ERSTGESPRÄCH',
+        kicker2: '',
+        kicker3: 'FRITZ HOLTER GMBH',
+        greeting: 'HALLO',
+        fromPulp: [{ name: 'Theresa Janda' }],
+        fromClient: [{ name: 'Andrea Helfenschneider' }],
+        meetingPlace: 'Holter Wels oder online',
+      },
+    },
+    // 2 · Team (Pulpies)
+    {
+      type: 'team', name: 'Team · Theresa anwesend', content: {
+        attendingSlugs: ['theresa-janda'],
+      },
+    },
+    // 3 · Numbers (Pulp in Zahlen)
+    {
+      type: 'numbers', name: 'Drei Zahlen', content: {
+        items: [
+          { iconKey: 'skull',       target: 21,  suffix: '+', label: 'Jahre Agentur',       description: 'Seit 2005. Inhabergeführt.' },
+          { iconKey: 'smiley',      target: 500, suffix: '+', label: 'Produktionen',        description: 'Hero Videos, Brand Stories, Social Cuts seit 2012.' },
+          { iconKey: 'pixel-heart', target: 30,  suffix: '+', label: 'Betreute Lovebrands', description: 'Im DACH-Raum.' },
+        ],
+      },
+    },
+    // 4 · Monitor (Holter-Daten · @arbeitenbeiholter)
+    {
+      type: 'monitor', name: 'Brand Monitor · Holter', content: {
+        brand: 'Holter',
+        handle: 'arbeitenbeiholter',
+        rank: 'a',
+        placement: 'Platz 3 von 66',
+        posts: '155',
+        views: '865,9K',
+        interactions: '41,9K',
+        engagementRate: '4,835%',
+        comparison: [
+          { name: '@arbeitenbeiholter',     percent: 60, value: '4,835%', focus: true },
+          { name: '@zotterschokolade · #1', percent: 88, value: '7,006%', ghost: true },
+          { name: '@rosenbauergroup · #2',  percent: 81, value: '6,500%', ghost: true },
+          { name: 'Ø aller 66 Marken',      percent: 24, value: '1,9%',   ghost: true },
+        ],
+      },
+    },
+    // 5 · Manifest
+    {
+      type: 'manifest', name: 'Manifest', content: {
+        line1: "DON'T MAKE ADS.",
+        line2: 'MAKE LOVE',
+        body: 'Wir bauen keine Werbung. Wir bauen Beziehung zwischen Menschen und Marken, über Geschichten, die jemand sehen will, nicht sehen muss.',
+      },
+    },
+    // 6 · Säulen
+    {
+      type: 'saeulen', name: 'Fünf Säulen', content: {
+        pillars: [
+          { iconKey: 'explosion',    title: 'Video',         subtitle: 'Brandlove fühlen',     body: 'Vom 6-Sekunden-Bumper bis zum Cinema-Cut. Wir konzipieren, produzieren und schneiden Markenfilme, die den Unterschied machen.' },
+          { iconKey: 'smiley',       title: 'Social Media',  subtitle: 'Brandlove-Community',  body: 'Tägliche Betreuung von Marken-Kanälen. Content, der Menschen anspricht, nicht Algorithmen.' },
+          { iconKey: 'heart',        title: 'Influencer',    subtitle: 'Brandlove-Trust',       body: 'Echte Stimmen, langfristige Partnerschaften, kein Reichweiten-Roulette.' },
+          { iconKey: 'bomb',         title: 'Live Marketing', subtitle: 'Brandlove erleben',    body: 'Events, Pop-ups, Messeauftritte, Aktivierungen. Marken werden erlebt, nicht gelesen.' },
+          { iconKey: 'pixel-heart',  title: 'Merchandise',   subtitle: 'Brandlove zeigen',     body: 'Wenn jemand freiwillig dein Logo trägt, ist das der größte Liebesbeweis.' },
+        ],
+      },
+    },
+    // 7 · Leistungen
+    {
+      type: 'leistungen', name: 'Leistungen', content: {
+        items: [
+          { iconKey: 'explosion',   title: 'Workshops',                description: 'Kick-off, Strategie-Tag, Format-Sprint. Wir holen ab, wo ihr steht.' },
+          { iconKey: 'smiley',      title: 'Strategie-Paper',          description: 'Markenführung, Content-Strategie, Kanalstrategie. Schriftlich, klar, umsetzbar.' },
+          { iconKey: 'heart',       title: 'Content-Day',              description: 'Ein Drehtag, mehrere Wochen Material. Effizient produziert, plattformgerecht geschnitten.' },
+          { iconKey: 'blitz',       title: 'Videoproduktion',          description: 'Konzept, Dreh, Schnitt, Postproduktion. Eigenes Studio in Linz.' },
+          { iconKey: 'bomb',        title: 'Social Media Redaktion',   description: 'Laufende Betreuung eurer Kanäle. Planung, Produktion, Veröffentlichung.' },
+          { iconKey: 'pixel-heart', title: 'Community Marketing',      description: 'Aufbau und Pflege eurer Fan-Gemeinde. Antworten, Moderation, Aktivierung.' },
+          { iconKey: 'horn',        title: 'Influencer Relationship',  description: 'Scouting, Briefing, Verträge, Kampagnen, Reporting.' },
+          { iconKey: 'blume',       title: 'Live-Aktivierungen',       description: 'Events, Pop-ups, Messen, Aktionen. Inklusive Content-Verwertung danach.' },
+          { iconKey: 'rocket',      title: 'Merchandise',              description: 'Design und Produktion. Auch kleine Auflagen, eigener Shop möglich.' },
+        ],
+      },
+    },
+    // 8 · Case-Video (Rosenbauer als Beispiel "sowas können wir für euch")
+    {
+      type: 'case-video', name: 'Case · Rosenbauer-Markenfilm', content: {
+        embed: { type: 'youtube', id: 'sbzBRcDysLs', mute: true },
+      },
+    },
+    // 9 · Ideas (Einschub: 4 Vorschläge für Holter)
+    {
+      type: 'ideas', name: 'Vorschläge · Holter', content: {
+        eyebrow: 'Was wir uns überlegt haben',
+        headline: 'Vier Ideen, wie Holter zur',
+        headlineAccent: 'Lovebrand wird',
+        sub: 'Konkret und auf Holter zugeschnitten. Eine Idee pro Säule (Social Media läuft bei euch ja schon richtig stark, daher der Fokus auf die anderen vier).',
+        items: [
+          {
+            iconKey: 'explosion',
+            title: 'Hero-Film über Holter',
+            body: 'Ein Marken-Film, wie wir ihn für Rosenbauer gemacht haben (gerade gesehen). Nicht der Imagefilm-Klassiker mit Drohne und Voiceover, sondern Geschichten von den Leuten, die bei euch ein- und ausgehen. Das könnten wir genau so für Holter aufziehen.',
+          },
+          {
+            iconKey: 'horn',
+            title: 'Corporate Ambassadors',
+            body: 'Die Gesichter aus "Arbeiten bei Holter" sind schon Stars eures TikTok-Kanals (Platz 3 im Brand Monitor). Wir bauen sie schrittweise zu echten Markenbotschaftern aus, mit eigenen Kanälen und langfristigem Coaching.',
+          },
+          {
+            iconKey: 'bomb',
+            title: 'Holter-Klo Live-Aktivierung',
+            body: 'Eure Bäder dort aufstellen, wo eure Zielgruppe sowieso ist: öffentliche Schwimmbäder oder ein begehbares Holter-Bad auf Festivals (Frequency, Electric Love). Erleb-Marketing, das man fotografiert und teilt.',
+          },
+          {
+            iconKey: 'pixel-heart',
+            title: 'Auto-Folierung für Partner',
+            body: 'Mit-finanzierte Folierung für Holter-Partner und Installateure: Werbeflächen, die jeden Tag durch ganz Österreich fahren, getragen von Menschen, die euer Produkt schon lieben.',
+          },
+        ],
+      },
+    },
+    // 10 · Fragen (3 Stück, Holter-spezifisch)
+    {
+      type: 'fragen', name: 'Drei Fragen an Holter', content: {
+        items: [
+          { title: 'Wie viel',  titleAccent: 'Brandlove',  body: 'steckt schon drin? "Arbeiten bei Holter" zeigt: ihr habt eine Bühne und eine Audience. Wie wichtig ist euch die externe Markenwirkung im Vergleich zur Recruiting-Wirkung?' },
+          { title: 'Wer macht', titleAccent: 'was bei euch?', body: 'Wie ist Marketing intern aufgestellt? Eigene Produktion, Agenturen, Inhouse-Kreativ-Team? Wer entscheidet, wer setzt um?' },
+          { title: 'Welche',    titleAccent: 'KPIs',       body: 'zählen für Holter wirklich? Reichweite, Recruiting, Verkaufsleads, Marken-Image, Mitarbeiter-Stolz? Worauf schaut der Vorstand am Ende?' },
+        ],
+      },
+    },
+    // 11 · Optionen
+    {
+      type: 'optionen', name: 'Optionen', content: {
+        options: [
+          { pkgName: '01 · EINSTIEG', iconKey: 'smiley',      title: 'Workshop + Strategie',  description: 'Brand-Sprint, Positionierungs-Workshop, Konzept-Papier. Eine geschlossene Lieferung, klarer Output. Ihr könnt damit weiterarbeiten, mit oder ohne uns.' },
+          { pkgName: '02 · PROJEKT',  iconKey: 'explosion',   title: 'Ein konkretes Projekt', description: 'Eine der vier Ideen herausgreifen und voll durchziehen. Hero-Film, Ambassador-Programm, Holter-Klo oder Folierungs-Aktion. Klarer Scope, klarer Zeitraum.' },
+          { pkgName: '03 · PARTNER',  iconKey: 'pixel-heart', title: 'Laufende Betreuung',    description: 'Als verlängerte Brand-Abteilung an eurer Seite. Strategie-Reviews, fortlaufende Produktion, Performance-Optimierung. Wir lernen Holter über die Zeit kennen.' },
+        ],
+      },
+    },
+    // 12 · Outro
+    {
+      type: 'outro', name: 'Outro · Let\'s talk', content: {
+        email: 'theresa@pulpmedia.at',
+        phone: '+43 732 6300',
+        web: 'pulpmedia.at',
+        sig: "DON'T MAKE ADS. MAKE LOVE.",
+      },
+    },
+  ]
+
+  const existingHolter = await prisma.pitch.findUnique({ where: { slug: HOLTER_SLUG } })
+  const holterPitch = existingHolter
+    ? await prisma.pitch.update({
+        where: { slug: HOLTER_SLUG },
+        data: {
+          clientCompany: 'Fritz Holter GmbH',
+          occasion: 'Erstgespräch',
+          contactSlug: contact.slug,
+          archivedAt: null,
+        },
+      })
+    : await prisma.pitch.create({
+        data: {
+          slug: HOLTER_SLUG,
+          clientCompany: 'Fritz Holter GmbH',
+          occasion: 'Erstgespräch',
+          contactSlug: contact.slug,
+          modules: [],
+        },
+      })
+
+  const holterSnapshots = holterModules.map((m, i) => ({
+    instanceId: randomUUID(),
+    moduleId: null,           // Custom-Snapshots (nicht aus dem Pool)
+    type: m.type,
+    name: m.name,
+    content: m.content as unknown as Record<string, unknown>,
+    sourceUpdatedAt: null,
+    sortOrder: i,
+  }))
+
+  await prisma.pitch.update({
+    where: { id: holterPitch.id },
+    data: { modules: holterSnapshots as unknown as Prisma.InputJsonValue },
+  })
+  console.log(`\n${existingHolter ? 'Aktualisierte' : 'Erstellte'} Holter-Pitch (${holterSnapshots.length} Folien).`)
+  console.log(`  • lokal:      http://localhost:3000/p/${HOLTER_SLUG}`)
+  console.log(`  • production: https://angebot.pulpmedia.at/p/${HOLTER_SLUG}`)
 
   // Label-Übersicht für Paul
   console.log('\nModul-Pool:')

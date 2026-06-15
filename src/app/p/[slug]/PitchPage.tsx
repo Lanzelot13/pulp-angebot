@@ -33,6 +33,7 @@ import type {
   ProcessContent,
   FragenContent,
   TippsContent,
+  IdeasContent,
   OptionenContent,
   OutroContent,
   EmbedConfig,
@@ -526,6 +527,7 @@ function ModuleRouter({
     case 'process':      return <ProcessModule data={content as ProcessContent} label={label} />
     case 'fragen':       return <FragenModule data={content as FragenContent} label={label} />
     case 'tipps':        return <TippsModule data={content as TippsContent} label={label} />
+    case 'ideas':        return <IdeasModule data={content as IdeasContent} label={label} />
     case 'optionen':     return <OptionenModule data={content as OptionenContent} label={label} />
     case 'outro':        return <OutroModule data={content as OutroContent} label={label} />
     default:
@@ -1120,6 +1122,44 @@ function TippsModule({ data, label }: { data: TippsContent; label: string }) {
                 </div>
               </div>
             </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// IDEAS · Vorschläge pro Pitch (was wir konkret tun würden)
+// =========================================================
+function IdeasModule({ data, label }: { data: IdeasContent; label: string }) {
+  return (
+    <section className="slide ideas" data-slide-type="ideas" data-screen-label={label}>
+      <div className="intro">
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{data.eyebrow || 'Was wir uns überlegt haben'}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">
+          {data.headline}{' '}
+          {data.headlineAccent && <span className="red">{data.headlineAccent}</span>}
+          <span className="title-ico" aria-hidden="true" />
+        </h2>
+        {data.sub && <p className="sub reveal-fade delay-3">{data.sub}</p>}
+      </div>
+      <div className="ideas-grid">
+        {data.items?.map((it, i) => {
+          const ico = iconUrl(it.iconKey)
+          return (
+            <div key={i} className={`idea reveal-fade delay-${(i % 4) + 1}`}>
+              {it.imageUrl && (
+                <div className="idea-image">
+                  <img src={it.imageUrl} alt="" />
+                </div>
+              )}
+              <div className="idea-body">
+                {ico && <div className="idea-icon"><img src={ico} alt="" /></div>}
+                <h3 className="idea-title">{it.title}</h3>
+                <p className="idea-text">{it.body}</p>
+              </div>
+            </div>
           )
         })}
       </div>

@@ -28,6 +28,7 @@ export type PitchModuleType =
   | 'process'         // Process Timeline
   | 'fragen'          // 3 Flip-Card Fragen
   | 'tipps'           // 3 Flip-Card Tipps
+  | 'ideas'           // Vorschläge pro Pitch (was wir konkret für euch tun würden)
   | 'optionen'        // 3 Pakete
   | 'outro'
 
@@ -48,6 +49,7 @@ export const PITCH_MODULE_TYPES: PitchModuleType[] = [
   'process',
   'fragen',
   'tipps',
+  'ideas',
   'optionen',
   'outro',
 ]
@@ -69,6 +71,7 @@ export const PITCH_MODULE_LABELS: Record<PitchModuleType, string> = {
   'process': 'Process · Timeline',
   'fragen': 'Fragen · Flip-Cards',
   'tipps': 'Tipps · Flip-Cards',
+  'ideas': 'Vorschläge · Was wir für euch tun würden',
   'optionen': 'Optionen · Drei Pakete',
   'outro': 'Outro · Let\'s talk',
 }
@@ -90,6 +93,7 @@ export const PITCH_MODULE_DESCRIPTIONS: Record<PitchModuleType, string> = {
   'process': 'Zeitliche Schritte vom Erstgespräch bis zum Go-Live.',
   'fragen': 'Drei Fragen, die wir als Anfang gerne stellen. Antippen dreht die Karte.',
   'tipps': 'Drei Tipps für die Pitch-Empfänger. Antippen dreht die Karte.',
+  'ideas': 'Konkrete Vorschläge für genau diesen Kunden. Pro Karte ein Säulen-Icon, Headline, Body und optional ein Bild.',
   'optionen': 'Drei Einstiegs-Pakete als Karten.',
   'outro': 'Abschluss-Folie mit Kontaktdaten.',
 }
@@ -297,6 +301,21 @@ export interface OptionenContent {
   options: OptionenItem[]  // typischerweise 3
 }
 
+export interface IdeaItem {
+  iconKey?: string         // welches Pulp-Icon (zb 'explosion' für Video, 'horn' für Influencer)
+  title: string            // "Hero-Film wie für Rosenbauer"
+  body: string             // Erklärtext, was Pulp konkret machen würde
+  imageUrl?: string        // optional Bild oberhalb des Texts (Konzept-Sketch, Mood, Beispiel)
+}
+
+export interface IdeasContent {
+  eyebrow?: string         // "Was wir uns überlegt haben"
+  headline?: string        // "Vier Ideen für [Kunde] als Lovebrand"
+  headlineAccent?: string  // roter Akzent-Teil der Headline
+  sub?: string             // optionaler Untertitel
+  items: IdeaItem[]        // typischerweise 4
+}
+
 export interface OutroContent {
   email: string
   phone: string
@@ -321,6 +340,7 @@ export type ModuleContent =
   | ProcessContent
   | FragenContent
   | TippsContent
+  | IdeasContent
   | OptionenContent
   | OutroContent
 
@@ -536,6 +556,18 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
       { iconKey: 'heart',    title: 'Dritter konkreter', titleAccent: 'Vorschlag.', body: 'Beispiel: "Eure Techniker-Insights auf LinkedIn aktivieren, das authentische Material liegt schon da."' },
     ],
   } as TippsContent,
+  'ideas': {
+    eyebrow: 'Was wir uns überlegt haben',
+    headline: 'Vier Ideen für',
+    headlineAccent: '[Kunde] als Lovebrand',
+    sub: 'Konkrete Vorschläge, die wir gemeinsam mit euch umsetzen können. Pro Säule eine Idee.',
+    items: [
+      { iconKey: 'explosion',    title: 'Hero-Film',           body: 'Ein Marken-Film, der euch nicht erklärt, sondern erlebbar macht. Wie der, den wir für [Referenz] gemacht haben.' },
+      { iconKey: 'horn',         title: 'Corporate Ambassadors', body: 'Eure Leute werden zu Markenbotschaftern auf Social. Aus internen Stimmen wird externe Reichweite.' },
+      { iconKey: 'bomb',         title: 'Live-Aktivierung',    body: 'Eure Marke physisch erlebbar machen, dort wo eure Zielgruppe sowieso ist.' },
+      { iconKey: 'pixel-heart',  title: 'Merchandise',         body: 'Logo-Träger statt Werbeflächen. Wenn jemand euer Logo freiwillig trägt, ist das mehr wert als jede Anzeige.' },
+    ],
+  } as IdeasContent,
   'optionen': {
     options: [
       { pkgName: '01 · EINSTIEG', iconKey: 'smiley',      title: 'Workshop + Strategie',  description: 'Brand-Sprint, Positionierungs-Workshop, Konzept-Papier. Eine geschlossene Lieferung, klarer Output — ihr könnt damit weiterarbeiten, mit oder ohne uns.' },
