@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
 import { parsePitchModules, serializeModules } from '@/lib/pitch-modules'
+import { snapshotPitch } from '@/lib/pitch-versions'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,9 +35,10 @@ export async function PATCH(
   if (body.sortOrder !== undefined) next.sortOrder = Number(body.sortOrder)
   modules[idx] = next
 
+  await snapshotPitch({ pitchId: params.id, changedBy: 'admin' })
   const updated = await prisma.pitch.update({
     where: { id: params.id },
-    data: { modules: serializeModules(modules) },
+    data: { modules: serializeModules(modules), version: { increment: 1 } },
   })
   return NextResponse.json(updated)
 }
@@ -57,9 +59,10 @@ export async function DELETE(
   const modules = parsePitchModules(pitch.modules).filter(
     (m) => m.instanceId !== params.instanceId
   )
+  await snapshotPitch({ pitchId: params.id, changedBy: 'admin' })
   const updated = await prisma.pitch.update({
     where: { id: params.id },
-    data: { modules: serializeModules(modules) },
+    data: { modules: serializeModules(modules), version: { increment: 1 } },
   })
   return NextResponse.json(updated)
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createSlug } from '@/lib/slug'
+import { snapshotPitch } from '@/lib/pitch-versions'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,9 +57,10 @@ export async function PATCH(
     data.slug = createSlug(body.clientCompany)
   }
 
+  await snapshotPitch({ pitchId: params.id, changedBy: 'admin' })
   const pitch = await prisma.pitch.update({
     where: { id: params.id },
-    data,
+    data: { ...data, version: { increment: 1 } },
     include: { contact: true },
   })
   return NextResponse.json(pitch)

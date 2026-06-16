@@ -5,21 +5,44 @@ import { PitchPage } from './PitchPage'
 
 interface PageProps {
   params: { slug: string }
-  searchParams: { edit?: string }
+  searchParams: { edit?: string; version?: string }
 }
 
 export const dynamic = 'force-dynamic'
 
 export default async function Page({ params, searchParams }: PageProps) {
-  const pitch = await prisma.pitch.findUnique({
+  const baseRecord = await prisma.pitch.findUnique({
     where: { slug: params.slug },
     include: { contact: true },
   })
-  if (!pitch) notFound()
-  if (pitch.archivedAt) notFound()
+  if (!baseRecord) notFound()
+  if (baseRecord.archivedAt) notFound()
 
   const editToken = searchParams.edit
-  const isEdit = !!editToken && editToken === pitch.editToken
+  const isEdit = !!editToken && editToken === baseRecord.editToken
+
+  // Historische Version anzeigen, wenn `?version=N` gesetzt ist.
+  // Wir laden den Snapshot und überlagern damit die aktuelle Pitch.
+  // contact-Verknüpfung bleibt (die ist nicht teil des Snapshots).
+  let pitch = baseRecord
+  if (searchParams.version) {
+    const versionNum = parseInt(searchParams.version, 10)
+    if (Number.isFinite(versionNum) && versionNum >= 1 && versionNum !== baseRecord.version) {
+      const pv = await prisma.pitchVersion.findFirst({
+        where: { pitchId: baseRecord.id, version: versionNum },
+      })
+      if (pv) {
+        const snap = pv.data as Record<string, unknown>
+        pitch = {
+          ...baseRecord,
+          clientCompany: (snap.clientCompany as string) ?? baseRecord.clientCompany,
+          occasion: (snap.occasion as string | null) ?? baseRecord.occasion,
+          modules: (snap.modules as typeof baseRecord.modules) ?? baseRecord.modules,
+          version: versionNum,
+        }
+      }
+    }
+  }
 
   const modules = Array.isArray(pitch.modules) ? pitch.modules : []
   const hasType = (type: string) =>

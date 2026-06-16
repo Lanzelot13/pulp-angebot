@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
 import { AdminShell } from '../AdminShell'
 import {
   IconEye,
@@ -10,6 +10,8 @@ import {
   IconArchive,
   IconArchiveRestore,
   IconPlus,
+  IconClock,
+  IconExternalLink,
 } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -23,9 +25,17 @@ interface PitchRow {
   contact: { name: string; slug: string }
   editToken: string
   modules: unknown[]
+  version?: number
   archivedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+interface VersionRow {
+  id: number
+  version: number
+  changedBy: string
+  createdAt: string
 }
 
 interface ContactOption {
@@ -58,13 +68,73 @@ export default function PitchesPage() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
-  // Confirm dialog (archive/restore/delete)
+  // Confirm dialog (archive/restore/delete/version-restore)
   const [confirm, setConfirm] = useState<{
     title: string
     text: string
     busy: boolean
     action: () => Promise<void>
   } | null>(null)
+
+  // Versions-Panel: pro Pitch-ID die Liste aller historischen Versionen
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [versions, setVersions] = useState<Record<string, VersionRow[]>>({})
+
+  const toggleExpand = useCallback(
+    async (pitchId: string) => {
+      if (expandedId === pitchId) {
+        setExpandedId(null)
+        return
+      }
+      setExpandedId(pitchId)
+      if (!versions[pitchId]) {
+        const res = await fetch(`/api/admin/pitches/${pitchId}/versions`)
+        if (res.ok) {
+          const data: VersionRow[] = await res.json()
+          setVersions((prev) => ({ ...prev, [pitchId]: data }))
+        } else {
+          setVersions((prev) => ({ ...prev, [pitchId]: [] }))
+        }
+      }
+    },
+    [expandedId, versions]
+  )
+
+  const askRestoreVersion = (p: PitchRow, versionNum: number) => {
+    setConfirm({
+      title: `Version ${versionNum} wiederherstellen?`,
+      text: `Der aktuelle Stand wird als Snapshot in die Historie aufgenommen und durch v${versionNum} ersetzt. Du kannst diesen Schritt jederzeit rückgängig machen, indem du wieder die alte Version aus der Liste wählst.`,
+      busy: false,
+      action: async () => {
+        setConfirm((c) => (c ? { ...c, busy: true } : c))
+        const res = await fetch(
+          `/api/admin/pitches/${p.id}/versions/${versionNum}/restore`,
+          { method: 'POST' }
+        )
+        if (res.ok) {
+          // Versionen für diesen Pitch frisch laden
+          const vRes = await fetch(`/api/admin/pitches/${p.id}/versions`)
+          if (vRes.ok) {
+            const data: VersionRow[] = await vRes.json()
+            setVersions((prev) => ({ ...prev, [p.id]: data }))
+          }
+          await load(filter)
+        }
+        setConfirm(null)
+      },
+    })
+  }
+
+  const formatDateTime = (iso: string) => {
+    const d = new Date(iso)
+    return d.toLocaleString('de-AT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
   const load = useCallback(async (f: Filter) => {
     const res = await fetch(
@@ -252,10 +322,8 @@ export default function PitchesPage() {
           </thead>
           <tbody>
             {pitches.map((p) => (
-              <tr
-                key={p.id}
-                className={p.archivedAt ? styles.archivedRow : ''}
-              >
+              <Fragment key={p.id}>
+              <tr className={p.archivedAt ? styles.archivedRow : ''}>
                 <td>
                   <strong>{p.clientCompany}</strong>
                   {p.archivedAt && (
@@ -290,6 +358,13 @@ export default function PitchesPage() {
                     >
                       <IconEdit size={14} />
                     </a>
+                    <button
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      onClick={() => toggleExpand(p.id)}
+                      title="Versionshistorie"
+                    >
+                      <IconClock size={14} />
+                    </button>
                     <button
                       className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={() => copyLink(p.slug)}
@@ -330,6 +405,82 @@ export default function PitchesPage() {
                   </div>
                 </td>
               </tr>
+              {expandedId === p.id && (
+                <tr>
+                  <td colSpan={6} style={{ padding: 0 }}>
+                    <div className={styles.versionsPanel || ''} style={{ padding: '16px 22px', background: '#fafafa', borderTop: '1px solid #eee' }}>
+                      <h4 style={{ fontSize: 13, margin: '0 0 12px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Versionshistorie</h4>
+                      {!versions[p.id] && (
+                        <div style={{ color: '#888', fontSize: 13 }}>Laden...</div>
+                      )}
+                      {versions[p.id]?.length === 0 && (
+                        <div style={{ color: '#888', fontSize: 13 }}>
+                          Noch keine früheren Versionen. Sobald du diese Pitch editierst, wird der vorherige Stand hier gespeichert.
+                        </div>
+                      )}
+                      {versions[p.id]?.map((v, i) => (
+                        <div
+                          key={v.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: '8px 0',
+                            borderTop: i > 0 ? '1px solid #eee' : 'none',
+                            fontSize: 13,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: '#ccc',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ fontWeight: 600, color: '#333' }}>v{v.version}</span>
+                          <span style={{ color: '#888' }}>
+                            {v.changedBy} · {formatDateTime(v.createdAt)}
+                          </span>
+                          <div style={{ marginLeft: 'auto', display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+                            <button
+                              onClick={() => askRestoreVersion(p, v.version)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#888',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                padding: 0,
+                              }}
+                              title="Diese Version als neue aktuelle Version wiederherstellen"
+                            >
+                              ↺ Wiederherstellen
+                            </button>
+                            <a
+                              href={`/p/${p.slug}?version=${v.version}`}
+                              target="_blank"
+                              rel="noopener"
+                              style={{
+                                color: '#FF1900',
+                                fontSize: 12,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                textDecoration: 'none',
+                              }}
+                            >
+                              Ansehen <IconExternalLink size={11} color="#FF1900" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
             {pitches.length === 0 && (
               <tr>

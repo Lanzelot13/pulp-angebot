@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
 import { parsePitchModules, serializeModules } from '@/lib/pitch-modules'
+import { snapshotPitch } from '@/lib/pitch-versions'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,9 +54,10 @@ export async function POST(
     sourceUpdatedAt: moduleRow.updatedAt.toISOString(),
   }
 
+  await snapshotPitch({ pitchId: params.id, changedBy: 'admin' })
   const updated = await prisma.pitch.update({
     where: { id: params.id },
-    data: { modules: serializeModules(modules) },
+    data: { modules: serializeModules(modules), version: { increment: 1 } },
   })
   return NextResponse.json(updated)
 }

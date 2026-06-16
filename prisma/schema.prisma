@@ -218,6 +218,11 @@ model Pitch {
   // Edit token (analog zum Offer)
   editToken       String      @unique @default(cuid())
 
+  // Versionierung (analog zum Offer): jeder Edit erhöht `version`,
+  // der vorherige Zustand wird in PitchVersion als Snapshot abgelegt.
+  version         Int         @default(1)
+  pitchVersions   PitchVersion[]
+
   // Module-Snapshots: geordnete Liste aller in der Pitch verwendeten Module.
   // Struktur pro Eintrag: {
   //   instanceId: string,        // eindeutige ID innerhalb der Pitch
@@ -233,6 +238,21 @@ model Pitch {
   @@index([status])
   @@index([contactSlug])
   @@index([archivedAt])
+}
+
+// Versions-History einer Pitch. Analog zu OfferVersion: bei jedem
+// Edit am Pitch (Meta-Felder oder Modul-Liste) wird der vorherige
+// Stand hier als JSON-Snapshot abgelegt.
+model PitchVersion {
+  id        Int      @id @default(autoincrement())
+  pitchId   String
+  pitch     Pitch    @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  version   Int
+  data      Json     // vollständiger Snapshot der Pitch zu diesem Zeitpunkt
+  changedBy String   // "paul", "robert", "editor", "skill", ...
+  createdAt DateTime @default(now())
+
+  @@index([pitchId])
 }
 
 model PitchModule {

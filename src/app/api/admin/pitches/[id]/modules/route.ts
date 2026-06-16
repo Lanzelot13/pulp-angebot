@@ -9,6 +9,7 @@ import {
   snapshotFromModule,
   serializeModules,
 } from '@/lib/pitch-modules'
+import { snapshotPitch } from '@/lib/pitch-versions'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,9 +77,10 @@ export async function POST(
   }
 
   const updated = [...modules, newSnapshot]
+  await snapshotPitch({ pitchId: params.id, changedBy: 'admin' })
   const result = await prisma.pitch.update({
     where: { id: params.id },
-    data: { modules: serializeModules(updated) },
+    data: { modules: serializeModules(updated), version: { increment: 1 } },
   })
   return NextResponse.json(result, { status: 201 })
 }
