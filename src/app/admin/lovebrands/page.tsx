@@ -202,7 +202,7 @@ export default function LoveBrandsPage() {
                           style={{
                             maxWidth: '100%',
                             maxHeight: '100%',
-                            filter: b.invertOnDark ? 'grayscale(1) invert(1)' : 'none',
+                            filter: b.invertOnDark ? 'grayscale(1) invert(1)' : 'grayscale(1)',
                           }}
                         />
                       )}
@@ -309,7 +309,7 @@ export default function LoveBrandsPage() {
                         style={{
                           maxHeight: 60,
                           maxWidth: '80%',
-                          filter: form.invertOnDark ? 'grayscale(1) invert(1)' : 'none',
+                          filter: form.invertOnDark ? 'grayscale(1) invert(1)' : 'grayscale(1)',
                         }}
                       />
                     </div>

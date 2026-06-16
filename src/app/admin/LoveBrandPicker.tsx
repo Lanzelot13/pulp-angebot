@@ -98,7 +98,7 @@ export function LoveBrandPicker({ brandSlugs, onChange }: Props) {
               maxWidth: '90%',
               maxHeight: '100%',
               filter: isSelected
-                ? (b.invertOnDark ? 'grayscale(1) invert(1)' : 'none')
+                ? (b.invertOnDark ? 'grayscale(1) invert(1)' : 'grayscale(1)')
                 : (b.invertOnDark ? 'grayscale(1) brightness(0.6)' : 'grayscale(1) opacity(0.55)'),
             }}
           />

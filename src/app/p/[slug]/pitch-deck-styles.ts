@@ -629,8 +629,10 @@ body.mode-slides .slide.hero .scroll-hint { display: none; }
 .slide.love-brands .brand[data-shape="badge"] .logo-slot img { max-height: 86%; max-width: 80%; }
 .slide.love-brands .brand[data-shape="tall"]  .logo-slot img { max-height: 76%; max-width: 78%; }
 /* Wenn das Logo schon für dunklen Bg aufbereitet ist (weiß/grau direkt im SVG),
-   keinen Filter anwenden – sonst wird Weiß zu Schwarz invertiert. */
-.slide.love-brands .brand[data-invert="false"] .logo-slot img { filter: none; }
+   wird das Invert weggelassen, aber wir entsättigen trotzdem zu Graustufen.
+   So bleibt der einheitliche Pulp-Look erhalten, falls ein farbiges Logo
+   versehentlich als "aufbereitet" markiert wird. */
+.slide.love-brands .brand[data-invert="false"] .logo-slot img { filter: grayscale(1); }
 .slide.love-brands .brand:hover .logo-slot img { opacity: 1; }
 
 /* =====================================================================
