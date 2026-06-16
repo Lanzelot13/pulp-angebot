@@ -1628,78 +1628,106 @@ body.mode-slides .slide.pulppattern .pp-overlay { min-height: 0; height: 100vh; 
   border-bottom-color: var(--red);
 }
 
-/* Ideas-Folie: Flip-Cards (analog Fragen/Tipps), aber im 2x2-Layout
-   und mit größeren Inhalten pro Karte. */
+/* =====================================================================
+   IDEAS · Vorschläge als Flip-Cards im 2x2-Grid
+   Eigenständiges Flip-System (nicht von .tipps geerbt, weil dort 3 Spalten
+   und 360px Höhe fest verdrahtet sind, was uns sprengt).
+   ===================================================================== */
+.slide.ideas { justify-content: flex-start; }
+.slide.ideas .intro { margin-bottom: 28px; }
+.slide.ideas .intro .sub { margin-top: 12px; max-width: 800px; }
+
 .slide.ideas .ideas-flip-grid {
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 16px;
-  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
   max-width: 1500px;
 }
-.slide.ideas .flip-card.idea-flip { min-height: 280px; }
-.slide.ideas .flip-card .flip-front,
-.slide.ideas .flip-card .flip-back {
-  padding: 28px 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: flex-start;
-  text-align: left;
-  justify-content: flex-start;
-}
-.slide.ideas .flip-card .flip-front {
+.slide.ideas .flip-card {
   position: relative;
+  height: clamp(180px, 24vh, 240px);
+  padding: 0; margin: 0; border: 0; background: transparent;
+  font: inherit; text-align: left;
+  perspective: 1400px;
+  -webkit-tap-highlight-color: transparent;
+}
+.slide.ideas .flip-inner {
+  position: relative; width: 100%; height: 100%;
+  transition: transform 0.65s cubic-bezier(0.4, 0.1, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.slide.ideas .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+.slide.ideas .flip-face {
+  position: absolute; inset: 0;
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
+  display: flex; flex-direction: column;
+  padding: 22px 26px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  transition: border-color 0.3s;
   overflow: hidden;
 }
-.slide.ideas .flip-card .idea-front-image {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
+.slide.ideas .flip-card:hover .flip-face { border-color: var(--red); }
+
+/* Vorderseite */
+.slide.ideas .flip-front {
+  justify-content: flex-end;
+  gap: 12px;
 }
-.slide.ideas .flip-card .idea-front-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.25;
+.slide.ideas .flip-front .idea-front-image {
+  position: absolute; inset: 0; z-index: 0;
 }
-.slide.ideas .flip-card .idea-front-icon,
-.slide.ideas .flip-card .idea-front-title,
-.slide.ideas .flip-card .flip-hint {
-  position: relative;
-  z-index: 1;
+.slide.ideas .flip-front .idea-front-image img {
+  width: 100%; height: 100%; object-fit: cover; opacity: 0.22;
 }
-.slide.ideas .flip-card .idea-front-icon {
-  width: 48px;
-  height: 48px;
+.slide.ideas .flip-front .idea-front-icon,
+.slide.ideas .flip-front .idea-front-title,
+.slide.ideas .flip-front .flip-hint {
+  position: relative; z-index: 1;
 }
-.slide.ideas .flip-card .idea-front-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.slide.ideas .flip-front .idea-front-icon {
+  width: 44px; height: 44px;
 }
-.slide.ideas .flip-card .idea-front-title {
+.slide.ideas .flip-front .idea-front-icon img {
+  width: 100%; height: 100%; object-fit: contain;
+}
+.slide.ideas .flip-front .idea-front-title {
   font-family: Anton, sans-serif;
-  font-size: clamp(24px, 2.4vw, 32px);
+  font-size: clamp(22px, 2vw, 28px);
   color: #fff;
   line-height: 1.05;
   margin: 0;
 }
-.slide.ideas .flip-card .idea-back-title {
+.slide.ideas .flip-front .flip-hint {
+  position: absolute; bottom: 18px; right: 22px;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--softer); font-weight: 600;
+}
+.slide.ideas .flip-card:hover .flip-hint { color: var(--soft); }
+
+/* Rückseite */
+.slide.ideas .flip-back {
+  transform: rotateY(180deg);
+  justify-content: center;
+  gap: 10px;
+}
+.slide.ideas .flip-back .idea-back-title {
   font-family: Anton, sans-serif;
   font-size: 22px;
   color: var(--red);
   line-height: 1.1;
   margin: 0 0 4px 0;
 }
-.slide.ideas .flip-card .idea-back-text {
-  font-size: 14.5px;
+.slide.ideas .flip-back .idea-back-text {
+  font-size: 14px;
   color: var(--soft);
   line-height: 1.55;
   margin: 0;
 }
 
 @media (max-width: 900px) {
-  .slide.ideas .ideas-flip-grid { grid-template-columns: 1fr !important; }
+  .slide.ideas .ideas-flip-grid { grid-template-columns: 1fr; }
+  .slide.ideas .flip-card { height: 200px; }
 }
 
 /* Platform-Tag als Link: Hover-State */

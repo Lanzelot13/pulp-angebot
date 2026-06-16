@@ -1159,7 +1159,7 @@ function IdeasModule({ data, label }: { data: IdeasContent; label: string }) {
     })
   }
   return (
-    <section className="slide ideas tipps" data-slide-type="ideas" data-screen-label={label}>
+    <section className="slide ideas" data-slide-type="ideas" data-screen-label={label}>
       <div className="intro">
         <div className="eyebrow reveal-fade"><span className="bar" /><span>{data.eyebrow || 'Was wir uns überlegt haben'}</span></div>
         <h2 className="slide-title reveal-fade delay-2">
