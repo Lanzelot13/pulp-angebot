@@ -1610,71 +1610,96 @@ body.mode-slides .slide.pulppattern .pp-overlay { min-height: 0; height: 100vh; 
   margin-top: 6px;
 }
 
-/* Ideas-Folie: 4 Karten im 2x2-Grid mit optionalem Bild + Icon + Text */
-.slide.ideas .ideas-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+/* Brand-Monitor: Link zum Pulp TikTok Monitor unten in der Karte */
+.slide.monitor .bm-link {
+  display: inline-block;
+  margin: 14px 24px 18px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--softer);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  align-self: flex-start;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.slide.monitor .bm-link:hover {
+  color: var(--red);
+  border-bottom-color: var(--red);
+}
+
+/* Ideas-Folie: Flip-Cards (analog Fragen/Tipps), aber im 2x2-Layout
+   und mit größeren Inhalten pro Karte. */
+.slide.ideas .ideas-flip-grid {
+  grid-template-columns: repeat(2, 1fr) !important;
   gap: 16px;
   margin-top: 28px;
   max-width: 1500px;
 }
-.slide.ideas .idea {
-  background: #101010;
-  border: 1px solid var(--hair);
-  border-radius: 10px;
-  overflow: hidden;
+.slide.ideas .flip-card.idea-flip { min-height: 280px; }
+.slide.ideas .flip-card .flip-front,
+.slide.ideas .flip-card .flip-back {
+  padding: 28px 30px;
   display: flex;
   flex-direction: column;
-  transition: border-color 0.25s ease, transform 0.25s ease;
+  gap: 14px;
+  align-items: flex-start;
+  text-align: left;
+  justify-content: flex-start;
 }
-.slide.ideas .idea:hover {
-  border-color: var(--red);
-  transform: translateY(-2px);
-}
-.slide.ideas .idea-image {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: var(--card-2);
+.slide.ideas .flip-card .flip-front {
+  position: relative;
   overflow: hidden;
 }
-.slide.ideas .idea-image img {
+.slide.ideas .flip-card .idea-front-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.slide.ideas .flip-card .idea-front-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0.25;
 }
-.slide.ideas .idea-body {
-  padding: 22px 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
+.slide.ideas .flip-card .idea-front-icon,
+.slide.ideas .flip-card .idea-front-title,
+.slide.ideas .flip-card .flip-hint {
+  position: relative;
+  z-index: 1;
 }
-.slide.ideas .idea-icon {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 4px;
+.slide.ideas .flip-card .idea-front-icon {
+  width: 48px;
+  height: 48px;
 }
-.slide.ideas .idea-icon img {
+.slide.ideas .flip-card .idea-front-icon img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
-.slide.ideas .idea-title {
+.slide.ideas .flip-card .idea-front-title {
   font-family: Anton, sans-serif;
-  font-size: 22px;
+  font-size: clamp(24px, 2.4vw, 32px);
   color: #fff;
-  line-height: 1.1;
+  line-height: 1.05;
   margin: 0;
 }
-.slide.ideas .idea-text {
-  font-size: 14px;
+.slide.ideas .flip-card .idea-back-title {
+  font-family: Anton, sans-serif;
+  font-size: 22px;
+  color: var(--red);
+  line-height: 1.1;
+  margin: 0 0 4px 0;
+}
+.slide.ideas .flip-card .idea-back-text {
+  font-size: 14.5px;
   color: var(--soft);
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 0;
 }
 
 @media (max-width: 900px) {
-  .slide.ideas .ideas-grid { grid-template-columns: 1fr; }
+  .slide.ideas .ideas-flip-grid { grid-template-columns: 1fr !important; }
 }
 
 /* Platform-Tag als Link: Hover-State */

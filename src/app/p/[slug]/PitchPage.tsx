@@ -619,7 +619,14 @@ function TeamModule({ data, team, label }: { data: TeamContent; team: Person[]; 
             headline
           ) : (
             <>
-              {team.length} Pulpies, <span className="red">{attendingCount} sind heute dabei</span>
+              {team.length} Pulpies,{' '}
+              <span className="red">
+                {attendingCount === 0
+                  ? 'niemand ist heute dabei'
+                  : attendingCount === 1
+                    ? '1 ist heute dabei'
+                    : `${attendingCount} sind heute dabei`}
+              </span>
             </>
           )}
           <span className="title-ico" aria-hidden="true" />
@@ -985,6 +992,14 @@ function MonitorModule({ data, label }: { data: MonitorContent; label: string })
             ))}
           </div>
         </div>
+        <a
+          className="bm-link"
+          href="https://tiktokmonitor.pulpmedia.at/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Alle Zahlen live im Pulp TikTok Monitor →
+        </a>
       </div>
     </section>
   )
@@ -1133,8 +1148,18 @@ function TippsModule({ data, label }: { data: TippsContent; label: string }) {
 // IDEAS · Vorschläge pro Pitch (was wir konkret tun würden)
 // =========================================================
 function IdeasModule({ data, label }: { data: IdeasContent; label: string }) {
+  // Flip-Cards wie bei Fragen/Tipps: Vorderseite zeigt Icon + Title (+ optional Image),
+  // Rückseite zeigt Title + Body. Antippen dreht die Karte.
+  const [flipped, setFlipped] = useState<Set<number>>(new Set())
+  const toggle = (i: number) => {
+    setFlipped((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i); else next.add(i)
+      return next
+    })
+  }
   return (
-    <section className="slide ideas" data-slide-type="ideas" data-screen-label={label}>
+    <section className="slide ideas tipps" data-slide-type="ideas" data-screen-label={label}>
       <div className="intro">
         <div className="eyebrow reveal-fade"><span className="bar" /><span>{data.eyebrow || 'Was wir uns überlegt haben'}</span></div>
         <h2 className="slide-title reveal-fade delay-2">
@@ -1144,22 +1169,34 @@ function IdeasModule({ data, label }: { data: IdeasContent; label: string }) {
         </h2>
         {data.sub && <p className="sub reveal-fade delay-3">{data.sub}</p>}
       </div>
-      <div className="ideas-grid">
+      <div className="grid flip-grid ideas-flip-grid">
         {data.items?.map((it, i) => {
           const ico = iconUrl(it.iconKey)
+          const isFlipped = flipped.has(i)
           return (
-            <div key={i} className={`idea reveal-fade delay-${(i % 4) + 1}`}>
-              {it.imageUrl && (
-                <div className="idea-image">
-                  <img src={it.imageUrl} alt="" />
+            <button
+              key={i}
+              type="button"
+              className={`flip-card idea-flip reveal-fade delay-${(i % 4) + 1} ${isFlipped ? 'flipped' : ''}`}
+              onClick={() => toggle(i)}
+            >
+              <div className="flip-inner">
+                <div className="flip-face flip-front">
+                  {it.imageUrl && (
+                    <div className="idea-front-image">
+                      <img src={it.imageUrl} alt="" />
+                    </div>
+                  )}
+                  {ico && <div className="idea-front-icon"><img src={ico} alt="" /></div>}
+                  <h3 className="idea-front-title">{it.title}</h3>
+                  <span className="flip-hint">Antippen</span>
                 </div>
-              )}
-              <div className="idea-body">
-                {ico && <div className="idea-icon"><img src={ico} alt="" /></div>}
-                <h3 className="idea-title">{it.title}</h3>
-                <p className="idea-text">{it.body}</p>
+                <div className="flip-face flip-back">
+                  <h3 className="idea-back-title">{it.title}</h3>
+                  <p className="idea-back-text">{it.body}</p>
+                </div>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
