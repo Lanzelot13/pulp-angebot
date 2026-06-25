@@ -479,6 +479,14 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
                           {e.type === 'video_play' && `${(e.payload as { videoId?: string })?.videoId || ''}`}
                           {e.type === 'heartbeat' && `+${(e.payload as { activeSeconds?: number })?.activeSeconds || 0}s`}
                           {e.type === 'view_close' && `Gesamt: ${(e.payload as { totalActiveSeconds?: number })?.totalActiveSeconds || 0}s`}
+                          {e.type === 'interaction_click' && (
+                            <>
+                              <span>{(e.payload as { clickId?: string })?.clickId}</span>
+                              {(e.payload as { label?: string })?.label && (
+                                <span className={styles.muted}> · {(e.payload as { label?: string })?.label}</span>
+                              )}
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -226,17 +226,33 @@ export function useTracking({ targetType, targetSlug, disabled }: TrackingOpts) 
       function onClick(ev: MouseEvent) {
         const target = ev.target as HTMLElement | null
         if (!target) return
-        const a = target.closest('a') as HTMLAnchorElement | null
-        if (!a) return
-        const href = a.getAttribute('href') || ''
-        if (!href || href.startsWith('#')) return
 
-        sendEvent('link_click', {
-          href: href.slice(0, 500),
-          label: (a.textContent || '').trim().slice(0, 80),
-          sectionId:
-            a.closest<HTMLElement>('[data-track-section]')?.dataset.trackSection || null,
-        })
+        // 1) Klick auf einen <a>-Link
+        const a = target.closest('a') as HTMLAnchorElement | null
+        if (a) {
+          const href = a.getAttribute('href') || ''
+          if (href && !href.startsWith('#')) {
+            sendEvent('link_click', {
+              href: href.slice(0, 500),
+              label: (a.textContent || '').trim().slice(0, 80),
+              sectionId:
+                a.closest<HTMLElement>('[data-track-section]')?.dataset.trackSection || null,
+            })
+            return
+          }
+        }
+
+        // 2) Klick auf ein explizit markiertes Interaktions-Element
+        //    (Flip-Cards, Option-Cards, etc). Identifier kommt aus data-track-click.
+        const clickEl = target.closest<HTMLElement>('[data-track-click]')
+        if (clickEl) {
+          sendEvent('interaction_click', {
+            clickId: clickEl.dataset.trackClick || '',
+            label: (clickEl.textContent || '').trim().slice(0, 80),
+            sectionId:
+              clickEl.closest<HTMLElement>('[data-track-section]')?.dataset.trackSection || null,
+          })
+        }
       }
       document.addEventListener('click', onClick, true)
       cleanupFns.push(() => document.removeEventListener('click', onClick, true))

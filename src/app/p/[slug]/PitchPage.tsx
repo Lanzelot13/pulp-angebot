@@ -307,15 +307,37 @@ export function PitchPage({ pitch, team, lovebrands, mode: accessMode }: Props) 
   // ---------- TRACK-SECTION-ATTRIBUTE ----------
   // Jeder Folie ein data-track-section + type + index dranhängen, damit der
   // useTracking-IntersectionObserver section_view-Events erkennt.
+  // Zusätzlich für interaktive Sub-Elemente (Flip-Cards, Option-Cards) eigene
+  // Sub-Sections und data-track-click-Attribute setzen — so wissen wir, welche
+  // Karte konkret beachtet oder geklickt wurde.
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
     const slides = root.querySelectorAll<HTMLElement>('.slide')
     slides.forEach((slide, idx) => {
       const type = slide.getAttribute('data-slide-type') || 'unknown'
-      slide.setAttribute('data-track-section', `${String(idx + 1).padStart(2, '0')}-${type}`)
+      const slideId = `${String(idx + 1).padStart(2, '0')}-${type}`
+      slide.setAttribute('data-track-section', slideId)
       slide.setAttribute('data-track-type', type)
       slide.setAttribute('data-track-index', String(idx))
+
+      // Flip-Cards (Fragen, Tipps, Ideas) als eigene Sub-Sections + klickbar
+      slide.querySelectorAll<HTMLElement>('.flip-card').forEach((card, cardIdx) => {
+        const subId = `${slideId}-card-${cardIdx}`
+        card.setAttribute('data-track-section', subId)
+        card.setAttribute('data-track-type', `${type}-card`)
+        card.setAttribute('data-track-index', String(cardIdx))
+        card.setAttribute('data-track-click', subId)
+      })
+
+      // Option-Cards in der Optionen-Folie
+      slide.querySelectorAll<HTMLElement>('.opt').forEach((opt, optIdx) => {
+        const subId = `${slideId}-option-${optIdx}`
+        opt.setAttribute('data-track-section', subId)
+        opt.setAttribute('data-track-type', 'option')
+        opt.setAttribute('data-track-index', String(optIdx))
+        opt.setAttribute('data-track-click', subId)
+      })
     })
   }, [pitch.id])
 
