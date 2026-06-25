@@ -38,7 +38,7 @@ import type {
   OutroContent,
   EmbedConfig,
 } from '@/lib/pitch-types'
-import { ICON_FILES } from '@/lib/pitch-types'
+import { ICON_FILES, DEFAULT_CONTENT } from '@/lib/pitch-types'
 import type { Person } from '@/lib/team'
 import { useTracking } from '@/lib/use-tracking'
 import { PITCH_DECK_CSS } from './pitch-deck-styles'
@@ -748,7 +748,15 @@ function NumbersModule({ data, label }: { data: NumbersContent; label: string })
 // =========================================================
 // 04 · MANIFEST
 // =========================================================
-function ManifestModule({ data, label }: { data: ManifestContent; label: string }) {
+function ManifestModule({ data: raw, label }: { data: ManifestContent; label: string }) {
+  // Defensive Defaults: wenn der Skill nur ein leeres Objekt schickt, nehmen wir
+  // die Pulp-Standard-Manifest-Werte. Sonst hätten wir eine leere Folie.
+  const fallback = DEFAULT_CONTENT['manifest'] as ManifestContent
+  const data: ManifestContent = {
+    line1: raw?.line1 || fallback.line1,
+    line2: raw?.line2 || fallback.line2,
+    body: raw?.body ?? fallback.body,
+  }
   const heart = iconUrl('pixel-heart')
   return (
     <section className="slide manifest" data-slide-type="manifest" data-screen-label={label}>
@@ -892,7 +900,12 @@ function LoveBrandsModule({
 // =========================================================
 // 08 · SÄULEN
 // =========================================================
-function SaeulenModule({ data, label }: { data: SaeulenContent; label: string }) {
+function SaeulenModule({ data: raw, label }: { data: SaeulenContent; label: string }) {
+  // Defensive Defaults: ohne pillars wäre die Folie leer.
+  const fallback = DEFAULT_CONTENT['saeulen'] as SaeulenContent
+  const data: SaeulenContent = {
+    pillars: raw?.pillars && raw.pillars.length > 0 ? raw.pillars : fallback.pillars,
+  }
   return (
     <section className="slide saeulen" data-slide-type="saeulen" data-screen-label={label}>
       <div className="intro">

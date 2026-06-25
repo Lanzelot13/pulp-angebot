@@ -169,9 +169,17 @@ curl -s -X POST "https://angebot.pulpmedia.at/api/pitches" \
   }'
 ```
 
-Antwort enthält `url`, `editUrl`, `id`. Gib dem User:
-- **`url`**: Kunden-Link (ohne editToken, an Kunde verschickbar)
-- **`editUrl`**: Bearbeitungs-Link für den User (NICHT an Kunden geben)
+Antwort enthält `url`, `adminUrl`, `editUrl`, `id`. Gib dem User:
+- **`url`**: Kunden-Link (an Kunde verschickbar)
+- **`adminUrl`**: Bearbeitungs-Link für interne Anpassungen — führt ins Admin-Backend
+  zum Pitch-Editor. Login mit Moco-Daten nötig.
+- **`editUrl`**: aktuell nur Vorschau im "Edit-Mode" auf der Public-Page
+  (kein Inline-Editor). Solange wir keinen Browser-Editor für Pitches haben, ist
+  der `adminUrl` der echte Bearbeitungs-Link. **Gib ihn als "Bearbeitungs-Link" raus.**
+
+Beispiel-Ausgabe an den User:
+> Kunden-Link: https://angebot.pulpmedia.at/p/berger-schinken
+> Bearbeiten im Admin: https://angebot.pulpmedia.at/admin/pitches/{id}
 
 ### Phase 5: Iterieren
 
@@ -238,9 +246,36 @@ Standard ist 3 Zahlen. Counter-Animation läuft beim Reinscrollen.
 Aus Screenshot lesen. `focus: true` für die Marke des Kunden. `ghost: true` für graue
 Vergleichswerte. Percent ist die Balkenbreite (0-100).
 
-### manifest, saeulen, leistungen
-Diese sind generisch — die Defaults aus der Demo-Pitch sind in 99% der Fälle richtig.
-Übernimm sie 1:1, außer der User will explizit was anderes.
+### manifest, saeulen, leistungen — IMMER Default-Content mitschicken
+
+Diese drei Folien sind generisch und sehen in jedem Pitch gleich aus. **Schick sie
+trotzdem mit vollem Inhalt mit**, nicht als leeres `{}`. Sonst rendert das Frontend nichts.
+
+**Manifest** (Pflicht-Felder line1, line2):
+```json
+{
+  "line1": "DON'T MAKE ADS.",
+  "line2": "MAKE LOVE",
+  "body": "Wir bauen keine Werbung. Wir bauen Beziehung zwischen Menschen und Marken, über Geschichten, die jemand sehen will, nicht sehen muss."
+}
+```
+
+**Saeulen** (Pflicht: pillars-Array mit mindestens einem Eintrag):
+```json
+{
+  "pillars": [
+    {"iconKey": "explosion",    "title": "Video",         "subtitle": "Brandlove fühlen",     "body": "Vom 6-Sek-Bumper bis zum Cinema-Cut..."},
+    {"iconKey": "smiley",       "title": "Social Media",  "subtitle": "Brandlove-Community",  "body": "Tägliche Betreuung..."},
+    {"iconKey": "heart",        "title": "Influencer",    "subtitle": "Brandlove-Trust",       "body": "Echte Stimmen..."},
+    {"iconKey": "bomb",         "title": "Live Marketing","subtitle": "Brandlove erleben",    "body": "Events, Pop-ups..."},
+    {"iconKey": "pixel-heart",  "title": "Merchandise",   "subtitle": "Brandlove zeigen",     "body": "Wenn jemand freiwillig dein Logo trägt..."}
+  ]
+}
+```
+
+**Leistungen** (Pflicht: items-Array, typischerweise 9 für 3x3-Grid):
+Schau in die Demo-Pitch (`/p/pulpmedia-standard-praesentation`) oder nutze die Items-Liste
+aus dem Holter-Beispiel. Alle neun Pakete sind Pulp-Standard, keine Anpassung pro Kunde nötig.
 
 ### spotlight
 ```json
