@@ -12,6 +12,7 @@ import {
   IconPlus,
   IconClock,
   IconExternalLink,
+  IconActivity,
 } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -365,6 +366,13 @@ export default function PitchesPage() {
                     >
                       <IconClock size={14} />
                     </button>
+                    <a
+                      href={`/admin/pitches/${p.id}/tracking`}
+                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                      title="Tracking ansehen"
+                    >
+                      <IconActivity size={14} />
+                    </a>
                     <button
                       className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={() => copyLink(p.slug)}

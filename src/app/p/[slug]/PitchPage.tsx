@@ -40,6 +40,7 @@ import type {
 } from '@/lib/pitch-types'
 import { ICON_FILES } from '@/lib/pitch-types'
 import type { Person } from '@/lib/team'
+import { useTracking } from '@/lib/use-tracking'
 import { PITCH_DECK_CSS } from './pitch-deck-styles'
 
 // =========================================================
@@ -200,7 +201,15 @@ function EmbedPlayer({ embed }: { embed: EmbedConfig | undefined }) {
 // Hauptkomponente
 // =========================================================
 
-export function PitchPage({ pitch, team, lovebrands }: Props) {
+export function PitchPage({ pitch, team, lovebrands, mode: accessMode }: Props) {
+  // Anonymes Tracking, identisch zur Offer-Page. Im Edit-Modus deaktiviert,
+  // damit wir uns selbst nicht mitzählen.
+  useTracking({
+    targetType: 'PITCH',
+    targetSlug: pitch.slug,
+    disabled: accessMode === 'edit',
+  })
+
   const [pagerLabel, setPagerLabel] = useState('')
   const [pagerCur, setPagerCur] = useState('01')
   const [pagerTot, setPagerTot] = useState('01')
