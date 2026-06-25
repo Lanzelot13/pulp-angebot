@@ -31,7 +31,48 @@ export async function GET(request: NextRequest) {
     include: { contact: { select: { name: true, slug: true } } },
     orderBy: { createdAt: 'desc' },
   })
-  return NextResponse.json(pitches)
+
+  // Aufrufe pro Pitch (TrackView-Count + letzter Zugriff) in einem Query.
+  const pitchIds = pitches.map((p) => p.id)
+  const countMap = new Map<string, number>()
+  const lastViewMap = new Map<string, Date>()
+  if (pitchIds.length > 0) {
+    try {
+      const trackDb = prisma as unknown as {
+        trackView: {
+          groupBy: (a: unknown) => Promise<
+            Array<{
+              targetId: string
+              _count: { _all: number }
+              _max: { lastEventAt: Date | null }
+            }>
+          >
+        }
+      }
+      const grouped = await trackDb.trackView.groupBy({
+        by: ['targetId'],
+        where: { targetType: 'PITCH', targetId: { in: pitchIds } },
+        _count: { _all: true },
+        _max: { lastEventAt: true },
+      })
+      for (const row of grouped) {
+        countMap.set(row.targetId, row._count._all)
+        if (row._max.lastEventAt) {
+          lastViewMap.set(row.targetId, row._max.lastEventAt)
+        }
+      }
+    } catch {
+      // Tracking-Tabelle noch nicht da: einfach 0er liefern
+    }
+  }
+
+  const pitchesWithCounts = pitches.map((p) => ({
+    ...p,
+    viewCount: countMap.get(p.id) || 0,
+    lastViewAt: lastViewMap.get(p.id) || null,
+  }))
+
+  return NextResponse.json(pitchesWithCounts)
 }
 
 export async function POST(request: NextRequest) {

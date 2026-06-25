@@ -12,7 +12,6 @@ import {
   IconPlus,
   IconClock,
   IconExternalLink,
-  IconActivity,
 } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -27,6 +26,8 @@ interface PitchRow {
   editToken: string
   modules: unknown[]
   version?: number
+  viewCount?: number
+  lastViewAt?: string | null
   archivedAt: string | null
   createdAt: string
   updatedAt: string
@@ -136,6 +137,15 @@ export default function PitchesPage() {
       minute: '2-digit',
     })
   }
+
+  const formatShortDateTime = (iso: string) =>
+    new Date(iso).toLocaleString('de-AT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
 
   const load = useCallback(async (f: Filter) => {
     const res = await fetch(
@@ -316,6 +326,7 @@ export default function PitchesPage() {
               <th>Kunde / Anlass</th>
               <th>Status</th>
               <th>Module</th>
+              <th>Aufrufe</th>
               <th>Kontakt</th>
               <th>Erstellt</th>
               <th>Aktionen</th>
@@ -339,6 +350,22 @@ export default function PitchesPage() {
                   <span className={styles.tag}>{STATUS_LABELS[p.status]}</span>
                 </td>
                 <td>{Array.isArray(p.modules) ? p.modules.length : 0}</td>
+                <td className={styles.viewCountCell}>
+                  {p.viewCount && p.viewCount > 0 ? (
+                    <a
+                      href={`/admin/pitches/${p.id}/tracking`}
+                      className={styles.viewCountLink}
+                      title="Tracking ansehen"
+                    >
+                      {p.viewCount}
+                    </a>
+                  ) : (
+                    <span className={styles.viewCountZero}>0</span>
+                  )}
+                  {p.lastViewAt && (
+                    <div className={styles.viewCountLast}>{formatShortDateTime(p.lastViewAt)}</div>
+                  )}
+                </td>
                 <td>{p.contact?.name || p.contactSlug}</td>
                 <td>{formatDate(p.createdAt)}</td>
                 <td>
@@ -366,13 +393,6 @@ export default function PitchesPage() {
                     >
                       <IconClock size={14} />
                     </button>
-                    <a
-                      href={`/admin/pitches/${p.id}/tracking`}
-                      className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
-                      title="Tracking ansehen"
-                    >
-                      <IconActivity size={14} />
-                    </a>
                     <button
                       className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={() => copyLink(p.slug)}
@@ -415,7 +435,7 @@ export default function PitchesPage() {
               </tr>
               {expandedId === p.id && (
                 <tr>
-                  <td colSpan={6} style={{ padding: 0 }}>
+                  <td colSpan={7} style={{ padding: 0 }}>
                     <div className={styles.versionsPanel || ''} style={{ padding: '16px 22px', background: '#fafafa', borderTop: '1px solid #eee' }}>
                       <h4 style={{ fontSize: 13, margin: '0 0 12px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Versionshistorie</h4>
                       {!versions[p.id] && (
@@ -492,7 +512,7 @@ export default function PitchesPage() {
             ))}
             {pitches.length === 0 && (
               <tr>
-                <td colSpan={6} className={styles.emptyState}>
+                <td colSpan={7} className={styles.emptyState}>
                   <div className={styles.emptyText}>
                     {isArchived
                       ? 'Keine archivierten Pitches'
