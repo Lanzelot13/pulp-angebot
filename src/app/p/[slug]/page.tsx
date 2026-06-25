@@ -24,22 +24,28 @@ export default async function Page({ params, searchParams }: PageProps) {
   // Historische Version anzeigen, wenn `?version=N` gesetzt ist.
   // Wir laden den Snapshot und überlagern damit die aktuelle Pitch.
   // contact-Verknüpfung bleibt (die ist nicht teil des Snapshots).
+  // Defensiv: wenn die PitchVersion-Tabelle noch nicht existiert (Schema-Lag),
+  // schlucken wir den Fehler und zeigen die aktuelle Version.
   let pitch = baseRecord
   if (searchParams.version) {
     const versionNum = parseInt(searchParams.version, 10)
     if (Number.isFinite(versionNum) && versionNum >= 1 && versionNum !== baseRecord.version) {
-      const pv = await prisma.pitchVersion.findFirst({
-        where: { pitchId: baseRecord.id, version: versionNum },
-      })
-      if (pv) {
-        const snap = pv.data as Record<string, unknown>
-        pitch = {
-          ...baseRecord,
-          clientCompany: (snap.clientCompany as string) ?? baseRecord.clientCompany,
-          occasion: (snap.occasion as string | null) ?? baseRecord.occasion,
-          modules: (snap.modules as typeof baseRecord.modules) ?? baseRecord.modules,
-          version: versionNum,
+      try {
+        const pv = await prisma.pitchVersion.findFirst({
+          where: { pitchId: baseRecord.id, version: versionNum },
+        })
+        if (pv) {
+          const snap = pv.data as Record<string, unknown>
+          pitch = {
+            ...baseRecord,
+            clientCompany: (snap.clientCompany as string) ?? baseRecord.clientCompany,
+            occasion: (snap.occasion as string | null) ?? baseRecord.occasion,
+            modules: (snap.modules as typeof baseRecord.modules) ?? baseRecord.modules,
+            version: versionNum,
+          }
         }
+      } catch (err) {
+        console.warn('PitchVersion lookup failed (Schema-Lag?):', err)
       }
     }
   }
@@ -49,28 +55,41 @@ export default async function Page({ params, searchParams }: PageProps) {
     modules.some((m) => m && typeof m === 'object' && (m as { type?: string }).type === type)
 
   // Pulpies aus dem lokalen DB-Cache (kein Live-Fetch, kein Loading-Wait).
-  // Sync läuft über /admin/pulpies.
-  const pulpiesData = hasType('team') ? await getActivePulpies() : []
-  const team = pulpiesData.map((p) => ({
-    slug: p.slug,
-    name: p.name,
-    role: p.role || '',
-    imageUrl: p.imageUrl || '',
-    email: p.email,
-    phone: p.phone,
-  }))
+  // Sync läuft über /admin/pulpies. Bei Schema-Lag soft-failen.
+  let team: Array<{ slug: string; name: string; role: string; imageUrl: string; email: string | null; phone: string | null }> = []
+  if (hasType('team')) {
+    try {
+      const pulpiesData = await getActivePulpies()
+      team = pulpiesData.map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        role: p.role || '',
+        imageUrl: p.imageUrl || '',
+        email: p.email,
+        phone: p.phone,
+      }))
+    } catch (err) {
+      console.warn('Pulpie lookup failed (Schema-Lag?):', err)
+    }
+  }
 
   // Lovebrand-Pool für das love-brands-Modul (Lookup per Slug beim Render).
-  const lovebrandsData = hasType('love-brands')
-    ? await prisma.loveBrand.findMany({ where: { archivedAt: null }, orderBy: { sortOrder: 'asc' } })
-    : []
-  const lovebrands = lovebrandsData.map((b) => ({
-    slug: b.slug,
-    name: b.name,
-    logoUrl: b.logoUrl,
-    shape: (b.shape as 'default' | 'badge' | 'tall') || 'default',
-    invertOnDark: b.invertOnDark,
-  }))
+  // Bei Schema-Lag (zb fehlende invertOnDark-Spalte) soft-failen.
+  let lovebrands: Array<{ slug: string; name: string; logoUrl: string; shape: 'default' | 'badge' | 'tall'; invertOnDark: boolean }> = []
+  if (hasType('love-brands')) {
+    try {
+      const lovebrandsData = await prisma.loveBrand.findMany({ where: { archivedAt: null }, orderBy: { sortOrder: 'asc' } })
+      lovebrands = lovebrandsData.map((b) => ({
+        slug: b.slug,
+        name: b.name,
+        logoUrl: b.logoUrl,
+        shape: (b.shape as 'default' | 'badge' | 'tall') || 'default',
+        invertOnDark: (b as { invertOnDark?: boolean }).invertOnDark ?? true,
+      }))
+    } catch (err) {
+      console.warn('LoveBrand lookup failed (Schema-Lag?):', err)
+    }
+  }
 
   return (
     <PitchPage
