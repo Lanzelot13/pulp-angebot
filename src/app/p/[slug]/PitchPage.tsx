@@ -507,7 +507,15 @@ export function PitchPage({ pitch, team, lovebrands, mode: accessMode }: Props) 
       <main className={mode === 'slides' ? 'mode-slides' : ''}>
         <div className={mode === 'slides' ? 'mode-slides-wrap' : ''}>
           {visibleModules.map((m, idx) => (
-            <ModuleRouter key={m.instanceId} module={m} index={idx} team={team} lovebrands={lovebrands} />
+            <ModuleRouter
+              key={m.instanceId}
+              module={m}
+              index={idx}
+              team={team}
+              lovebrands={lovebrands}
+              occasion={pitch.occasion}
+              clientCompany={pitch.clientCompany}
+            />
           ))}
         </div>
       </main>
@@ -547,17 +555,21 @@ function ModuleRouter({
   index,
   team,
   lovebrands,
+  occasion,
+  clientCompany,
 }: {
   module: PitchModuleSnapshot
   index: number
   team: Person[]
   lovebrands: RenderedLoveBrand[]
+  occasion: string | null
+  clientCompany: string
 }) {
   const label = `${String(index + 1).padStart(2, '0')} ${module.type}`
   const content = module.content as unknown
 
   switch (module.type) {
-    case 'hero':         return <HeroModule data={content as HeroContent} label={label} />
+    case 'hero':         return <HeroModule data={content as HeroContent} occasion={occasion} clientCompany={clientCompany} label={label} />
     case 'team':         return <TeamModule data={content as TeamContent} team={team} label={label} />
     case 'numbers':      return <NumbersModule data={content as NumbersContent} label={label} />
     case 'manifest':     return <ManifestModule data={content as ManifestContent} label={label} />
@@ -588,19 +600,33 @@ function ModuleRouter({
 // =========================================================
 // 01 · HERO
 // =========================================================
-function HeroModule({ data, label }: { data: HeroContent; label: string }) {
+function HeroModule({
+  data,
+  occasion,
+  clientCompany,
+  label,
+}: {
+  data: HeroContent
+  occasion: string | null
+  clientCompany: string
+  label: string
+}) {
   const pulpPeople = (data.fromPulp || []).filter((p) => p && p.name)
   const clientPeople = (data.fromClient || []).filter((p) => p && p.name)
   const hasPulp = pulpPeople.length > 0
   const hasClient = clientPeople.length > 0
+  // Anlass kommt aus den Pitch-Metadaten (single source of truth), fällt nur
+  // dann auf data.kicker1 zurück wenn keine occasion gesetzt ist.
+  const kickerAnlass = (occasion || data.kicker1 || '').toUpperCase()
+  const kickerKunde = (data.kicker3 || clientCompany || '').toUpperCase()
   return (
     <section className="slide hero" data-slide-type="hero" data-screen-label={label}>
       <div className="meta-top reveal-fade">
-        {data.kicker1 && <span>{data.kicker1}</span>}
-        {data.kicker1 && data.kicker2 && <span className="dot" />}
+        {kickerAnlass && <span>{kickerAnlass}</span>}
+        {kickerAnlass && data.kicker2 && <span className="dot" />}
         {data.kicker2 && <span>{data.kicker2}</span>}
-        {data.kicker2 && data.kicker3 && <span className="dot" />}
-        {data.kicker3 && <span>{data.kicker3}</span>}
+        {(kickerAnlass || data.kicker2) && kickerKunde && <span className="dot" />}
+        {kickerKunde && <span>{kickerKunde}</span>}
       </div>
       <h1>
         <span className="hand hand-l" aria-hidden="true" />
@@ -626,12 +652,6 @@ function HeroModule({ data, label }: { data: HeroContent; label: string }) {
                 <span key={i} className="hero-person">{p.name}</span>
               ))}
             </span>
-          </div>
-        )}
-        {data.meetingPlace && (
-          <div className="it">
-            <span className="k">Ort</span>
-            <span className="v">{data.meetingPlace}</span>
           </div>
         )}
       </div>
