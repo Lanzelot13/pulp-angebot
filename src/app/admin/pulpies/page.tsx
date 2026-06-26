@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
-import { ModulesSubnav } from '../ModulesSubnav'
+import { SlidedecksSubnav } from '../SlidedecksSubnav'
 import styles from '../admin.module.css'
 
 interface Pulpie {
@@ -70,7 +70,7 @@ export default function PulpiesPage() {
 
   return (
     <AdminShell>
-      <ModulesSubnav />
+      <SlidedecksSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Pulpies</h1>
         <div className={styles.pageSub}>

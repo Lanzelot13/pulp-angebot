@@ -2,17 +2,17 @@
 
 import { usePathname } from 'next/navigation'
 
-// Horizontales Sub-Menü, das auf den Pitch-bezogenen Library-Seiten oben
-// auftaucht: Module · Pulpies · Lovebrands. Wenn später noch Sub-Einstellungen
-// dazukommen, einfach hier in TABS ergänzen.
+// Horizontales Submenü, das auf allen Angebots-bezogenen Library-Seiten
+// oben sitzt: Angebote · Ansprechpersonen · Referenzen · Kanäle.
 
 const TABS: Array<{ href: string; label: string }> = [
-  { href: '/admin/modules',    label: 'Module' },
-  { href: '/admin/pulpies',    label: 'Pulpies' },
-  { href: '/admin/lovebrands', label: 'Lovebrands' },
+  { href: '/admin/offers',     label: 'Angebote' },
+  { href: '/admin/contacts',   label: 'Ansprechpersonen' },
+  { href: '/admin/references', label: 'Referenzen' },
+  { href: '/admin/channels',   label: 'Kanäle' },
 ]
 
-export function ModulesSubnav() {
+export function OffersSubnav() {
   const pathname = usePathname()
   return (
     <div

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
-import { ModulesSubnav } from '../ModulesSubnav'
+import { SlidedecksSubnav } from '../SlidedecksSubnav'
 import { IconEdit, IconTrash, IconPlus, IconArchive, IconArchiveRestore } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -147,7 +147,7 @@ export default function LoveBrandsPage() {
 
   return (
     <AdminShell>
-      <ModulesSubnav />
+      <SlidedecksSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Lovebrands</h1>
         <div className={styles.pageSub}>

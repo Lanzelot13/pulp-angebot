@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { AdminShell } from '../AdminShell'
+import { OffersSubnav } from '../OffersSubnav'
 import {
   IconEye,
   IconEdit,
@@ -782,6 +783,7 @@ export default function OffersPage() {
 
   return (
     <AdminShell>
+      <OffersSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Angebote</h1>
         <div className={styles.pageSub}>Alle erstellten Angebotsseiten mit Versionen</div>

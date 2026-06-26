@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { OffersSubnav } from '../OffersSubnav'
 import { SocialIcon, IconEdit, IconTrash, IconExternalLink } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -63,6 +64,7 @@ export default function ChannelsPage() {
 
   return (
     <AdminShell>
+      <OffersSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Kanäle</h1>
         <div className={styles.pageSub}>Kundenkanäle auf Social Media Plattformen</div>

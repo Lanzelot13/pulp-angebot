@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { OffersSubnav } from '../OffersSubnav'
 import { IconEdit, IconTrash } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -67,6 +68,7 @@ export default function ContactsPage() {
 
   return (
     <AdminShell>
+      <OffersSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Ansprechpersonen</h1>
         <div className={styles.pageSub}>Pulpmedia-Kontakte, die im Angebots-Footer erscheinen</div>

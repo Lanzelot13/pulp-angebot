@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { AdminShell } from '../AdminShell'
+import { SlidedecksSubnav } from '../SlidedecksSubnav'
 import {
   IconEye,
   IconEdit,
@@ -218,7 +219,7 @@ export default function PitchesPage() {
 
   const askArchive = (p: PitchRow) => {
     setConfirm({
-      title: 'Pitch archivieren?',
+      title: 'Slidedeck archivieren?',
       text: `"${p.clientCompany}" wird ins Archiv verschoben. Die Kunden-URL ist danach nicht mehr erreichbar.`,
       busy: false,
       action: async () => {
@@ -235,7 +236,7 @@ export default function PitchesPage() {
 
   const askRestore = (p: PitchRow) => {
     setConfirm({
-      title: 'Pitch wiederherstellen?',
+      title: 'Slidedeck wiederherstellen?',
       text: `"${p.clientCompany}" wird aus dem Archiv zurückgeholt.`,
       busy: false,
       action: async () => {
@@ -252,7 +253,7 @@ export default function PitchesPage() {
 
   const askDelete = (p: PitchRow) => {
     setConfirm({
-      title: 'Pitch endgültig löschen?',
+      title: 'Slidedeck endgültig löschen?',
       text: `"${p.clientCompany}" wird unwiderruflich gelöscht. Die Modul-Snapshots gehen verloren.`,
       busy: false,
       action: async () => {
@@ -282,8 +283,9 @@ export default function PitchesPage() {
 
   return (
     <AdminShell>
+      <SlidedecksSubnav />
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Pitches</h1>
+        <h1 className={styles.pageTitle}>Slidedecks</h1>
         <div className={styles.pageSub}>
           Agenturpräsentationen für Erstgespräche. Pro Termin zusammengestellt
           aus globalen Modulen plus optionalen Custom-Blöcken.
@@ -307,14 +309,14 @@ export default function PitchesPage() {
 
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitle}>
-          {isArchived ? 'Archivierte Pitches' : 'Alle Pitches'}
+          {isArchived ? 'Archivierte Slidedecks' : 'Alle Slidedecks'}
         </div>
         {!isArchived && (
           <button
             className={`${styles.btn} ${styles.btnPrimary}`}
             onClick={() => setCreateOpen(true)}
           >
-            <IconPlus size={14} /> Neue Pitch
+            <IconPlus size={14} /> Neues Slidedeck
           </button>
         )}
       </div>
@@ -515,8 +517,8 @@ export default function PitchesPage() {
                 <td colSpan={7} className={styles.emptyState}>
                   <div className={styles.emptyText}>
                     {isArchived
-                      ? 'Keine archivierten Pitches'
-                      : 'Noch keine Pitches. Leg deine erste an.'}
+                      ? 'Keine archivierten Slidedecks'
+                      : 'Noch keine Slidedecks. Leg dein erstes an.'}
                   </div>
                 </td>
               </tr>
@@ -529,7 +531,7 @@ export default function PitchesPage() {
         <div className={styles.modalOverlay} onClick={() => !creating && setCreateOpen(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Neue Pitch anlegen</h2>
+              <h2>Neues Slidedeck anlegen</h2>
               <button
                 className={styles.modalClose}
                 onClick={() => setCreateOpen(false)}

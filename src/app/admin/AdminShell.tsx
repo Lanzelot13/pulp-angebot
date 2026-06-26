@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
-import { IconDashboard, IconFileText, IconUser, IconBuilding, IconShare2, IconLogout, IconPresentation, IconLayers } from './Icons'
+import { IconDashboard, IconFileText, IconLogout, IconPresentation } from './Icons'
 import styles from './admin.module.css'
 
 interface User {
@@ -55,22 +55,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     .join('')
     .toUpperCase()
 
-  // Pulpies und Lovebrands sind Pitch-Submenüs unter /admin/modules
-  // (siehe ModulesSubnav). Sie tauchen nicht in der Sidebar als eigene
-  // Punkte auf, damit das Hauptmenü ruhig bleibt.
+  // Hauptmenü auf drei Bereiche reduziert. Die ehemaligen eigenen Einträge
+  // für Ansprechpersonen / Referenzen / Kanäle sind als horizontales
+  // Submenü unter "Angebote" gruppiert (siehe OffersSubnav). Module /
+  // Pulpies / Lovebrands liegen analog unter "Slidedecks" (ehemals Pitches).
   const nav = [
     { href: '/admin', label: 'Dashboard', icon: <IconDashboard size={18} /> },
     { href: '/admin/offers', label: 'Angebote', icon: <IconFileText size={18} /> },
-    { href: '/admin/pitches', label: 'Pitches', icon: <IconPresentation size={18} /> },
-    { href: '/admin/modules', label: 'Module', icon: <IconLayers size={18} /> },
-    { href: '/admin/contacts', label: 'Ansprechpersonen', icon: <IconUser size={18} /> },
-    { href: '/admin/references', label: 'Referenzen', icon: <IconBuilding size={18} /> },
-    { href: '/admin/channels', label: 'Kanäle', icon: <IconShare2 size={18} /> },
+    { href: '/admin/pitches', label: 'Slidedecks', icon: <IconPresentation size={18} /> },
   ]
 
-  // Module-Subnav highlighting: /admin/modules, /admin/pulpies, /admin/lovebrands
-  // sollen alle den "Module"-Eintrag aktiv markieren.
-  const moduleSubpaths = ['/admin/modules', '/admin/pulpies', '/admin/lovebrands']
+  // Subpfade, die das jeweilige Hauptmenü-Item aktiv lassen sollen
+  const offersSubpaths = ['/admin/offers', '/admin/contacts', '/admin/references', '/admin/channels']
+  const slidedecksSubpaths = ['/admin/pitches', '/admin/modules', '/admin/pulpies', '/admin/lovebrands']
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -88,9 +85,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             const isActive =
               item.href === '/admin'
                 ? pathname === '/admin'
-                : item.href === '/admin/modules'
-                  ? moduleSubpaths.some((p) => pathname.startsWith(p))
-                  : pathname.startsWith(item.href)
+                : item.href === '/admin/offers'
+                  ? offersSubpaths.some((p) => pathname.startsWith(p))
+                  : item.href === '/admin/pitches'
+                    ? slidedecksSubpaths.some((p) => pathname.startsWith(p))
+                    : pathname.startsWith(item.href)
             return (
               <a
                 key={item.href}

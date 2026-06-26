@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
 import { TeamPicker } from '../TeamPicker'
 import { LoveBrandFields } from '../LoveBrandPicker'
-import { ModulesSubnav } from '../ModulesSubnav'
+import { SlidedecksSubnav } from '../SlidedecksSubnav'
 import { IconEdit, IconTrash, IconPlus } from '../Icons'
 import styles from '../admin.module.css'
 import {
@@ -216,7 +216,7 @@ export default function ModulesPage() {
 
   return (
     <AdminShell>
-      <ModulesSubnav />
+      <SlidedecksSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Module</h1>
         <div className={styles.pageSub}>

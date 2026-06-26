@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { AdminShell } from '../AdminShell'
+import { OffersSubnav } from '../OffersSubnav'
 import { IconEdit, IconTrash, IconExternalLink } from '../Icons'
 import styles from '../admin.module.css'
 
@@ -77,6 +78,7 @@ export default function ReferencesPage() {
 
   return (
     <AdminShell>
+      <OffersSubnav />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Referenzen</h1>
         <div className={styles.pageSub}>Kundenprojekte, die in Angebotsseiten als Referenz angezeigt werden</div>
