@@ -1179,6 +1179,42 @@
 .clickableRow { cursor: pointer; transition: background 0.12s; }
 .clickableRow:hover { background: #fafafa; }
 
+/* Internal-Tracking: Toggle-Bar + Pulp-Marker pro Session */
+.internalToggleBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.internalToggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #444;
+}
+.internalToggleLabel input { cursor: pointer; }
+
+.internalRow td { background: #fffaf3; }
+.internalBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #FF1900;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 /* Klickbarer Spaltenheader für die Tracking-Tabelle */
 .sortHeader {
   cursor: pointer;

@@ -14,6 +14,7 @@ interface SessionRow {
   lastEventAt: string
   activeSeconds: number
   targetStatus: string | null
+  isInternal: boolean
   country: string | null
   region: string | null
   device: string | null
@@ -37,6 +38,9 @@ interface TrackingResponse {
     lastEventAt: string | null
     totalSectionsSeen: number
     totalEvents: number
+    internalCount: number
+    externalCount: number
+    includeInternal: boolean
   }
   statusBreakdown: Record<string, number>
   sessions: SessionRow[]
@@ -193,6 +197,7 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
   const [detailLoading, setDetailLoading] = useState(false)
   const [sortField, setSortField] = useState<SortField>('openedAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [includeInternal, setIncludeInternal] = useState(false)
 
   // Letzte Session = die zuletzt geöffnete (nach openedAt). Brauchen wir für
   // die "Letzte Aktivität"-Stat-Card und als Basis für sinnvolle Sub-Texte.
@@ -236,7 +241,8 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const trackRes = await fetch(`/api/admin/offers/${params.id}/tracking`)
+      const qs = includeInternal ? '?includeInternal=1' : ''
+      const trackRes = await fetch(`/api/admin/offers/${params.id}/tracking${qs}`)
       if (trackRes.ok) {
         const j: TrackingResponse = await trackRes.json()
         setData(j)
@@ -244,7 +250,19 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
     } finally {
       setLoading(false)
     }
-  }, [params.id])
+  }, [params.id, includeInternal])
+
+  // Manuelles Umklassifizieren einer einzelnen Session
+  async function toggleSessionInternal(viewId: string, next: boolean) {
+    const res = await fetch(`/api/admin/track-views/${viewId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isInternal: next }),
+    })
+    if (res.ok) {
+      void load()
+    }
+  }
 
   useEffect(() => {
     void load()
@@ -290,8 +308,26 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
         </div>
       )}
 
-      {!loading && data && data.stats.sessionCount > 0 && (
+      {!loading && data && (data.stats.sessionCount > 0 || data.stats.internalCount > 0) && (
         <>
+          {/* Internal-Toggle: nur sinnvoll, wenn überhaupt Pulp-Aufrufe da sind */}
+          {data.stats.internalCount > 0 && (
+            <div className={styles.internalToggleBar}>
+              <label className={styles.internalToggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={includeInternal}
+                  onChange={(e) => setIncludeInternal(e.target.checked)}
+                />
+                Pulp-Aufrufe einblenden ({data.stats.internalCount})
+              </label>
+              <span className={styles.muted}>
+                {data.stats.externalCount} Kunden-Aufrufe
+                {includeInternal ? ' + ' + data.stats.internalCount + ' intern' : ''}
+              </span>
+            </div>
+          )}
+
           {/* Stats */}
           <div className={styles.trackStatsGrid}>
             <div className={styles.trackStatCard}>
@@ -399,8 +435,11 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
             </thead>
             <tbody>
               {sortedSessions.map((s) => (
-                <tr key={s.id}>
-                  <td>{formatDate(s.openedAt)}</td>
+                <tr key={s.id} className={s.isInternal ? styles.internalRow : undefined}>
+                  <td>
+                    {formatDate(s.openedAt)}
+                    {s.isInternal && <span className={styles.internalBadge}>Pulp</span>}
+                  </td>
                   <td>{formatDate(s.lastEventAt)}</td>
                   <td>{formatDuration(s.activeSeconds)}</td>
                   <td>{s.sectionsSeen}</td>
@@ -413,6 +452,13 @@ export default function OfferTrackingPage({ params }: { params: { id: string } }
                   <td>
                     <button className={styles.linkBtn} onClick={() => openDetail(s.id)}>
                       Details
+                    </button>
+                    <button
+                      className={styles.linkBtn}
+                      onClick={() => toggleSessionInternal(s.id, !s.isInternal)}
+                      title={s.isInternal ? 'Als Kunden-Aufruf markieren' : 'Als Pulp markieren'}
+                    >
+                      {s.isInternal ? '→ Kunde' : '→ Pulp'}
                     </button>
                   </td>
                 </tr>

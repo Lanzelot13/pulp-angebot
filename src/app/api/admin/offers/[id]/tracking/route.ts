@@ -15,6 +15,7 @@ interface TrackViewRow {
   lastEventAt: Date
   activeSeconds: number
   targetStatus: string | null
+  isInternal: boolean
   country: string | null
   region: string | null
   device: string | null
@@ -61,6 +62,9 @@ export async function GET(
   const offerId = params.id
   const { searchParams } = new URL(request.url)
   const viewIdFilter = searchParams.get('viewId')
+  // Default: nur Kunden-Aufrufe in Stats und Liste. Mit ?includeInternal=1
+  // werden auch die Pulp-Aufrufe mitgezählt.
+  const includeInternal = searchParams.get('includeInternal') === '1'
 
   // Wenn ?viewId= gesetzt: nur die Events der konkreten View liefern
   if (viewIdFilter) {
@@ -94,9 +98,10 @@ export async function GET(
     return NextResponse.json({ error: 'Angebot nicht gefunden' }, { status: 404 })
   }
 
-  // Übersicht — Default-Sortierung nach openedAt desc. Client sortiert
-  // anschließend beim Klick auf die Spaltenheader nach Wahl.
-  const views = await trackDb.trackView.findMany({
+  // Übersicht — alle Views laden (intern + extern), Filtern macht der
+  // nächste Schritt. Wir brauchen beide Zahlen, damit die UI weiß, ob ein
+  // Toggle "intern einblenden" überhaupt Sinn macht.
+  const allViews = await trackDb.trackView.findMany({
     where: { targetType: 'OFFER', targetId: offerId },
     orderBy: { openedAt: 'desc' },
     include: {
@@ -105,6 +110,10 @@ export async function GET(
       },
     },
   })
+
+  const internalCount = allViews.filter((v) => v.isInternal).length
+  const externalCount = allViews.length - internalCount
+  const views = includeInternal ? allViews : allViews.filter((v) => !v.isInternal)
 
   // Sections pro View deduped: brauchen wir die Events
   const sessionEvents = await trackDb.trackEvent.findMany({
@@ -152,6 +161,7 @@ export async function GET(
     lastEventAt: v.lastEventAt,
     activeSeconds: v.activeSeconds,
     targetStatus: v.targetStatus,
+    isInternal: v.isInternal,
     country: v.country,
     region: v.region,
     device: v.device,
@@ -172,6 +182,9 @@ export async function GET(
       lastEventAt,
       totalSectionsSeen,
       totalEvents,
+      internalCount,
+      externalCount,
+      includeInternal,
     },
     statusBreakdown,
     sessions,

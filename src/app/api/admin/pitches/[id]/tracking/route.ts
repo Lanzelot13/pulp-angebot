@@ -15,6 +15,7 @@ interface TrackViewRow {
   lastEventAt: Date
   activeSeconds: number
   targetStatus: string | null
+  isInternal: boolean
   country: string | null
   region: string | null
   device: string | null
@@ -61,6 +62,7 @@ export async function GET(
   const pitchId = params.id
   const { searchParams } = new URL(request.url)
   const viewIdFilter = searchParams.get('viewId')
+  const includeInternal = searchParams.get('includeInternal') === '1'
 
   if (viewIdFilter) {
     const view = await trackDb.trackView.findUnique({
@@ -89,11 +91,14 @@ export async function GET(
     return NextResponse.json({ error: 'Pitch nicht gefunden' }, { status: 404 })
   }
 
-  const views = await trackDb.trackView.findMany({
+  const allViews = await trackDb.trackView.findMany({
     where: { targetType: 'PITCH', targetId: pitchId },
     orderBy: { openedAt: 'desc' },
     include: { _count: { select: { events: true } } },
   })
+  const internalCount = allViews.filter((v) => v.isInternal).length
+  const externalCount = allViews.length - internalCount
+  const views = includeInternal ? allViews : allViews.filter((v) => !v.isInternal)
 
   // section_view-Events pro View für deduped Section-Counts
   const sessionEvents = await trackDb.trackEvent.findMany({
@@ -137,6 +142,7 @@ export async function GET(
     lastEventAt: v.lastEventAt,
     activeSeconds: v.activeSeconds,
     targetStatus: v.targetStatus,
+    isInternal: v.isInternal,
     country: v.country,
     region: v.region,
     device: v.device,
@@ -157,6 +163,9 @@ export async function GET(
       lastEventAt,
       totalSectionsSeen,
       totalEvents,
+      internalCount,
+      externalCount,
+      includeInternal,
     },
     statusBreakdown,
     sessions,

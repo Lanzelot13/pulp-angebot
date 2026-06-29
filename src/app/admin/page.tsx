@@ -33,6 +33,7 @@ interface RecentView {
   openedAt: string
   activeSeconds: number
   targetStatus: string | null
+  isInternal: boolean
   country: string | null
   region: string | null
   device: string | null

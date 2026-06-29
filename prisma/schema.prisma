@@ -301,6 +301,12 @@ model TrackView {
   // Status-Snapshot beim ersten Öffnen (z.B. "DRAFT", "PRICED", ...)
   targetStatus  String?
 
+  // True, wenn der Aufruf von einem Pulpmedia-Mitarbeiter kam.
+  // Wird automatisch beim Anlegen gesetzt, wenn beim Open ein gültiger
+  // Admin-Session-Cookie mitgeschickt wird. Kann im Admin-UI manuell
+  // umgeklassifiziert werden.
+  isInternal    Boolean         @default(false)
+
   // Kontext (Geo bewusst grob: kein City, kein IP)
   userAgent     String?
   referrer      String?
@@ -314,6 +320,7 @@ model TrackView {
   @@index([targetSlug])
   @@index([sessionId])
   @@index([openedAt])
+  @@index([isInternal])
 }
 
 model TrackEvent {

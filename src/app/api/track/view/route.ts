@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/admin-auth'
 import { checkSessionRateLimit } from '@/lib/track-rate-limit'
 import { detectDevice, readGeoHeaders, safeReferrer, safeUserAgent } from '@/lib/track-helpers'
 
@@ -86,6 +87,18 @@ export async function POST(req: NextRequest) {
   const device = detectDevice(userAgent)
   const referrer = safeReferrer(req)
 
+  // Auto-Markierung als "von Pulp": Wenn der gleiche Browser im Admin-Backend
+  // eingeloggt ist, schickt er das pulp-admin-session-Cookie mit. In dem Fall
+  // markieren wir die View als intern, sonst gilt sie als Kunden-Aufruf.
+  // Manuelle Umklassifizierung passiert im Admin-UI.
+  let isInternal = false
+  try {
+    const adminUser = await getSession(req)
+    if (adminUser) isInternal = true
+  } catch {
+    // egal — wenn die Auth-Lib in dem Edge-Case nichts lesen kann, gilt extern
+  }
+
   const view = await prismaAny.trackView.create({
     data: {
       targetType,
@@ -93,6 +106,7 @@ export async function POST(req: NextRequest) {
       targetSlug,
       sessionId,
       targetStatus,
+      isInternal,
       country,
       region,
       userAgent,

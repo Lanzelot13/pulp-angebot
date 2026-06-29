@@ -14,6 +14,7 @@ interface TrackViewRow {
   lastEventAt: Date
   activeSeconds: number
   targetStatus: string | null
+  isInternal: boolean
   country: string | null
   region: string | null
   device: string | null
@@ -42,10 +43,16 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const limit = Math.min(50, Math.max(1, Number(searchParams.get('limit')) || 10))
+  // Default: nur Kunden-Aufrufe. Mit ?includeInternal=1 zählen Pulp-Aufrufe
+  // auch mit. So bleibt die Dashboard-Liste sauber von Test-Aufrufen.
+  const includeInternal = searchParams.get('includeInternal') === '1'
 
   // Nur Offer-Views (Pitch lassen wir aus, könnten später dazukommen)
+  const where: Record<string, unknown> = { targetType: 'OFFER' }
+  if (!includeInternal) where.isInternal = false
+
   const views = await trackDb.trackView.findMany({
-    where: { targetType: 'OFFER' },
+    where,
     orderBy: { openedAt: 'desc' },
     take: limit,
     include: {
@@ -95,6 +102,7 @@ export async function GET(request: NextRequest) {
       openedAt: v.openedAt,
       activeSeconds: v.activeSeconds,
       targetStatus: v.targetStatus,
+      isInternal: v.isInternal,
       country: v.country,
       region: v.region,
       device: v.device,

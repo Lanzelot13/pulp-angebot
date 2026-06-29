@@ -88,7 +88,13 @@ export async function GET(request: NextRequest) {
       }
       const grouped = await trackDb.trackView.groupBy({
         by: ['targetId'],
-        where: { targetType: 'OFFER', targetId: { in: offerIds } },
+        // Interne (Pulp-)Aufrufe nicht mitzählen, damit die Pille in der
+        // Übersicht ehrliche Kunden-Aufrufe zeigt.
+        where: {
+          targetType: 'OFFER',
+          targetId: { in: offerIds },
+          isInternal: false,
+        },
         _count: { _all: true },
         _max: { lastEventAt: true },
       })
