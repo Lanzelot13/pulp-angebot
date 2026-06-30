@@ -168,6 +168,9 @@ export interface UwColumn {
 
 export interface UwContent {
   cols: UwColumn[]         // typischerweise 3
+  eyebrow?: string
+  headline?: string        // `**Text**` wird rot gerendert
+  sub?: string
 }
 
 export interface SpotlightContent {
@@ -185,6 +188,9 @@ export interface SpotlightContent {
 // wird auf den Pool ge-join-t. So sind Logo, Name und Form zentral pflegbar.
 export interface LoveBrandsContent {
   brandSlugs: string[]
+  eyebrow?: string
+  headline?: string
+  sub?: string
 }
 
 // Render-Helper-Type für die Public-Page nach dem Pool-Join
@@ -261,6 +267,9 @@ export interface MonitorContent {
   interactions: string
   engagementRate: string
   comparison: MonitorRow[]
+  eyebrow?: string
+  headline?: string        // Default zb "Wo **{brand}** auf TikTok steht"
+  sub?: string
 }
 
 export interface QuoteContent {
@@ -276,6 +285,9 @@ export interface ProcessStep {
 
 export interface ProcessContent {
   steps: ProcessStep[]
+  eyebrow?: string
+  headline?: string
+  sub?: string
 }
 
 export interface FragenItem {
@@ -286,6 +298,9 @@ export interface FragenItem {
 
 export interface FragenContent {
   items: FragenItem[]      // typischerweise 3
+  eyebrow?: string
+  headline?: string
+  sub?: string
 }
 
 export interface TippsItem {
@@ -297,6 +312,9 @@ export interface TippsItem {
 
 export interface TippsContent {
   items: TippsItem[]       // typischerweise 3
+  eyebrow?: string
+  headline?: string
+  sub?: string
 }
 
 export interface OptionenItem {
@@ -308,6 +326,9 @@ export interface OptionenItem {
 
 export interface OptionenContent {
   options: OptionenItem[]  // typischerweise 3
+  eyebrow?: string
+  headline?: string
+  sub?: string
 }
 
 export interface IdeaItem {
@@ -440,6 +461,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     body: 'Wir bauen keine Werbung. Wir bauen Beziehung zwischen Menschen und Marken, über Geschichten, die jemand sehen will, nicht sehen muss.',
   } as ManifestContent,
   'uw': {
+    eyebrow: 'PULP · ORIGIN STORY',
+    headline: 'Unnützes **Wissen**',
+    sub: '',
     cols: [
       { imageUrl: 'pitch/be5620f5-40ab-4e17-adf0-a2f2fe92df5b.png', heading: 'Facebook-Seite', sub: '1 Mio Fans' },
       { imageStack: ['pitch/9df450ba-b7ae-4c34-810e-d57c5e97ce1b.png', 'pitch/a93d7893-c239-468b-b806-b63f60587e86.png', 'pitch/8629c299-211f-4924-a301-a5ba923ea3aa.png'], heading: '3 Bücher', sub: '2 davon Spiegel-Bestseller' },
@@ -464,8 +488,11 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     },
   } as SpotlightContent,
   'love-brands': {
+    eyebrow: 'PULP · LOVEBRANDS',
+    headline: '**Lovebrands**',
+    sub: '',
     // Pro Pitch entscheidet der Editor welche Brands gezeigt werden. Standard:
-    // alle aktiven aus dem Pool — wird beim Render gefiltert.
+    // alle aktiven aus dem Pool wird beim Render gefiltert.
     brandSlugs: [
       'zipfer', 'lidl', 'rosenbauer', 'efko', 'husqvarna', 'hornbach',
       'weber', 'internorm', 'pez', 'pago', 'yo', 'hohes-c',
@@ -520,6 +547,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     },
   } as CaseSocialContent,
   'monitor': {
+    eyebrow: 'PULP · TIKTOK BRAND MONITOR',
+    headline: 'Wo **{brand}** auf TikTok steht',
+    sub: '',
     brand: 'Rosenbauer',
     handle: 'rosenbauergroup',
     rank: 'a',
@@ -540,6 +570,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     role: 'Marketing-Leitung · Instadrive GmbH',
   } as QuoteContent,
   'process': {
+    eyebrow: 'PULP · ABLAUF',
+    headline: 'Ein typischer **Ablauf**',
+    sub: '',
     steps: [
       { when: 'Diese Woche',                 title: 'Angebot & Abstimmung' },
       { when: 'Woche 1',                     title: 'Kick-off & Termin-Fixierung' },
@@ -551,6 +584,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     ],
   } as ProcessContent,
   'fragen': {
+    eyebrow: 'PULP · DREI FRAGEN',
+    headline: 'Bevor wir **loslegen**',
+    sub: '',
     items: [
       { title: 'Wie viel',  titleAccent: 'Brandlove',  body: 'steckt schon drin? Welchen Stellenwert hat das Thema bei euch — Herzensprojekt, Pflichtübung oder noch ganz frisch?' },
       { title: 'Wie seid ihr', titleAccent: 'aufgestellt?', body: 'Größe, Abläufe, Ressourcen in-house, eigene Produktion, Agenturlandschaft — wer macht bei euch was?' },
@@ -559,6 +595,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
   } as FragenContent,
   // Tipps werden PRO KUNDE konkret befüllt. Default ist nur Platzhalter.
   'tipps': {
+    eyebrow: 'PULP · DREI TIPPS',
+    headline: 'Drei Tipps **für euch**',
+    sub: '',
     items: [
       { iconKey: 'smiley',   title: 'Hier individuell für', titleAccent: '[Kunde] anpassen.', body: 'Konkreter Vorschlag, den der Kunde mit oder ohne uns umsetzen kann. Beispiel: "Langfristige Kooperationen mit drei bis fünf Creators statt One-Shots."' },
       { iconKey: 'bomb',     title: 'Zweiter konkreter', titleAccent: 'Vorschlag.', body: 'Etwas das auffällt wenn man die Kommunikation des Kunden beobachtet. Kein generisches Wissen.' },
@@ -578,6 +617,9 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
     ],
   } as IdeasContent,
   'optionen': {
+    eyebrow: 'PULP · NÄCHSTE SCHRITTE',
+    headline: 'Wie wir **starten können**',
+    sub: '',
     options: [
       { pkgName: '01 · EINSTIEG', iconKey: 'smiley',      title: 'Workshop + Strategie',  description: 'Brand-Sprint, Positionierungs-Workshop, Konzept-Papier. Eine geschlossene Lieferung, klarer Output — ihr könnt damit weiterarbeiten, mit oder ohne uns.' },
       { pkgName: '02 · PROJEKT',  iconKey: 'explosion',   title: 'Ein konkretes Projekt', description: 'Ein Hero-Cut, eine Social-Serie, ein Brand-Film, ein Event. Klarer Scope, klarer Zeitraum, klare Lieferung — mit unseren fünf Säulen als Toolbox.' },

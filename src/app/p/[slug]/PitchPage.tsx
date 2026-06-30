@@ -39,6 +39,7 @@ import type {
   EmbedConfig,
 } from '@/lib/pitch-types'
 import { ICON_FILES, DEFAULT_CONTENT } from '@/lib/pitch-types'
+import { sanitizeRichText } from '@/lib/sanitize-html'
 import type { Person } from '@/lib/team'
 import { useTracking } from '@/lib/use-tracking'
 import { PITCH_DECK_CSS } from './pitch-deck-styles'
@@ -123,6 +124,28 @@ function renderHeadline(text: string): React.ReactNode {
     if (m) return <span key={i} className="red">{m[1]}</span>
     return <span key={i}>{part}</span>
   })
+}
+
+// Rendert den Body/Sub-Text einer Slide. Erlaubt einfache Formatierung
+// (b/i/u/a) aus dem WYSIWYG-Editor und filtert alles andere raus.
+function RichSub({
+  html,
+  className,
+  delay,
+}: {
+  html?: string | null
+  className?: string
+  delay?: number
+}) {
+  if (!html) return null
+  const safe = sanitizeRichText(html)
+  if (!safe.trim()) return null
+  return (
+    <p
+      className={`${className || 'sub'} reveal-fade${delay ? ` delay-${delay}` : ''}`}
+      dangerouslySetInnerHTML={{ __html: safe }}
+    />
+  )
 }
 
 // =========================================================
@@ -799,11 +822,14 @@ function ManifestModule({ data: raw, label }: { data: ManifestContent; label: st
 // 05 · UNNÜTZES WISSEN (UW)
 // =========================================================
 function UwModule({ data, label }: { data: UwContent; label: string }) {
+  const eyebrowText = data?.eyebrow || 'Origin Story'
+  const headlineText = data?.headline || 'Unnützes **Wissen**'
   return (
     <section className="slide uw" data-slide-type="uw" data-screen-label={label}>
       <div className="uw-head">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Origin Story</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Unnützes <span className="red">Wissen</span><span className="title-ico" aria-hidden="true" /></h2>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={data?.sub} delay={3} />
       </div>
       <div className="uw-cols">
         {data.cols?.map((col, i) => (
@@ -892,11 +918,14 @@ function LoveBrandsModule({
   const slugs = Array.isArray(data.brandSlugs) ? data.brandSlugs : []
   const poolBySlug = new Map(pool.map((b) => [b.slug, b]))
   const brands = slugs.map((s) => poolBySlug.get(s)).filter((b): b is RenderedLoveBrand => !!b)
+  const eyebrowText = data?.eyebrow || 'Mit wem wir arbeiten dürfen'
+  const headlineText = data?.headline || '**Lovebrands**'
   return (
     <section className="slide love-brands" data-slide-type="love-brands" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Mit wem wir arbeiten dürfen</span></div>
-        <h2 className="slide-title reveal-fade delay-2"><span className="red">Lovebrands</span><span className="title-ico" aria-hidden="true" /></h2>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={data?.sub} delay={3} />
       </div>
       <div className="grid">
         {brands.map((b) => (
@@ -932,7 +961,7 @@ function SaeulenModule({ data: raw, label }: { data: SaeulenContent; label: stri
       <div className="intro">
         <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
         <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
-        {raw?.sub && <p className="sub reveal-fade delay-3">{raw.sub}</p>}
+        <RichSub html={raw?.sub} delay={3} />
       </div>
       <div className="pillars reveal-fade delay-2">
         {data.pillars?.map((p, i) => {
@@ -972,7 +1001,7 @@ function LeistungenModule({ data: raw, label }: { data: LeistungenContent; label
       <div className="intro">
         <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
         <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
-        {raw?.sub && <p className="sub reveal-fade delay-3">{raw.sub}</p>}
+        <RichSub html={raw?.sub} delay={3} />
       </div>
       <div className="grid">
         {data.items?.map((it, i) => {
@@ -1060,11 +1089,16 @@ function CaseSocialModule({ data, label }: { data: CaseSocialContent; label: str
 // 12 · MONITOR (TikTok Brand Monitor)
 // =========================================================
 function MonitorModule({ data, label }: { data: MonitorContent; label: string }) {
+  const eyebrowText = data?.eyebrow || 'TikTok Brand Monitor'
+  // {brand}-Platzhalter durch tatsächlichen Markennamen ersetzen
+  const headlineRaw = data?.headline || 'Wo **{brand}** auf TikTok steht'
+  const headlineText = headlineRaw.replace(/\{brand\}/g, data.brand || '')
   return (
     <section className="slide monitor" data-slide-type="monitor" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>TikTok Brand Monitor</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Wo <span className="red">{data.brand}</span> auf TikTok steht<span className="title-ico" aria-hidden="true" /></h2>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={data?.sub} delay={3} />
       </div>
       <div className="bm-card reveal-fade delay-2">
         <div className="bm-head">
@@ -1142,12 +1176,15 @@ function QuoteModule({ data, label }: { data: QuoteContent; label: string }) {
 // =========================================================
 function ProcessModule({ data, label }: { data: ProcessContent; label: string }) {
   const colsClass = `cols-${Math.max(1, Math.min(7, data.steps?.length || 7))}`
+  const eyebrowText = data?.eyebrow || 'So läuft’s ab'
+  const headlineText = data?.headline || 'Ein typischer **Ablauf**'
+  const subText = data?.sub ?? 'Vorlaufzeit und Dauer im Überblick. Im Detail stimmen wir alles gemeinsam ab.'
   return (
     <section className="slide process" data-slide-type="process" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>So läuft&apos;s ab</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Ein typischer <span className="red">Ablauf</span><span className="title-ico" aria-hidden="true" /></h2>
-        <p className="sub reveal-fade delay-3">Vorlaufzeit und Dauer im Überblick. Im Detail stimmen wir alles gemeinsam ab.</p>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={subText} delay={3} />
       </div>
       <div className={`timeline ${colsClass}`}>
         {data.steps?.map((step, i) => (
@@ -1175,12 +1212,15 @@ function FragenModule({ data, label }: { data: FragenContent; label: string }) {
       return next
     })
   }
+  const eyebrowText = data?.eyebrow || 'Drei Fragen an euch'
+  const headlineText = data?.headline || 'Bevor wir **loslegen**'
+  const subText = data?.sub ?? 'Damit wir nicht ins Blaue planen, würden wir gern zuerst von euch hören.'
   return (
     <section className="slide tipps fragen" data-slide-type="fragen" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Fragen an euch</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Bevor wir <span className="red">loslegen</span><span className="title-ico" aria-hidden="true" /></h2>
-        <p className="sub reveal-fade delay-3">Damit wir nicht ins Blaue planen, würden wir gern zuerst von euch hören.</p>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={subText} delay={3} />
       </div>
       <div className="grid flip-grid">
         {data.items?.map((q, i) => (
@@ -1219,12 +1259,15 @@ function TippsModule({ data, label }: { data: TippsContent; label: string }) {
       return next
     })
   }
+  const eyebrowText = data?.eyebrow || 'Drei Tipps'
+  const headlineText = data?.headline || 'Drei Tipps **für euch**'
+  const subText = data?.sub ?? 'Konkrete Hebel, die ihr mit oder ohne uns umsetzen könnt. Pro Pitch individuell.'
   return (
     <section className="slide tipps" data-slide-type="tipps" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Tipps</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Drei Tipps <span className="red">für euch</span><span className="title-ico" aria-hidden="true" /></h2>
-        <p className="sub reveal-fade delay-3">Konkrete Hebel, die ihr mit oder ohne uns umsetzen könnt. Pro Pitch individuell.</p>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={subText} delay={3} />
       </div>
       <div className="grid flip-grid">
         {data.items?.map((t, i) => {
@@ -1277,7 +1320,7 @@ function IdeasModule({ data, label }: { data: IdeasContent; label: string }) {
           {data.headlineAccent && <span className="red">{data.headlineAccent}</span>}
           <span className="title-ico" aria-hidden="true" />
         </h2>
-        {data.sub && <p className="sub reveal-fade delay-3">{data.sub}</p>}
+        <RichSub html={data.sub} delay={3} />
       </div>
       <div className="grid flip-grid ideas-flip-grid">
         {data.items?.map((it, i) => {
@@ -1318,11 +1361,14 @@ function IdeasModule({ data, label }: { data: IdeasContent; label: string }) {
 // 17 · OPTIONEN
 // =========================================================
 function OptionenModule({ data, label }: { data: OptionenContent; label: string }) {
+  const eyebrowText = data?.eyebrow || 'Drei Einstiegspunkte'
+  const headlineText = data?.headline || 'Wie wir **starten können**'
   return (
     <section className="slide optionen" data-slide-type="optionen" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Drei Einstiegspunkte</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Wie wir <span className="red">starten können</span><span className="title-ico" aria-hidden="true" /></h2>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        <RichSub html={data?.sub} delay={3} />
       </div>
       <div className="grid">
         {data.options?.map((opt, i) => {

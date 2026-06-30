@@ -6,11 +6,17 @@ import { TeamPicker } from '../TeamPicker'
 import { LoveBrandFields } from '../LoveBrandPicker'
 import { SlidedecksSubnav } from '../SlidedecksSubnav'
 import { IconEdit, IconTrash, IconPlus } from '../Icons'
+import { RichTextEditor } from '../RichTextEditor'
+import { CasePicker, CasePlatform, embedFromCase } from '../CasePicker'
+import { SchemaHelp } from '../SchemaHelp'
+import { MODULES_WITH_STANDARD_HEADER } from '../module-schema-help'
+import { sanitizeRichText } from '@/lib/sanitize-html'
 import styles from '../admin.module.css'
 import {
   PITCH_MODULE_TYPES,
   PITCH_MODULE_LABELS,
   DEFAULT_CONTENT,
+  PITCH_ICON_KEYS,
   PitchModuleType,
 } from '@/lib/pitch-types'
 
@@ -75,6 +81,150 @@ function TeamFields({
           )
         )
       }
+    />
+  )
+}
+
+// =========================================================
+// StandardHeaderFields
+// =========================================================
+// Eyebrow / Headline / Icon / Body als Brücke zwischen Formular
+// und dem JSON-Content. Wird für alle Module gezeigt, die im
+// Renderer einen Standard-Header rendern (siehe MODULES_WITH_STANDARD_HEADER).
+function StandardHeaderFields({
+  contentJson,
+  onChange,
+  hasIcon = false,
+}: {
+  contentJson: string
+  onChange: (json: string) => void
+  hasIcon?: boolean
+}) {
+  let parsed: Record<string, unknown> = {}
+  try {
+    const p = JSON.parse(contentJson || '{}')
+    if (p && typeof p === 'object') parsed = p as Record<string, unknown>
+  } catch {
+    parsed = {}
+  }
+  const eyebrow = typeof parsed.eyebrow === 'string' ? parsed.eyebrow : ''
+  const headline = typeof parsed.headline === 'string' ? parsed.headline : ''
+  const sub = typeof parsed.sub === 'string' ? parsed.sub : ''
+  const iconKey = typeof parsed.iconKey === 'string' ? parsed.iconKey : ''
+
+  const update = (patch: Record<string, unknown>) => {
+    const next = { ...parsed, ...patch }
+    // Leere Strings rausschmeißen, damit JSON sauber bleibt
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === '' || v === null || v === undefined) delete next[k]
+    }
+    onChange(JSON.stringify(next, null, 2))
+  }
+
+  return (
+    <div
+      style={{
+        border: '1px solid #eee',
+        background: '#fafafa',
+        borderRadius: 8,
+        padding: 14,
+        marginBottom: 16,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontFamily: 'JetBrains Mono, monospace',
+          textTransform: 'uppercase',
+          letterSpacing: 1,
+          color: '#888',
+          marginBottom: 12,
+        }}
+      >
+        Slide-Header
+      </div>
+
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel}>Eyebrow</label>
+        <input
+          className={styles.formInput}
+          value={eyebrow}
+          onChange={(e) => update({ eyebrow: e.target.value })}
+          placeholder="Kleiner Augenbrauen-Text, optional"
+        />
+      </div>
+
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel}>
+          Titel <span style={{ color: '#888', fontWeight: 400 }}>(`**Text**` wird rot)</span>
+        </label>
+        <input
+          className={styles.formInput}
+          value={headline}
+          onChange={(e) => update({ headline: e.target.value })}
+          placeholder="z.B. So bauen wir **Lovebrands**"
+        />
+      </div>
+
+      {hasIcon && (
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel}>Icon am Ende der Überschrift</label>
+          <select
+            className={styles.formInput}
+            value={iconKey}
+            onChange={(e) => update({ iconKey: e.target.value })}
+            style={{
+              appearance: 'auto',
+            }}
+          >
+            <option value="">— Keines —</option>
+            {PITCH_ICON_KEYS.map((k) => (
+              <option key={k} value={k}>
+                {k}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel}>Body</label>
+        <RichTextEditor
+          value={sub}
+          onChange={(html) => update({ sub: sanitizeRichText(html) })}
+          placeholder="Untertitel oder kurzer Body, optional. Fett, kursiv, unterstrichen, Link verfügbar."
+        />
+      </div>
+    </div>
+  )
+}
+
+// =========================================================
+// CaseEmbedField – setzt content.embed über den CasePicker
+// =========================================================
+function CaseEmbedField({
+  contentJson,
+  onChange,
+  allowedPlatforms,
+}: {
+  contentJson: string
+  onChange: (json: string) => void
+  allowedPlatforms: CasePlatform[]
+}) {
+  return (
+    <CasePicker
+      allowedPlatforms={allowedPlatforms}
+      onSelect={(ref) => {
+        let parsed: Record<string, unknown> = {}
+        try {
+          const p = JSON.parse(contentJson || '{}')
+          if (p && typeof p === 'object') parsed = p as Record<string, unknown>
+        } catch {
+          parsed = {}
+        }
+        parsed.embed = embedFromCase(ref)
+        onChange(JSON.stringify(parsed, null, 2))
+      }}
     />
   )
 }
@@ -172,7 +322,7 @@ export default function ModulesPage() {
     }
 
     if (!form.name.trim()) {
-      setJsonError('Bitte gib dem Modul einen Namen')
+      setJsonError('Bitte gib dem Modul eine Bezeichnung')
       return
     }
 
@@ -345,41 +495,53 @@ export default function ModulesPage() {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Modul-Typ</label>
-                <select
-                  className={styles.formInput}
-                  value={form.type}
-                  onChange={(e) =>
-                    handleTypeChange(e.target.value as PitchModuleType)
-                  }
-                >
-                  {PITCH_MODULE_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {PITCH_MODULE_LABELS[t]}
-                    </option>
-                  ))}
-                </select>
-                <div style={{ marginTop: 6, fontSize: 12, color: '#888' }}>
-                  Bestimmt, wie das Modul im Frontend gerendert wird.
+              {/* Zeile 1: Modul-Typ + Bezeichnung nebeneinander */}
+              <div
+                className={styles.formGroup}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}
+              >
+                <div>
+                  <label className={styles.formLabel}>Modul-Typ</label>
+                  <select
+                    className={styles.formInput}
+                    value={form.type}
+                    onChange={(e) =>
+                      handleTypeChange(e.target.value as PitchModuleType)
+                    }
+                    style={{
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      backgroundImage:
+                        "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8L0 0h12z'/%3E%3C/svg%3E\")",
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      paddingRight: 32,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {PITCH_MODULE_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {PITCH_MODULE_LABELS[t]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={styles.formLabel}>Bezeichnung</label>
+                  <input
+                    className={styles.formInput}
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    placeholder="z.B. Pulpies Standard, Service: Hero Videos"
+                  />
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Name</label>
-                <input
-                  className={styles.formInput}
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  placeholder="z.B. Pulpies Standard, Service: Hero Videos"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  Interne Notiz (optional)
+                  Interne Notiz <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span>
                 </label>
                 <textarea
                   className={styles.formInput}
@@ -388,10 +550,21 @@ export default function ModulesPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
-                  placeholder="Was ist das Modul, wann nutzen wir es?"
+                  placeholder="Was ist das Modul, wann nutzen wir es? Nur intern, taucht im Pitch nicht auf."
                 />
               </div>
 
+              {/* Standard-Header für Module mit Eyebrow/Headline/Body */}
+              {MODULES_WITH_STANDARD_HEADER.has(form.type) && (
+                <StandardHeaderFields
+                  contentJson={form.contentJson}
+                  onChange={(json) =>
+                    setForm((f) => ({ ...f, contentJson: json }))
+                  }
+                />
+              )}
+
+              {/* Modul-spezifische Felder */}
               {form.type === 'team' && (
                 <TeamFields
                   contentJson={form.contentJson}
@@ -407,6 +580,26 @@ export default function ModulesPage() {
                   onChange={(json) =>
                     setForm((f) => ({ ...f, contentJson: json }))
                   }
+                />
+              )}
+
+              {form.type === 'case-video' && (
+                <CaseEmbedField
+                  contentJson={form.contentJson}
+                  onChange={(json) =>
+                    setForm((f) => ({ ...f, contentJson: json }))
+                  }
+                  allowedPlatforms={['youtube']}
+                />
+              )}
+
+              {(form.type === 'case-social' || form.type === 'spotlight') && (
+                <CaseEmbedField
+                  contentJson={form.contentJson}
+                  onChange={(json) =>
+                    setForm((f) => ({ ...f, contentJson: json }))
+                  }
+                  allowedPlatforms={['tiktok', 'instagram']}
                 />
               )}
 
@@ -429,7 +622,7 @@ export default function ModulesPage() {
                     className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
                     onClick={loadTemplate}
                   >
-                    Vorlage laden
+                    Default laden
                   </button>
                 </div>
                 <textarea
@@ -459,6 +652,7 @@ export default function ModulesPage() {
                     {jsonError}
                   </div>
                 )}
+                <SchemaHelp type={form.type} />
               </div>
 
               <div className={styles.formGroup}>
