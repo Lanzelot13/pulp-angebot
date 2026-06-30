@@ -4,6 +4,13 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { AdminShell } from '../../AdminShell'
 import { TeamPicker } from '../../TeamPicker'
 import { LoveBrandFields } from '../../LoveBrandPicker'
+import { SchemaHelp } from '../../SchemaHelp'
+import {
+  StandardHeaderFields,
+  CaseEmbedField,
+  showsStandardHeader,
+  casePlatformsFor,
+} from '../../ModuleContentFields'
 import {
   IconEye,
   IconEdit,
@@ -20,6 +27,18 @@ import {
   DEFAULT_CONTENT,
   PitchModuleType,
 } from '@/lib/pitch-types'
+
+// Inline-Style für ein klar erkennbares Dropdown
+const SELECT_DROPDOWN_STYLE: React.CSSProperties = {
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  backgroundImage:
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8L0 0h12z'/%3E%3C/svg%3E\")",
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 12px center',
+  paddingRight: 32,
+  cursor: 'pointer',
+}
 
 interface Contact {
   slug: string
@@ -756,42 +775,58 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                   {customError && (
                     <div className={styles.formError}>{customError}</div>
                   )}
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Typ</label>
-                    <select
-                      className={styles.formInput}
-                      value={customDraft.type}
-                      onChange={(e) => {
-                        const newType = e.target.value as PitchModuleType
-                        setCustomDraft((d) => ({
-                          ...d,
-                          type: newType,
-                          contentJson: JSON.stringify(
-                            DEFAULT_CONTENT[newType],
-                            null,
-                            2
-                          ),
-                        }))
-                      }}
-                    >
-                      {PITCH_MODULE_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {PITCH_MODULE_LABELS[t]}
-                        </option>
-                      ))}
-                    </select>
+                  <div
+                    className={styles.formGroup}
+                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}
+                  >
+                    <div>
+                      <label className={styles.formLabel}>Modul-Typ</label>
+                      <select
+                        className={styles.formInput}
+                        value={customDraft.type}
+                        onChange={(e) => {
+                          const newType = e.target.value as PitchModuleType
+                          setCustomDraft((d) => ({
+                            ...d,
+                            type: newType,
+                            contentJson: JSON.stringify(
+                              DEFAULT_CONTENT[newType],
+                              null,
+                              2
+                            ),
+                          }))
+                        }}
+                        style={SELECT_DROPDOWN_STYLE}
+                      >
+                        {PITCH_MODULE_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {PITCH_MODULE_LABELS[t]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={styles.formLabel}>Bezeichnung</label>
+                      <input
+                        className={styles.formInput}
+                        value={customDraft.name}
+                        onChange={(e) =>
+                          setCustomDraft((d) => ({ ...d, name: e.target.value }))
+                        }
+                        placeholder="z.B. Was wir für euch sehen"
+                      />
+                    </div>
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Name</label>
-                    <input
-                      className={styles.formInput}
-                      value={customDraft.name}
-                      onChange={(e) =>
-                        setCustomDraft((d) => ({ ...d, name: e.target.value }))
+
+                  {showsStandardHeader(customDraft.type) && (
+                    <StandardHeaderFields
+                      contentJson={customDraft.contentJson}
+                      onChange={(json) =>
+                        setCustomDraft((d) => ({ ...d, contentJson: json }))
                       }
-                      placeholder="z.B. Was wir für euch sehen"
                     />
-                  </div>
+                  )}
+
                   {customDraft.type === 'team' && (
                     <TeamFields
                       contentJson={customDraft.contentJson}
@@ -808,6 +843,19 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                       }
                     />
                   )}
+                  {(() => {
+                    const platforms = casePlatformsFor(customDraft.type)
+                    if (!platforms) return null
+                    return (
+                      <CaseEmbedField
+                        contentJson={customDraft.contentJson}
+                        onChange={(json) =>
+                          setCustomDraft((d) => ({ ...d, contentJson: json }))
+                        }
+                        allowedPlatforms={platforms}
+                      />
+                    )
+                  })()}
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>
@@ -829,9 +877,10 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                       }
                     />
                     <div className={styles.formHint}>
-                      Custom-Blöcke werden nur in dieser Pitch verwendet und
+                      Custom-Blöcke werden nur in diesem Slidedeck verwendet und
                       landen nicht im globalen Pool.
                     </div>
+                    <SchemaHelp type={customDraft.type} />
                   </div>
                 </>
               )}
@@ -877,27 +926,43 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
             <div className={styles.modalBody}>
               {editError && <div className={styles.formError}>{editError}</div>}
               <div className={styles.formHint} style={{ marginBottom: 12 }}>
-                Du bearbeitest den Snapshot dieser Pitch. Änderungen wirken
+                Du bearbeitest den Snapshot dieses Slidedecks. Änderungen wirken
                 sich nicht auf das globale Modul aus.
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Typ</label>
-                <input
-                  className={styles.formInput}
-                  value={PITCH_MODULE_LABELS[editingModule.type] || editingModule.type}
-                  disabled
-                />
+              <div
+                className={styles.formGroup}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}
+              >
+                <div>
+                  <label className={styles.formLabel}>Modul-Typ</label>
+                  <input
+                    className={styles.formInput}
+                    value={PITCH_MODULE_LABELS[editingModule.type] || editingModule.type}
+                    disabled
+                    style={{ background: '#f5f5f5', color: '#666' }}
+                  />
+                </div>
+                <div>
+                  <label className={styles.formLabel}>Bezeichnung</label>
+                  <input
+                    className={styles.formInput}
+                    value={editForm.name}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Name</label>
-                <input
-                  className={styles.formInput}
-                  value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, name: e.target.value }))
+
+              {showsStandardHeader(editingModule.type) && (
+                <StandardHeaderFields
+                  contentJson={editForm.contentJson}
+                  onChange={(json) =>
+                    setEditForm((f) => ({ ...f, contentJson: json }))
                   }
                 />
-              </div>
+              )}
+
               {editingModule.type === 'love-brands' && (
                 <LoveBrandFields
                   contentJson={editForm.contentJson}
@@ -914,6 +979,19 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                   }
                 />
               )}
+              {(() => {
+                const platforms = casePlatformsFor(editingModule.type)
+                if (!platforms) return null
+                return (
+                  <CaseEmbedField
+                    contentJson={editForm.contentJson}
+                    onChange={(json) =>
+                      setEditForm((f) => ({ ...f, contentJson: json }))
+                    }
+                    allowedPlatforms={platforms}
+                  />
+                )
+              })()}
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
@@ -934,6 +1012,7 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                     setEditForm((f) => ({ ...f, contentJson: e.target.value }))
                   }
                 />
+                <SchemaHelp type={editingModule.type} />
               </div>
             </div>
             <div className={styles.modalFooter}>
