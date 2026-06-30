@@ -205,6 +205,11 @@ export interface PillarItem {
 
 export interface SaeulenContent {
   pillars: PillarItem[]    // typischerweise 5
+  // Optionale Overrides für die Headline-Bereiche. Markdown-Style `**rot**`
+  // markiert den Text in Pulp-Rot.
+  eyebrow?: string
+  headline?: string        // zb "So bauen wir **Lovebrands**"
+  sub?: string
 }
 
 export interface LeistungItem {
@@ -215,6 +220,10 @@ export interface LeistungItem {
 
 export interface LeistungenContent {
   items: LeistungItem[]    // typischerweise 9 für 3x3
+  // Optionale Headline-Overrides. `**Text**` wird rot gerendert.
+  eyebrow?: string
+  headline?: string        // zb "Unsere **Leistungen**"
+  sub?: string
 }
 
 // Case-Video ist absichtlich minimalistisch: nur das Video, kein Overlay-Text.

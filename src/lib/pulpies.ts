@@ -52,7 +52,9 @@ export interface SyncResult {
 }
 
 export async function syncPulpiesFromWebsite(): Promise<SyncResult> {
-  const { people, fromCache } = await fetchTeam()
+  // forceFresh: umgeht Next.js-Cache, damit der Sync wirklich den aktuellen
+  // Stand von pulpmedia.at/people zieht und nicht eine bis zu 1h alte Version.
+  const { people, fromCache } = await fetchTeam({ forceFresh: true })
   const incomingSlugs = new Set(people.map((p: Person) => p.slug))
 
   // Bestehende DB-Einträge laden (auch archivierte – damit wir un-archivieren können)

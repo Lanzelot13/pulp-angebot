@@ -163,6 +163,32 @@ model Pulpie {
 // Marken-Pool für die Lovebrands-Folie. Pro Pitch wählt man im Editor aus,
 // welche Brands gezeigt werden. Logo-Datei liegt unter public/pitch/lovebrands/.
 
+// ============================================================
+// CaseReference – Sammlung von Beispiel-Videos/-Reels
+// ============================================================
+//
+// Vom Pitch-Skill und im Admin genutzt, um häufig referenzierte Cases
+// (Hero-Videos, Social-Reels) auszuwählen statt jedes Mal Video-IDs
+// händisch zu raten. Beispiele: Rosenbauer-Markenfilm (YouTube),
+// Zipfer-Reel (Instagram), Wassertransferdruck-Short (TikTok).
+
+model CaseReference {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String                              // "Rosenbauer Markenfilm"
+  url         String                              // direkter Link (YouTube/TikTok/...)
+  platform    String   @default("youtube")       // "youtube" | "tiktok" | "instagram" | "facebook" | "other"
+  description String?                             // 1-2 Sätze für den Kontext
+  tags        String[]                            // ["Industrie", "Recruiting", "Hero-Video"]
+  sortOrder   Int      @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([archivedAt])
+  @@index([sortOrder])
+}
+
 model LoveBrand {
   id           String   @id @default(cuid())
   slug         String   @unique                // "rosenbauer", "zipfer", ...

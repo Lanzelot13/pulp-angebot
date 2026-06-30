@@ -12,7 +12,7 @@
 // per <style dangerouslySetInnerHTML> injiziert, damit das
 // Cascade-Pattern aus dem Clickdummy 1:1 funktioniert.
 
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import type {
   PitchModuleType,
@@ -112,6 +112,17 @@ function iconUrl(key: string | undefined): string | null {
   if (!key) return null
   const path = ICON_FILES[key]
   return path ? '/' + path : null
+}
+
+// Parst `**Akzent**`-Markierung und rendert die markierten Stellen rot.
+// Beispiel: "So bauen wir **Lovebrands**" → "So bauen wir " + <span.red>Lovebrands</span>
+function renderHeadline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    const m = part.match(/^\*\*(.+)\*\*$/)
+    if (m) return <span key={i} className="red">{m[1]}</span>
+    return <span key={i}>{part}</span>
+  })
 }
 
 // =========================================================
@@ -666,14 +677,22 @@ function HeroModule({
 // 02 · TEAM
 // =========================================================
 function TeamModule({ data, team, label }: { data: TeamContent; team: Person[]; label: string }) {
-  const attending = new Set(data.attendingSlugs || [])
-  const attendingCount = attending.size
-  // Reihenfolge: die Anwesenden zuerst (in der gewählten Reihenfolge), dann der Rest
-  const attendingSorted = (data.attendingSlugs || [])
-    .map((slug) => team.find((p) => p.slug === slug))
+  // Toleranter Slug-Match: zuerst exakter Match, sonst startsWith
+  // (zB "paul" matched auch "paul-lanzerstorfer"). Damit verzeiht das Modul,
+  // wenn der Skill nur Vorname als Slug schickt.
+  const resolveSlug = (slug: string): Person | undefined => {
+    const exact = team.find((p) => p.slug === slug)
+    if (exact) return exact
+    const prefix = team.find((p) => p.slug.startsWith(slug + '-'))
+    return prefix
+  }
+  const attendingPeople = (data.attendingSlugs || [])
+    .map(resolveSlug)
     .filter((p): p is Person => !!p)
+  const attending = new Set(attendingPeople.map((p) => p.slug))
+  const attendingCount = attending.size
   const others = team.filter((p) => !attending.has(p.slug))
-  const list = [...attendingSorted, ...others]
+  const list = [...attendingPeople, ...others]
   const headline = data.headline || `${team.length} Pulpies, ${attendingCount} sind heute dabei`
   // Den dynamischen Akzent-Part nach dem Komma rot färben, wenn keine Custom-Headline
   return (
@@ -906,11 +925,14 @@ function SaeulenModule({ data: raw, label }: { data: SaeulenContent; label: stri
   const data: SaeulenContent = {
     pillars: raw?.pillars && raw.pillars.length > 0 ? raw.pillars : fallback.pillars,
   }
+  const eyebrowText = raw?.eyebrow || 'Fünf Säulen für Brand Love'
+  const headlineText = raw?.headline || 'So bauen wir **Lovebrands**'
   return (
     <section className="slide saeulen" data-slide-type="saeulen" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Fünf Säulen für Brand Love</span></div>
-        <h2 className="slide-title reveal-fade delay-2">So bauen wir <span className="red">Lovebrands</span><span className="title-ico" aria-hidden="true" /></h2>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        {raw?.sub && <p className="sub reveal-fade delay-3">{raw.sub}</p>}
       </div>
       <div className="pillars reveal-fade delay-2">
         {data.pillars?.map((p, i) => {
@@ -943,11 +965,14 @@ function LeistungenModule({ data: raw, label }: { data: LeistungenContent; label
   const data: LeistungenContent = {
     items: raw?.items && raw.items.length > 0 ? raw.items : fallback.items,
   }
+  const eyebrowText = raw?.eyebrow || 'Was wir tagtäglich tun'
+  const headlineText = raw?.headline || 'Unsere **Leistungen**'
   return (
     <section className="slide leistungen" data-slide-type="leistungen" data-screen-label={label}>
       <div className="intro">
-        <div className="eyebrow reveal-fade"><span className="bar" /><span>Was wir tagtäglich tun</span></div>
-        <h2 className="slide-title reveal-fade delay-2">Unsere <span className="red">Leistungen</span><span className="title-ico" aria-hidden="true" /></h2>
+        <div className="eyebrow reveal-fade"><span className="bar" /><span>{eyebrowText}</span></div>
+        <h2 className="slide-title reveal-fade delay-2">{renderHeadline(headlineText)}<span className="title-ico" aria-hidden="true" /></h2>
+        {raw?.sub && <p className="sub reveal-fade delay-3">{raw.sub}</p>}
       </div>
       <div className="grid">
         {data.items?.map((it, i) => {

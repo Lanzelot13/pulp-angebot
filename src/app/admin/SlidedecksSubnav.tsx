@@ -7,10 +7,11 @@ import { usePathname } from 'next/navigation'
 // die anderen drei sind die wiederverwendbaren Bausteine.
 
 const TABS: Array<{ href: string; label: string }> = [
-  { href: '/admin/pitches',    label: 'Slidedecks' },
-  { href: '/admin/modules',    label: 'Module' },
-  { href: '/admin/pulpies',    label: 'Pulpies' },
-  { href: '/admin/lovebrands', label: 'Lovebrands' },
+  { href: '/admin/pitches',         label: 'Slidedecks' },
+  { href: '/admin/modules',         label: 'Module' },
+  { href: '/admin/pulpies',         label: 'Pulpies' },
+  { href: '/admin/lovebrands',      label: 'Lovebrands' },
+  { href: '/admin/case-references', label: 'Case-Referenzen' },
 ]
 
 export function SlidedecksSubnav() {

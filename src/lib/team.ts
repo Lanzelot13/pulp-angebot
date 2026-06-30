@@ -25,18 +25,23 @@ const CACHE_TTL_SECONDS = 3600 // 1h, wird von Next-Fetch übernommen
 // Letzter erfolgreicher Snapshot (Fallback bei Fetch-Fehlern)
 let lastGood: { fetchedAt: number; people: Person[] } | null = null
 
-export async function fetchTeam(): Promise<{
+export async function fetchTeam(opts?: { forceFresh?: boolean }): Promise<{
   people: Person[]
   fetchedAt: number
   fromCache: boolean
 }> {
   try {
-    // Next.js fetch-Caching: stale-after revalidate, deduped pro Anfrage
+    // Beim Admin-Sync (forceFresh=true) den Next.js-Cache und alle Upstream-CDN-Layer
+    // umgehen, sonst sieht der Sync evtl. eine veraltete Version der Pulpmedia-Seite
+    // mit bereits archivierten Personen drin.
     const res = await fetch(SOURCE_URL, {
-      next: { revalidate: CACHE_TTL_SECONDS },
+      ...(opts?.forceFresh
+        ? { cache: 'no-store' as const }
+        : { next: { revalidate: CACHE_TTL_SECONDS } }),
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Pulp angeBOT) AppleWebKit/537.36 (KHTML, like Gecko)',
+        ...(opts?.forceFresh ? { 'Cache-Control': 'no-cache' } : {}),
       },
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
