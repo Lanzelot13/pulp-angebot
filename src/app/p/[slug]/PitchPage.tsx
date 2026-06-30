@@ -936,7 +936,13 @@ function SaeulenModule({ data: raw, label }: { data: SaeulenContent; label: stri
 // =========================================================
 // 09 · LEISTUNGEN
 // =========================================================
-function LeistungenModule({ data, label }: { data: LeistungenContent; label: string }) {
+function LeistungenModule({ data: raw, label }: { data: LeistungenContent; label: string }) {
+  // Defensive Defaults: ohne items wäre die Folie leer. Leistungen sind Pulp-Standard,
+  // der Default-Content passt fast immer.
+  const fallback = DEFAULT_CONTENT['leistungen'] as LeistungenContent
+  const data: LeistungenContent = {
+    items: raw?.items && raw.items.length > 0 ? raw.items : fallback.items,
+  }
   return (
     <section className="slide leistungen" data-slide-type="leistungen" data-screen-label={label}>
       <div className="intro">
