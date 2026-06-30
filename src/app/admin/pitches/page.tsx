@@ -28,6 +28,7 @@ interface PitchRow {
   modules: unknown[]
   version?: number
   viewCount?: number
+  internalViewCount?: number
   lastViewAt?: string | null
   archivedAt: string | null
   createdAt: string
@@ -353,13 +354,18 @@ export default function PitchesPage() {
                 </td>
                 <td>{Array.isArray(p.modules) ? p.modules.length : 0}</td>
                 <td className={styles.viewCountCell}>
-                  {p.viewCount && p.viewCount > 0 ? (
+                  {(p.viewCount && p.viewCount > 0) || (p.internalViewCount && p.internalViewCount > 0) ? (
                     <a
                       href={`/admin/pitches/${p.id}/tracking`}
-                      className={styles.viewCountLink}
+                      className={styles.viewCountPills}
                       title="Tracking ansehen"
                     >
-                      {p.viewCount}
+                      <span className={styles.viewCountLink}>{p.viewCount || 0}</span>
+                      {p.internalViewCount && p.internalViewCount > 0 ? (
+                        <span className={styles.viewCountInternal} title="Pulp-Aufrufe">
+                          {p.internalViewCount}
+                        </span>
+                      ) : null}
                     </a>
                   ) : (
                     <span className={styles.viewCountZero}>0</span>

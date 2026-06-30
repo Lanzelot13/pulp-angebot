@@ -68,10 +68,13 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
   })
 
-  // Aufrufe pro Angebot (TrackView-Count + letzter Zugriff) in einem Query holen.
-  // Cast, weil Prisma-Client in der Sandbox nicht regeneriert wird.
+  // Aufrufe pro Angebot. Wir gruppieren zusätzlich nach isInternal, sodass
+  // wir Kunden- und Pulp-Aufrufe getrennt darstellen können. Das lastViewAt
+  // bezieht sich bewusst nur auf Kunden-Aufrufe (Pulp-Tests sind irrelevant
+  // für die Frage "wann hat der Kunde zuletzt geschaut").
   const offerIds = offers.map((o) => o.id)
   const countMap = new Map<string, number>()
+  const internalCountMap = new Map<string, number>()
   const lastViewMap = new Map<string, Date>()
   if (offerIds.length > 0) {
     try {
@@ -80,6 +83,7 @@ export async function GET(request: NextRequest) {
           groupBy: (a: unknown) => Promise<
             Array<{
               targetId: string
+              isInternal: boolean
               _count: { _all: number }
               _max: { lastEventAt: Date | null }
             }>
@@ -87,21 +91,19 @@ export async function GET(request: NextRequest) {
         }
       }
       const grouped = await trackDb.trackView.groupBy({
-        by: ['targetId'],
-        // Interne (Pulp-)Aufrufe nicht mitzählen, damit die Pille in der
-        // Übersicht ehrliche Kunden-Aufrufe zeigt.
-        where: {
-          targetType: 'OFFER',
-          targetId: { in: offerIds },
-          isInternal: false,
-        },
+        by: ['targetId', 'isInternal'],
+        where: { targetType: 'OFFER', targetId: { in: offerIds } },
         _count: { _all: true },
         _max: { lastEventAt: true },
       })
       for (const row of grouped) {
-        countMap.set(row.targetId, row._count._all)
-        if (row._max.lastEventAt) {
-          lastViewMap.set(row.targetId, row._max.lastEventAt)
+        if (row.isInternal) {
+          internalCountMap.set(row.targetId, row._count._all)
+        } else {
+          countMap.set(row.targetId, row._count._all)
+          if (row._max.lastEventAt) {
+            lastViewMap.set(row.targetId, row._max.lastEventAt)
+          }
         }
       }
     } catch {
@@ -112,6 +114,7 @@ export async function GET(request: NextRequest) {
   const offersWithCounts = offers.map((o) => ({
     ...o,
     viewCount: countMap.get(o.id) || 0,
+    internalViewCount: internalCountMap.get(o.id) || 0,
     lastViewAt: lastViewMap.get(o.id) || null,
   }))
 

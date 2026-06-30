@@ -44,6 +44,7 @@ interface OfferRow {
   _count: { versions: number }
   // Tracking
   viewCount: number
+  internalViewCount: number
   lastViewAt: string | null
   // Moco
   mocoRef: string | null
@@ -938,13 +939,18 @@ export default function OffersPage() {
                     <span className={styles.versionBadge}>v{o.version}</span>
                   </td>
                   <td onClick={(e) => e.stopPropagation()} className={styles.viewCountCell}>
-                    {o.viewCount > 0 ? (
+                    {o.viewCount > 0 || o.internalViewCount > 0 ? (
                       <a
                         href={`/admin/offers/${o.id}/tracking`}
-                        className={styles.viewCountLink}
+                        className={styles.viewCountPills}
                         title="Tracking ansehen"
                       >
-                        {o.viewCount}
+                        <span className={styles.viewCountLink}>{o.viewCount}</span>
+                        {o.internalViewCount > 0 && (
+                          <span className={styles.viewCountInternal} title="Pulp-Aufrufe">
+                            {o.internalViewCount}
+                          </span>
+                        )}
                       </a>
                     ) : (
                       <span className={styles.viewCountZero}>0</span>

@@ -1145,6 +1145,13 @@
   white-space: nowrap;
   vertical-align: middle;
 }
+/* Container für die zwei Aufruf-Pillen (schwarz = Kunde, grau = Pulp) */
+.viewCountPills {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
 .viewCountLink {
   display: inline-flex;
   align-items: center;
@@ -1159,7 +1166,21 @@
   text-decoration: none;
   font-weight: 600;
 }
+.viewCountPills:hover .viewCountLink { background: #FF1900; }
 .viewCountLink:hover { background: #FF1900; }
+.viewCountInternal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #ddd;
+  color: #555;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
 .viewCountZero {
   display: inline-block;
   color: #ccc;

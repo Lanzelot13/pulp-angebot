@@ -32,9 +32,12 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
   })
 
-  // Aufrufe pro Pitch (TrackView-Count + letzter Zugriff) in einem Query.
+  // Aufrufe pro Pitch. Wie bei den Angeboten gruppieren wir zusätzlich nach
+  // isInternal — schwarze Pille = Kunden-Aufrufe, graue Pille = Pulp-Aufrufe.
+  // lastViewAt bezieht sich nur auf die Kunden-Aufrufe.
   const pitchIds = pitches.map((p) => p.id)
   const countMap = new Map<string, number>()
+  const internalCountMap = new Map<string, number>()
   const lastViewMap = new Map<string, Date>()
   if (pitchIds.length > 0) {
     try {
@@ -43,6 +46,7 @@ export async function GET(request: NextRequest) {
           groupBy: (a: unknown) => Promise<
             Array<{
               targetId: string
+              isInternal: boolean
               _count: { _all: number }
               _max: { lastEventAt: Date | null }
             }>
@@ -50,15 +54,19 @@ export async function GET(request: NextRequest) {
         }
       }
       const grouped = await trackDb.trackView.groupBy({
-        by: ['targetId'],
+        by: ['targetId', 'isInternal'],
         where: { targetType: 'PITCH', targetId: { in: pitchIds } },
         _count: { _all: true },
         _max: { lastEventAt: true },
       })
       for (const row of grouped) {
-        countMap.set(row.targetId, row._count._all)
-        if (row._max.lastEventAt) {
-          lastViewMap.set(row.targetId, row._max.lastEventAt)
+        if (row.isInternal) {
+          internalCountMap.set(row.targetId, row._count._all)
+        } else {
+          countMap.set(row.targetId, row._count._all)
+          if (row._max.lastEventAt) {
+            lastViewMap.set(row.targetId, row._max.lastEventAt)
+          }
         }
       }
     } catch {
@@ -69,6 +77,7 @@ export async function GET(request: NextRequest) {
   const pitchesWithCounts = pitches.map((p) => ({
     ...p,
     viewCount: countMap.get(p.id) || 0,
+    internalViewCount: internalCountMap.get(p.id) || 0,
     lastViewAt: lastViewMap.get(p.id) || null,
   }))
 
