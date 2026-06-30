@@ -858,11 +858,37 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                   })()}
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>
-                      {customDraft.type === 'team'
-                        ? 'Inhalt (JSON, Quelle der Wahrheit)'
-                        : 'Inhalt (JSON)'}
-                    </label>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <label className={styles.formLabel} style={{ margin: 0 }}>
+                        {customDraft.type === 'team'
+                          ? 'Inhalt (JSON, Quelle der Wahrheit)'
+                          : 'Inhalt (JSON)'}
+                      </label>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                        onClick={() =>
+                          setCustomDraft((d) => ({
+                            ...d,
+                            contentJson: JSON.stringify(
+                              DEFAULT_CONTENT[d.type],
+                              null,
+                              2
+                            ),
+                          }))
+                        }
+                        title="Pulp-Default für diesen Modul-Typ in das Feld laden"
+                      >
+                        Default laden
+                      </button>
+                    </div>
                     <textarea
                       className={styles.formInput}
                       rows={12}
@@ -994,11 +1020,51 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
               })()}
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  {editingModule.type === 'team'
-                    ? 'Inhalt (JSON, Quelle der Wahrheit)'
-                    : 'Inhalt (JSON)'}
-                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 6,
+                  }}
+                >
+                  <label className={styles.formLabel} style={{ margin: 0 }}>
+                    {editingModule.type === 'team'
+                      ? 'Inhalt (JSON, Quelle der Wahrheit)'
+                      : 'Inhalt (JSON)'}
+                  </label>
+                  {(() => {
+                    // Default-Quelle: bevorzugt das globale Source-Modul (so
+                    // siehst du, was beim Refresh kommen würde), Fallback ist
+                    // das eingebaute DEFAULT_CONTENT vom Typ.
+                    const sourceModule = editingModule.moduleId
+                      ? sourceModules.find((s) => s.id === editingModule.moduleId)
+                      : null
+                    const label = sourceModule
+                      ? 'Aus Modul laden'
+                      : 'Default laden'
+                    const title = sourceModule
+                      ? `Inhalt aus dem Modul "${sourceModule.name}" in das Feld laden (überschreibt den aktuellen Snapshot-Text, aber speichert noch nicht)`
+                      : 'Pulp-Default für diesen Modul-Typ in das Feld laden'
+                    return (
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                        title={title}
+                        onClick={() => {
+                          const source = sourceModule?.content as unknown
+                          const next = source ?? DEFAULT_CONTENT[editingModule.type]
+                          setEditForm((f) => ({
+                            ...f,
+                            contentJson: JSON.stringify(next, null, 2),
+                          }))
+                        }}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })()}
+                </div>
                 <textarea
                   className={styles.formInput}
                   rows={16}
