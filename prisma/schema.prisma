@@ -362,3 +362,27 @@ model TrackEvent {
   @@index([type])
   @@index([at])
 }
+
+// ============================================================
+// BrandScan – gespeicherte Ad-hoc-Scans aus dem Brandmonitor-Tool
+// ============================================================
+//
+// Jeder Scrape im /admin/tools-Brandmonitor kostet ein paar Cent (Apify),
+// daher wird das Ergebnis hier persistiert statt bei jedem Aufruf neu zu
+// ziehen. Die flachen Spalten (platform/handle/er/rank/scrapedAt) dienen
+// dem Listing/Sortieren, das vollständige Ergebnis (inkl. Metriken und
+// Benchmark-Snapshot zum Zeitpunkt des Scans) liegt als JSON in `data`.
+
+model BrandScan {
+  id         String   @id @default(cuid())
+  platform   String                // "tiktok" | "instagram"
+  handle     String                // "rosenbauergroup"
+  er         Float                 // Engagement Rate in %
+  rank       String                // "A" | "B" | "C" | "D"
+  scrapedAt  DateTime @default(now())
+  data       Json                  // vollständiges Ergebnis (metrics, benchmark, avatar, ...)
+
+  @@index([scrapedAt])
+  @@index([platform])
+  @@index([handle])
+}

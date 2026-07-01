@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
+import { prisma } from '@/lib/prisma'
 import { BRANDMONITOR_BENCHMARK } from '@/lib/brandmonitorBenchmark'
 
 export const dynamic = 'force-dynamic'
@@ -226,7 +227,7 @@ export async function POST(request: NextRequest) {
   const position = higherCount + 1 // Rangplatz inkl. des abgefragten Accounts
   const topBrand = bench.brands[0]
 
-  return NextResponse.json({
+  const payload = {
     platform: parsed.platform,
     handle: parsed.handle,
     displayName: metrics.displayName,
@@ -250,5 +251,36 @@ export async function POST(request: NextRequest) {
       position,
       topBrand: { handle: topBrand.handle, er: topBrand.er },
     },
+  }
+
+  // In der DB persistieren, damit der (kostenpflichtige) Scrape nicht verfaellt
+  const scan = await prisma.brandScan.create({
+    data: {
+      platform: parsed.platform,
+      handle: parsed.handle,
+      er,
+      rank,
+      data: payload,
+    },
   })
+
+  return NextResponse.json({ id: scan.id, scrapedAt: scan.scrapedAt, ...payload })
+}
+
+// GET /api/admin/tools/brandmonitor — Liste aller gespeicherten Scans
+export async function GET(request: NextRequest) {
+  const authResult = await requireAdmin(request)
+  if (authResult instanceof NextResponse) return authResult
+
+  const scans = await prisma.brandScan.findMany({
+    orderBy: { scrapedAt: 'desc' },
+  })
+
+  const rows = scans.map((s) => ({
+    id: s.id,
+    scrapedAt: s.scrapedAt,
+    ...(s.data as Record<string, unknown>),
+  }))
+
+  return NextResponse.json(rows)
 }
