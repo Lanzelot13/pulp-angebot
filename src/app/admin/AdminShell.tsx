@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
-import { IconDashboard, IconFileText, IconLogout, IconPresentation } from './Icons'
+import { IconDashboard, IconFileText, IconLogout, IconPresentation, IconSettings } from './Icons'
 import styles from './admin.module.css'
 
 interface User {
@@ -63,6 +63,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     { href: '/admin', label: 'Dashboard', icon: <IconDashboard size={18} /> },
     { href: '/admin/offers', label: 'Angebote', icon: <IconFileText size={18} /> },
     { href: '/admin/pitches', label: 'Slidedecks', icon: <IconPresentation size={18} /> },
+    { href: '/admin/tools', label: 'Tools', icon: <IconSettings size={18} /> },
   ]
 
   // Subpfade, die das jeweilige Hauptmenü-Item aktiv lassen sollen
