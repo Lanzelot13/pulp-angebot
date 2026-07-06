@@ -55,7 +55,7 @@ export async function createSession(user: AdminUser): Promise<string> {
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('24h')
+    .setExpirationTime('90d')
     .sign(JWT_SECRET)
 
   return token
