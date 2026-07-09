@@ -454,7 +454,8 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   if (packages || isEdit) sectionNumbers.packages = String(++sectionNum).padStart(2, '0')
   if ((timeline || isEdit) && !timelineHidden) sectionNumbers.timeline = String(++sectionNum).padStart(2, '0')
   if ((stats.length > 0 || isEdit) && !statsHidden) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
-  if (!referencesHidden) sectionNumbers.references = String(++sectionNum).padStart(2, '0')
+  // Referenzen zählen nur, wenn wirklich welche zugeordnet sind (oder im Edit-Modus)
+  if (!referencesHidden && (displayRefs.length > 0 || isEdit)) sectionNumbers.references = String(++sectionNum).padStart(2, '0')
   if ((displayChannels.length > 0 || isEdit) && !channelsHidden) sectionNumbers.channels = String(++sectionNum).padStart(2, '0')
 
   // In edit mode, skip reveal animation (opacity:0) so all elements are visible
@@ -1190,8 +1191,11 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               </div>
             )}
 
-            {/* NOT INCLUDED — hint box below packages/add-ons */}
-            {(!notIncluded.hidden || isEdit) && (
+            {/* NOT INCLUDED — hint box below packages/add-ons.
+                Nicht rendern im View-Modus, wenn keine Items da sind
+                (leere Box wirkt unfertig). Im Edit-Modus immer sichtbar,
+                damit man Items nachtragen kann. */}
+            {(!notIncluded.hidden && (notIncluded.items || []).length > 0 || isEdit) && (
               <div
                 className={`${styles.notIncludedBox} ${notIncluded.hidden ? styles.notIncludedHidden : ''} ${rev}`}
                 data-delay="100"
@@ -1448,8 +1452,9 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         </section>
       )}
 
-      {/* REFERENCES */}
-      {(!referencesHidden || isEdit) && (
+      {/* REFERENCES — im View-Modus nur zeigen, wenn wirklich Referenzen
+          zugeordnet sind. Sonst bleibt nur die einsame Headline übrig. */}
+      {((!referencesHidden && displayRefs.length > 0) || isEdit) && (
       <section
         className={styles.section}
         style={isEdit && referencesHidden ? { opacity: 0.4 } : undefined}
