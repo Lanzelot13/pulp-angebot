@@ -58,6 +58,17 @@ model Offer {
   // funktionieren weiter.
   blockedAt     DateTime?
 
+  // Publish-Workflow (Draft-Modus):
+  // - publishedSnapshot: gefrorene Kopie des Offer-Zustands, den der Kunde
+  //   sehen soll. Enthält alle Section-Felder plus referenceIds/channelIds.
+  //   Live-Editieren ändert den Snapshot NICHT — erst der "Freigeben"-Button
+  //   überschreibt ihn mit dem aktuellen Live-Zustand.
+  // - publishedAt: Zeitpunkt der letzten Freigabe (für UI-Anzeige).
+  // Wenn beide null sind, rendert die Public-Route den Live-Zustand
+  // (Rückwärtskompatibilität für Bestandsangebote vor dem Publish-Rollout).
+  publishedSnapshot Json?
+  publishedAt       DateTime?
+
   // Edit token for inline editor
   editToken     String      @unique @default(cuid())
 

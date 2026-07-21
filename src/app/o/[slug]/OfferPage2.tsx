@@ -9,6 +9,7 @@ import type {
 } from '@/lib/types'
 import { DEFAULT_NOT_INCLUDED } from '@/lib/types'
 import { useTracking } from '@/lib/use-tracking'
+import { hasUnpublishedChanges } from '@/lib/publish'
 import styles from './offer2.module.css'
 
 // Available icons for understanding cards and stats. Used for the cycle button,
@@ -696,6 +697,110 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             })()}
           </div>
           <div className={styles.statusRight}>
+            {(() => {
+              // Publish-Widget: zeigt den Freigabe-Status und bietet den
+              // "Änderungen freigeben"-Button. Freigabe ist entkoppelt vom
+              // Save-Flow — man kann speichern ohne zu veröffentlichen
+              // (dann sieht der Kunde weiterhin die alte Version).
+              const dAny = draft as unknown as {
+                publishedSnapshot?: Record<string, unknown> | null
+                publishedAt?: string | Date | null
+              }
+              const snapshot = dAny.publishedSnapshot ?? null
+              const publishedAt = dAny.publishedAt ? new Date(dAny.publishedAt) : null
+              const dirtyPublish = hasUnpublishedChanges(
+                draft as unknown as Record<string, unknown>,
+                snapshot
+              )
+              const legacy = !snapshot && !publishedAt
+
+              async function doPublish() {
+                const res = await fetch(`/api/offers/${draft.id}/publish?edit=${draft.editToken}`, {
+                  method: 'POST',
+                })
+                if (res.ok) {
+                  const now = new Date().toISOString()
+                  const newSnapshot: Record<string, unknown> = {}
+                  const fields = [
+                    'clientName', 'clientCompany', 'projectName', 'offerNumber',
+                    'hero', 'understanding', 'services', 'packages', 'notIncluded',
+                    'timeline', 'stats', 'statsHeadline', 'statsHidden',
+                    'referenceIds', 'referencesHeadline', 'referencesHidden',
+                    'channelIds', 'channelsHidden', 'channelsHeadline', 'legal',
+                  ] as const
+                  for (const f of fields) {
+                    if (f in (draft as unknown as Record<string, unknown>)) {
+                      newSnapshot[f] = (draft as unknown as Record<string, unknown>)[f]
+                    }
+                  }
+                  setDraft((prev) => ({ ...prev, publishedSnapshot: newSnapshot, publishedAt: now } as unknown as typeof prev))
+                  setSavedOffer((prev) => ({ ...prev, publishedSnapshot: newSnapshot, publishedAt: now } as unknown as typeof prev))
+                  showToast('Für Kunden freigegeben')
+                }
+              }
+              async function doUnpublish() {
+                if (!window.confirm('Angebot vom Kunden verbergen? Der Kunde sieht dann eine "in Arbeit"-Seite, bis du wieder freigibst.')) return
+                const res = await fetch(`/api/offers/${draft.id}/publish?edit=${draft.editToken}`, {
+                  method: 'DELETE',
+                })
+                if (res.ok) {
+                  const now = new Date().toISOString()
+                  setDraft((prev) => ({ ...prev, publishedSnapshot: null, publishedAt: now } as unknown as typeof prev))
+                  setSavedOffer((prev) => ({ ...prev, publishedSnapshot: null, publishedAt: now } as unknown as typeof prev))
+                  showToast('Für Kunden verborgen')
+                }
+              }
+
+              const publishedRelative = (() => {
+                if (!publishedAt) return null
+                const diffMs = Date.now() - publishedAt.getTime()
+                const diffMin = Math.floor(diffMs / 60_000)
+                if (diffMin < 1) return 'gerade eben'
+                if (diffMin < 60) return `vor ${diffMin} min`
+                const diffH = Math.floor(diffMin / 60)
+                if (diffH < 24) return `vor ${diffH} h`
+                const diffD = Math.floor(diffH / 24)
+                if (diffD === 1) return 'gestern'
+                if (diffD < 30) return `vor ${diffD} Tagen`
+                return publishedAt.toLocaleDateString('de-AT')
+              })()
+
+              return (
+                <>
+                  {legacy ? (
+                    <span className={styles.publishStatus} title="Bestandsangebot: Kunde sieht immer den aktuellen Stand. Freigabe aktivieren um Draft-Modus zu nutzen.">
+                      Live-Modus
+                    </span>
+                  ) : snapshot ? (
+                    <span
+                      className={dirtyPublish ? styles.publishStatusDirty : styles.publishStatus}
+                      title={dirtyPublish ? 'Es gibt Änderungen, die der Kunde noch nicht sieht' : 'Kundenansicht ist auf dem aktuellen Stand'}
+                    >
+                      {dirtyPublish ? '● Nicht freigegeben' : `✓ Freigegeben · ${publishedRelative}`}
+                    </span>
+                  ) : (
+                    <span className={styles.publishStatusDirty} title="Kunde bekommt gerade die 'in Arbeit'-Seite">
+                      ● Für Kunden verborgen
+                    </span>
+                  )}
+                  {(dirtyPublish || !snapshot) && !legacy && (
+                    <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty}>
+                      {snapshot ? 'Änderungen freigeben' : 'Für Kunden freigeben'}
+                    </button>
+                  )}
+                  {legacy && (
+                    <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty}>
+                      Freigabe aktivieren
+                    </button>
+                  )}
+                  {snapshot && !dirtyPublish && (
+                    <button className={styles.btnUnpublish} onClick={doUnpublish} type="button" title="Kunden verbergen, bis du wieder freigibst">
+                      Verbergen
+                    </button>
+                  )}
+                </>
+              )
+            })()}
             <button
               className={styles.btnCancel}
               onClick={handleCancel}

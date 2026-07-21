@@ -1343,6 +1343,57 @@
 }
 .unavailableFooter a:hover { color: #FF1900; }
 
+/* Publish-Status-Pille und Buttons in der Editor-Status-Bar */
+.publishStatus {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: rgba(255,255,255,0.55);
+  padding: 0.25rem 0.6rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+}
+.publishStatusDirty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: #ffb74d;
+  padding: 0.25rem 0.6rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 152, 0, 0.15);
+}
+.btnPublish {
+  background: #FF1900;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-right: 0.4rem;
+  transition: background 0.15s;
+}
+.btnPublish:hover:not(:disabled) { background: #cc1400; }
+.btnPublish:disabled { background: #666; cursor: not-allowed; opacity: 0.5; }
+.btnUnpublish {
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.4rem 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-right: 0.4rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btnUnpublish:hover { color: #fff; border-color: #fff; }
+
 /* Kleiner Pill-Button in der Editor-Status-Bar (Sperren / Gültigkeit) */
 .statusPill {
   display: inline-flex;

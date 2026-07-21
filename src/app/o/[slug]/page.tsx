@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getSessionFromCookies } from '@/lib/admin-auth'
+import { mergeSnapshotIntoOffer } from '@/lib/publish'
 import { OfferPage } from './OfferPage'
 import { OfferPage2 } from './OfferPage2'
 import { OfferUnavailable } from './OfferUnavailable'
@@ -24,7 +25,12 @@ export default async function Page({ params, searchParams }: PageProps) {
   // Zugriffs-Check: Wenn das Angebot manuell gesperrt oder abgelaufen ist,
   // sehen nur eingeloggte Admins und Aufrufe mit gültigem edit-Token es
   // weiterhin. Alle anderen bekommen die Info-Seite.
-  const offerAny = offer as unknown as { blockedAt?: Date | null; validUntil?: Date | null }
+  const offerAny = offer as unknown as {
+    blockedAt?: Date | null
+    validUntil?: Date | null
+    publishedSnapshot?: Record<string, unknown> | null
+    publishedAt?: Date | null
+  }
   const editToken = searchParams.edit
   const hasEditToken = editToken && editToken === offer.editToken
   const adminUser = hasEditToken ? null : await getSessionFromCookies()
@@ -35,6 +41,22 @@ export default async function Page({ params, searchParams }: PageProps) {
     return (
       <OfferUnavailable
         reason={isExpired ? 'expired' : 'blocked'}
+        contact={offer.contact ?? null}
+        clientCompany={offer.clientCompany}
+      />
+    )
+  }
+
+  // Draft-Modus: Wenn das Angebot explizit "nicht mehr veröffentlicht" wurde
+  // (publishedAt gesetzt, aber publishedSnapshot null), sieht der Kunde
+  // ebenfalls die Info-Seite. Bestandsangebote (beide null) sind davon nicht
+  // betroffen und rendern weiter Live.
+  const isUnpublished =
+    !offerAny.publishedSnapshot && !!offerAny.publishedAt
+  if (!bypass && isUnpublished) {
+    return (
+      <OfferUnavailable
+        reason="blocked"
         contact={offer.contact ?? null}
         clientCompany={offer.clientCompany}
       />
@@ -76,30 +98,42 @@ export default async function Page({ params, searchParams }: PageProps) {
     }
   }
 
-  // Resolve references and channels
-  const references = offer.referenceIds.length > 0
-    ? await prisma.reference.findMany({
-        where: { id: { in: offer.referenceIds } },
-        orderBy: { sortOrder: 'asc' },
-      })
-    : []
-
-  const channels = offer.channelIds.length > 0
-    ? await prisma.channel.findMany({
-        where: { id: { in: offer.channelIds } },
-        orderBy: { sortOrder: 'asc' },
-      })
-    : []
-
-  // Determine mode
+  // Draft/Publish-Logik: der Kunde sieht den publishedSnapshot (falls
+  // vorhanden), Admins und der Editor sehen immer den Live-Zustand.
+  // Bestandsangebote ohne Snapshot fallen in den Live-Modus zurück.
   const isClean = searchParams.clean === '1'
   const isEdit = !isClean && !!hasEditToken
+  const isEditorOrAdmin = isEdit || !!adminUser
+  const displayOffer = isEditorOrAdmin
+    ? offer
+    : (mergeSnapshotIntoOffer(
+        offer as unknown as Record<string, unknown>,
+        offerAny.publishedSnapshot ?? null
+      ) as unknown as typeof offer)
+
+  // Resolve references and channels — die IDs kommen aus dem sichtbaren
+  // Objekt (Snapshot oder Live), damit der Kunde die richtigen Referenzen sieht.
+  const displayRefIds = (displayOffer as unknown as { referenceIds?: string[] }).referenceIds || []
+  const displayChIds = (displayOffer as unknown as { channelIds?: string[] }).channelIds || []
+  const references = displayRefIds.length > 0
+    ? await prisma.reference.findMany({
+        where: { id: { in: displayRefIds } },
+        orderBy: { sortOrder: 'asc' },
+      })
+    : []
+
+  const channels = displayChIds.length > 0
+    ? await prisma.channel.findMany({
+        where: { id: { in: displayChIds } },
+        orderBy: { sortOrder: 'asc' },
+      })
+    : []
 
   const tpl2 = (offer as unknown as { template?: string }).template
   const TemplateComponent = tpl2 === 'TEMPLATE2' ? OfferPage2 : OfferPage
   return (
     <TemplateComponent
-      offer={JSON.parse(JSON.stringify(offer))}
+      offer={JSON.parse(JSON.stringify(displayOffer))}
       references={JSON.parse(JSON.stringify(references))}
       channels={JSON.parse(JSON.stringify(channels))}
       mode={isEdit ? 'edit' : 'view'}
