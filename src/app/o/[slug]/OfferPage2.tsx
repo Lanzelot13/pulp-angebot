@@ -786,12 +786,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                   )}
                   {!snapshotActive && (
                     <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty} title="Aktuelle Version für den Kunden einfrieren">
-                      Kunden-Snapshot aktivieren
+                      Snapshot erstellen
                     </button>
                   )}
                   {snapshotActive && dirtyPublish && (
                     <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty} title="Aktuelle Version zum neuen Snapshot machen">
-                      Aktuelle Version freigeben
+                      Neuen Snapshot erstellen
                     </button>
                   )}
                   {snapshotActive && (

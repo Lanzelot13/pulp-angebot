@@ -966,12 +966,6 @@ export default function OffersPage() {
                     {o.validUntil && new Date(o.validUntil) < new Date() && !o.blockedAt && (
                       <span className={styles.expiredBadge} title="Gültigkeit abgelaufen">Abgelaufen</span>
                     )}
-                    {o.publishedVersion && !o.archivedAt && (
-                      <span className={styles.snapshotBadge} title={`Kunde sieht Snapshot v${o.publishedVersion}. Live ist v${o.version}.`}>
-                        Snapshot v{o.publishedVersion}
-                        {o.publishedVersion !== o.version && ` · Live v${o.version}`}
-                      </span>
-                    )}
                     <br />
                     <span style={{ fontSize: 13, color: '#888' }}>{o.projectName}</span>
                   </td>
@@ -979,7 +973,24 @@ export default function OffersPage() {
                     <span className={`${styles.statusPill} ${statusClass(o.status)}`}>{statusLabel(o.status)}</span>
                   </td>
                   <td>
-                    <span className={styles.versionBadge}>v{o.version}</span>
+                    {(() => {
+                      // Grün, wenn die aktuelle Version dem Kunden-Snapshot entspricht.
+                      // Grau bei Live-Modus (kein Snapshot) ODER wenn Snapshot älter ist.
+                      const inSync = o.publishedVersion === o.version
+                      const tooltip = o.publishedVersion == null
+                        ? 'Kein Snapshot aktiv (Live-Modus)'
+                        : inSync
+                          ? `Snapshot deckt sich mit Live (v${o.version})`
+                          : `Snapshot ist v${o.publishedVersion}, Live ist v${o.version}`
+                      return (
+                        <span
+                          className={`${styles.versionBadge} ${inSync ? styles.versionBadgeSync : styles.versionBadgeLive}`}
+                          title={tooltip}
+                        >
+                          v{o.version}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td onClick={(e) => e.stopPropagation()} className={styles.viewCountCell}>
                     {o.viewCount > 0 || o.internalViewCount > 0 ? (
@@ -1081,43 +1092,6 @@ export default function OffersPage() {
                       >
                         <IconSettings size={14} />
                       </button>
-                      {/* Publish-Actions: kompakte Text-Buttons, damit im engen Actions-Slot noch was Platz hat */}
-                      {!o.archivedAt && (o.publishedVersion === null || o.publishedVersion === undefined) && (
-                        <button
-                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
-                          onClick={() => doPublish(o)}
-                          title="Aktuelle Version als Kunden-Snapshot einfrieren"
-                        >
-                          📌 Freigeben
-                        </button>
-                      )}
-                      {!o.archivedAt && o.publishedVersion !== null && o.publishedVersion !== undefined && o.publishedVersion !== o.version && (
-                        <button
-                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
-                          onClick={() => doPublish(o)}
-                          title={`Aktuelle Version v${o.version} zum neuen Snapshot machen (aktuell v${o.publishedVersion})`}
-                        >
-                          ↻ v{o.version} freigeben
-                        </button>
-                      )}
-                      {!o.archivedAt && o.publishedVersion !== null && o.publishedVersion !== undefined && (
-                        <button
-                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
-                          onClick={() => doUnpublish(o)}
-                          title="Snapshot deaktivieren, Kunde sieht Live-Version"
-                        >
-                          ✕ Snapshot
-                        </button>
-                      )}
-                      {!o.archivedAt && o.blockedAt && (
-                        <button
-                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
-                          onClick={() => doUnblock(o)}
-                          title="Sperre aufheben, Kunde kommt wieder rein"
-                        >
-                          🔓 Entsperren
-                        </button>
-                      )}
                       {o.archivedAt ? (
                         <button
                           className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
@@ -1149,12 +1123,19 @@ export default function OffersPage() {
                         {!versions[o.id] && (
                           <div style={{ color: '#888', fontSize: 13 }}>Laden...</div>
                         )}
-                        {versions[o.id]?.map((v, i) => (
+                        {versions[o.id]?.map((v, i) => {
+                          const isSnapshot = o.publishedVersion === v.version
+                          return (
                           <div key={v.id} className={styles.versionItem}>
                             <span
                               className={`${styles.versionDot} ${i === 0 ? styles.versionDotCurrent : ''}`}
                             />
                             <span>v{v.version}</span>
+                            {isSnapshot && (
+                              <span className={styles.snapshotMarker} title="Kunde sieht aktuell diese Version">
+                                📌 Kunden-Snapshot
+                              </span>
+                            )}
                             <span className={styles.versionMeta}>
                               {v.changedBy} · {formatDateTime(v.createdAt)}
                             </span>
@@ -1190,7 +1171,8 @@ export default function OffersPage() {
                               </a>
                             </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </td>
                   </tr>
@@ -1344,6 +1326,115 @@ export default function OffersPage() {
                     nach dem Speichern nicht mehr.
                   </div>
                 )}
+              </div>
+
+              {/* Kunden-Snapshot */}
+              <div className={styles.metaSection}>
+                <div className={styles.metaSectionTitle}>Kunden-Snapshot</div>
+                <div className={styles.metaSectionSub}>
+                  Standard: Kunde sieht die aktuelle Live-Version. Ein Snapshot friert den Zustand für den Kunden ein, während du intern weiter arbeitest.
+                </div>
+                {editingOffer.publishedVersion == null ? (
+                  <div className={styles.metaStatusRow}>
+                    <span className={styles.metaStatusPill} data-tone="live">Live-Modus</span>
+                    <span className={styles.metaStatusText}>Kunde sieht die aktuelle Version (v{editingOffer.version}).</span>
+                  </div>
+                ) : editingOffer.publishedVersion === editingOffer.version ? (
+                  <div className={styles.metaStatusRow}>
+                    <span className={styles.metaStatusPill} data-tone="sync">Snapshot aktiv · v{editingOffer.publishedVersion}</span>
+                    <span className={styles.metaStatusText}>
+                      Kunde sieht v{editingOffer.publishedVersion} — deckt sich mit Live.
+                      {editingOffer.publishedAt && <> Erstellt {formatDateTime(editingOffer.publishedAt)}.</>}
+                    </span>
+                  </div>
+                ) : (
+                  <div className={styles.metaStatusRow}>
+                    <span className={styles.metaStatusPill} data-tone="drift">Snapshot v{editingOffer.publishedVersion} · Live v{editingOffer.version}</span>
+                    <span className={styles.metaStatusText}>
+                      Kunde sieht die alte Snapshot-Version. Live ist bereits weiter.
+                      {editingOffer.publishedAt && <> Snapshot erstellt {formatDateTime(editingOffer.publishedAt)}.</>}
+                    </span>
+                  </div>
+                )}
+                <div className={styles.metaActions}>
+                  {editingOffer.publishedVersion == null && (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      onClick={async () => { await doPublish(editingOffer); closeEdit() }}
+                    >
+                      Snapshot erstellen (v{editingOffer.version})
+                    </button>
+                  )}
+                  {editingOffer.publishedVersion != null && editingOffer.publishedVersion !== editingOffer.version && (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      onClick={async () => { await doPublish(editingOffer); closeEdit() }}
+                    >
+                      Neuen Snapshot aus v{editingOffer.version} erstellen
+                    </button>
+                  )}
+                  {editingOffer.publishedVersion != null && (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnSecondary}`}
+                      onClick={async () => { await doUnpublish(editingOffer); closeEdit() }}
+                    >
+                      Snapshot deaktivieren
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Sperre */}
+              <div className={styles.metaSection}>
+                <div className={styles.metaSectionTitle}>Kunden-Zugriff</div>
+                <div className={styles.metaSectionSub}>
+                  Steuere, ob der Kundenlink funktioniert. Der Editor-Link bleibt in beiden Fällen erreichbar.
+                </div>
+                {editingOffer.blockedAt ? (
+                  <div className={styles.metaStatusRow}>
+                    <span className={styles.metaStatusPill} data-tone="blocked">Gesperrt</span>
+                    <span className={styles.metaStatusText}>
+                      Kunde sieht seit {formatDateTime(editingOffer.blockedAt)} die &quot;in Arbeit&quot;-Info-Seite.
+                    </span>
+                  </div>
+                ) : (
+                  <div className={styles.metaStatusRow}>
+                    <span className={styles.metaStatusPill} data-tone="live">Offen</span>
+                    <span className={styles.metaStatusText}>Kunde kann das Angebot ganz normal öffnen.</span>
+                  </div>
+                )}
+                <div className={styles.metaActions}>
+                  {editingOffer.blockedAt ? (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      onClick={async () => { await doUnblock(editingOffer); closeEdit() }}
+                    >
+                      Sperre aufheben
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnSecondary}`}
+                      onClick={async () => {
+                        const res = await fetch(`/api/admin/offers/${editingOffer.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ blockedAt: new Date().toISOString() }),
+                        })
+                        if (res.ok) {
+                          await loadOffers(filter, search, filterContactSlug, filterStatus)
+                          closeEdit()
+                        }
+                      }}
+                    >
+                      Für Kunden sperren
+                    </button>
+                  )}
+                </div>
               </div>
 
             </div>
