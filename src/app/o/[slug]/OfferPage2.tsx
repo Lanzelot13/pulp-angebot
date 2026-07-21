@@ -698,21 +698,24 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           </div>
           <div className={styles.statusRight}>
             {(() => {
-              // Publish-Widget: zeigt den Freigabe-Status und bietet den
-              // "Änderungen freigeben"-Button. Freigabe ist entkoppelt vom
-              // Save-Flow — man kann speichern ohne zu veröffentlichen
-              // (dann sieht der Kunde weiterhin die alte Version).
+              // Kunden-Snapshot ist ein Opt-in. Ohne Snapshot sieht der
+              // Kunde immer die aktuelle Live-Version — das ist der
+              // Standard-Zustand nach dem Anlegen. Erst wenn du intern
+              // etwas diskutieren willst, aktivierst du den Snapshot und
+              // frierst den Zustand für den Kunden ein.
               const dAny = draft as unknown as {
                 publishedSnapshot?: Record<string, unknown> | null
+                publishedVersion?: number | null
                 publishedAt?: string | Date | null
               }
               const snapshot = dAny.publishedSnapshot ?? null
               const publishedAt = dAny.publishedAt ? new Date(dAny.publishedAt) : null
-              const dirtyPublish = hasUnpublishedChanges(
+              const publishedVersion = dAny.publishedVersion ?? null
+              const snapshotActive = !!snapshot
+              const dirtyPublish = snapshotActive && hasUnpublishedChanges(
                 draft as unknown as Record<string, unknown>,
                 snapshot
               )
-              const legacy = !snapshot && !publishedAt
 
               async function doPublish() {
                 const res = await fetch(`/api/offers/${draft.id}/publish?edit=${draft.editToken}`, {
@@ -733,21 +736,21 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       newSnapshot[f] = (draft as unknown as Record<string, unknown>)[f]
                     }
                   }
-                  setDraft((prev) => ({ ...prev, publishedSnapshot: newSnapshot, publishedAt: now } as unknown as typeof prev))
-                  setSavedOffer((prev) => ({ ...prev, publishedSnapshot: newSnapshot, publishedAt: now } as unknown as typeof prev))
-                  showToast('Für Kunden freigegeben')
+                  const newVersion = draft.version
+                  setDraft((prev) => ({ ...prev, publishedSnapshot: newSnapshot, publishedAt: now, publishedVersion: newVersion } as unknown as typeof prev))
+                  setSavedOffer((prev) => ({ ...prev, publishedSnapshot: newSnapshot, publishedAt: now, publishedVersion: newVersion } as unknown as typeof prev))
+                  showToast(snapshotActive ? 'Kunden-Snapshot aktualisiert' : 'Kunden-Snapshot aktiviert')
                 }
               }
               async function doUnpublish() {
-                if (!window.confirm('Angebot vom Kunden verbergen? Der Kunde sieht dann eine "in Arbeit"-Seite, bis du wieder freigibst.')) return
+                if (!window.confirm('Kunden-Snapshot deaktivieren? Der Kunde sieht ab dann wieder die aktuelle Version, so wie sie im Editor gerade steht.')) return
                 const res = await fetch(`/api/offers/${draft.id}/publish?edit=${draft.editToken}`, {
                   method: 'DELETE',
                 })
                 if (res.ok) {
-                  const now = new Date().toISOString()
-                  setDraft((prev) => ({ ...prev, publishedSnapshot: null, publishedAt: now } as unknown as typeof prev))
-                  setSavedOffer((prev) => ({ ...prev, publishedSnapshot: null, publishedAt: now } as unknown as typeof prev))
-                  showToast('Für Kunden verborgen')
+                  setDraft((prev) => ({ ...prev, publishedSnapshot: null, publishedAt: null, publishedVersion: null } as unknown as typeof prev))
+                  setSavedOffer((prev) => ({ ...prev, publishedSnapshot: null, publishedAt: null, publishedVersion: null } as unknown as typeof prev))
+                  showToast('Zurück im Live-Modus')
                 }
               }
 
@@ -767,35 +770,33 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
               return (
                 <>
-                  {legacy ? (
-                    <span className={styles.publishStatus} title="Bestandsangebot: Kunde sieht immer den aktuellen Stand. Freigabe aktivieren um Draft-Modus zu nutzen.">
-                      Live-Modus
-                    </span>
-                  ) : snapshot ? (
-                    <span
-                      className={dirtyPublish ? styles.publishStatusDirty : styles.publishStatus}
-                      title={dirtyPublish ? 'Es gibt Änderungen, die der Kunde noch nicht sieht' : 'Kundenansicht ist auf dem aktuellen Stand'}
-                    >
-                      {dirtyPublish ? '● Nicht freigegeben' : `✓ Freigegeben · ${publishedRelative}`}
+                  {!snapshotActive ? (
+                    <span className={styles.publishStatus} title="Kunde sieht immer die aktuelle Version aus dem Editor. Aktivierst du den Snapshot, wird die aktuelle Version für den Kunden eingefroren.">
+                      👁 Live-Modus
                     </span>
                   ) : (
-                    <span className={styles.publishStatusDirty} title="Kunde bekommt gerade die 'in Arbeit'-Seite">
-                      ● Für Kunden verborgen
+                    <span
+                      className={dirtyPublish ? styles.publishStatusDirty : styles.publishStatus}
+                      title={dirtyPublish ? `Kunde sieht v${publishedVersion} (${publishedRelative}). Live ist v${draft.version}.` : `Kunde sieht v${publishedVersion} (${publishedRelative}).`}
+                    >
+                      {dirtyPublish
+                        ? `● Snapshot v${publishedVersion} · Live v${draft.version}`
+                        : `📌 Snapshot v${publishedVersion} · ${publishedRelative}`}
                     </span>
                   )}
-                  {(dirtyPublish || !snapshot) && !legacy && (
-                    <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty}>
-                      {snapshot ? 'Änderungen freigeben' : 'Für Kunden freigeben'}
+                  {!snapshotActive && (
+                    <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty} title="Aktuelle Version für den Kunden einfrieren">
+                      Kunden-Snapshot aktivieren
                     </button>
                   )}
-                  {legacy && (
-                    <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty}>
-                      Freigabe aktivieren
+                  {snapshotActive && dirtyPublish && (
+                    <button className={styles.btnPublish} onClick={doPublish} type="button" disabled={dirty} title="Aktuelle Version zum neuen Snapshot machen">
+                      Aktuelle Version freigeben
                     </button>
                   )}
-                  {snapshot && !dirtyPublish && (
-                    <button className={styles.btnUnpublish} onClick={doUnpublish} type="button" title="Kunden verbergen, bis du wieder freigibst">
-                      Verbergen
+                  {snapshotActive && (
+                    <button className={styles.btnUnpublish} onClick={doUnpublish} type="button" title="Snapshot auflösen, Kunde sieht wieder Live-Version">
+                      Snapshot deaktivieren
                     </button>
                   )}
                 </>

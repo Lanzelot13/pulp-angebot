@@ -5,7 +5,6 @@ import { requireApiKey } from '@/lib/auth'
 import { buildSlug } from '@/lib/slug'
 import { CreateOfferRequest, DEFAULT_NOT_INCLUDED, DEFAULT_STATS } from '@/lib/types'
 import { fullOfferUrl, fullEditUrl, fullCleanUrl, PUBLIC_BASE_URL } from '@/lib/config'
-import { buildPublishSnapshot } from '@/lib/publish'
 
 // Helper: convert value to Prisma-compatible JSON or DbNull
 function jsonOrNull(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
@@ -136,23 +135,10 @@ export async function POST(request: NextRequest) {
     include: { contact: true },
   })
 
-  // Neu erstellte Angebote werden sofort veröffentlicht. Der Skill kann
-  // den Link direkt an den Kunden geben und muss nicht extra einen Publish-
-  // Schritt einlegen. Spätere Änderungen ändern zuerst nur den Live-Zustand
-  // — Kunde sieht sie erst nach dem manuellen "Freigeben".
-  try {
-    const initialSnapshot = buildPublishSnapshot(offer as unknown as Record<string, unknown>)
-    await prisma.offer.update({
-      where: { id: offer.id },
-      data: {
-        publishedSnapshot: initialSnapshot as unknown as Prisma.InputJsonValue,
-        publishedAt: new Date(),
-      } as unknown as Prisma.OfferUpdateInput,
-    })
-  } catch {
-    // Publish-Fehler soll das Angebot nicht kaputt machen. Legacy-Modus
-    // greift dann und der Kunde sieht Live.
-  }
+  // Der Kunden-Snapshot ist bewusst Opt-In — neue Angebote starten im
+  // Live-Modus, in dem der Kunde immer die aktuelle Version sieht.
+  // Wenn intern noch diskutiert wird, aktiviert man im Editor/Backend den
+  // "Kunden-Snapshot" und friert den Zustand für den Kunden ein.
 
   return NextResponse.json(
     {

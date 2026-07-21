@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireApiKey } from '@/lib/auth'
+import { getSession } from '@/lib/admin-auth'
 import { buildPublishSnapshot } from '@/lib/publish'
 
 export const dynamic = 'force-dynamic'
@@ -24,8 +25,13 @@ export async function POST(
   if (editToken) {
     offer = await prisma.offer.findFirst({ where: { id: params.id, editToken } })
   } else {
-    const authError = requireApiKey(request)
-    if (authError) return authError
+    // Admin-Cookie ODER Bearer-Key akzeptieren, damit das Backend die
+    // Publish-Actions ebenfalls auslösen kann.
+    const adminUser = await getSession(request)
+    if (!adminUser) {
+      const authError = requireApiKey(request)
+      if (authError) return authError
+    }
     offer = await prisma.offer.findUnique({ where: { id: params.id } })
   }
   if (!offer) {
@@ -34,26 +40,30 @@ export async function POST(
 
   const snapshot = buildPublishSnapshot(offer as unknown as Record<string, unknown>)
   const now = new Date()
+  const version = offer.version
 
   const updated = await prisma.offer.update({
     where: { id: params.id },
     data: {
       publishedSnapshot: snapshot as unknown as Prisma.InputJsonValue,
       publishedAt: now,
+      publishedVersion: version,
     } as unknown as Prisma.OfferUpdateInput,
   })
 
   return NextResponse.json({
     ok: true,
     publishedAt: now,
+    publishedVersion: version,
     offerId: updated.id,
   })
 }
 
 // DELETE /api/offers/:id/publish
-// Setzt publishedSnapshot und publishedAt auf null. Der Kunde bekommt
-// dann die "wird gerade überarbeitet"-Info-Seite (wie bei blockedAt),
-// bis wieder ein Publish erfolgt.
+// Löst den Kunden-Snapshot auf und schaltet das Angebot zurück in den
+// Live-Modus — Kunde sieht ab da automatisch wieder die aktuelle Version.
+// Wenn der Kunde temporär nichts sehen soll, dafür blockedAt setzen (siehe
+// Sperren-Toggle im Editor).
 //
 // Auth: gleich wie oben.
 export async function DELETE(
@@ -67,8 +77,13 @@ export async function DELETE(
   if (editToken) {
     offer = await prisma.offer.findFirst({ where: { id: params.id, editToken } })
   } else {
-    const authError = requireApiKey(request)
-    if (authError) return authError
+    // Admin-Cookie ODER Bearer-Key akzeptieren, damit das Backend die
+    // Publish-Actions ebenfalls auslösen kann.
+    const adminUser = await getSession(request)
+    if (!adminUser) {
+      const authError = requireApiKey(request)
+      if (authError) return authError
+    }
     offer = await prisma.offer.findUnique({ where: { id: params.id } })
   }
   if (!offer) {
@@ -80,6 +95,7 @@ export async function DELETE(
     data: {
       publishedSnapshot: Prisma.DbNull,
       publishedAt: null,
+      publishedVersion: null,
     } as unknown as Prisma.OfferUpdateInput,
   })
 

@@ -47,21 +47,9 @@ export default async function Page({ params, searchParams }: PageProps) {
     )
   }
 
-  // Draft-Modus: Wenn das Angebot explizit "nicht mehr veröffentlicht" wurde
-  // (publishedAt gesetzt, aber publishedSnapshot null), sieht der Kunde
-  // ebenfalls die Info-Seite. Bestandsangebote (beide null) sind davon nicht
-  // betroffen und rendern weiter Live.
-  const isUnpublished =
-    !offerAny.publishedSnapshot && !!offerAny.publishedAt
-  if (!bypass && isUnpublished) {
-    return (
-      <OfferUnavailable
-        reason="blocked"
-        contact={offer.contact ?? null}
-        clientCompany={offer.clientCompany}
-      />
-    )
-  }
+  // Snapshot-/Live-Logik siehe weiter unten. Ohne Snapshot bleibt der
+  // Kunde einfach im Live-Modus. Für ein sichtbares "wird gerade
+  // überarbeitet" nutzt man blockedAt (siehe Sperren-Toggle im Editor).
 
   // If a specific version is requested, load from version snapshot
   if (searchParams.version) {

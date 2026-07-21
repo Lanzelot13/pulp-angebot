@@ -40,6 +40,8 @@ interface OfferRow {
   validUntil: string | null
   archivedAt: string | null
   blockedAt: string | null
+  publishedAt: string | null
+  publishedVersion: number | null
   createdAt: string
   contact: { name: string }
   _count: { versions: number }
@@ -725,6 +727,36 @@ export default function OffersPage() {
     })
   }
 
+  // Sperre aufheben (blockedAt zurücksetzen).
+  const doUnblock = async (o: OfferRow) => {
+    const res = await fetch(`/api/admin/offers/${o.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blockedAt: null }),
+    })
+    if (res.ok) {
+      await loadOffers(filter, search, filterContactSlug, filterStatus)
+    }
+  }
+
+  // Kunden-Snapshot aktivieren bzw. aktualisieren (aktueller Live-Stand wird
+  // eingefroren). Beim Klick landet der Admin ohne Umweg über den Editor.
+  const doPublish = async (o: OfferRow) => {
+    const res = await fetch(`/api/offers/${o.id}/publish`, { method: 'POST' })
+    if (res.ok) {
+      await loadOffers(filter, search, filterContactSlug, filterStatus)
+    }
+  }
+
+  // Snapshot auflösen — Kunde sieht ab da wieder die Live-Version.
+  const doUnpublish = async (o: OfferRow) => {
+    if (!window.confirm(`Kunden-Snapshot für "${o.projectName}" deaktivieren? Der Kunde sieht danach die aktuelle Live-Version.`)) return
+    const res = await fetch(`/api/offers/${o.id}/publish`, { method: 'DELETE' })
+    if (res.ok) {
+      await loadOffers(filter, search, filterContactSlug, filterStatus)
+    }
+  }
+
   const askRestore = (o: OfferRow) => {
     setConfirm({
       title: 'Angebot wiederherstellen?',
@@ -934,6 +966,12 @@ export default function OffersPage() {
                     {o.validUntil && new Date(o.validUntil) < new Date() && !o.blockedAt && (
                       <span className={styles.expiredBadge} title="Gültigkeit abgelaufen">Abgelaufen</span>
                     )}
+                    {o.publishedVersion && !o.archivedAt && (
+                      <span className={styles.snapshotBadge} title={`Kunde sieht Snapshot v${o.publishedVersion}. Live ist v${o.version}.`}>
+                        Snapshot v{o.publishedVersion}
+                        {o.publishedVersion !== o.version && ` · Live v${o.version}`}
+                      </span>
+                    )}
                     <br />
                     <span style={{ fontSize: 13, color: '#888' }}>{o.projectName}</span>
                   </td>
@@ -1043,6 +1081,43 @@ export default function OffersPage() {
                       >
                         <IconSettings size={14} />
                       </button>
+                      {/* Publish-Actions: kompakte Text-Buttons, damit im engen Actions-Slot noch was Platz hat */}
+                      {!o.archivedAt && (o.publishedVersion === null || o.publishedVersion === undefined) && (
+                        <button
+                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                          onClick={() => doPublish(o)}
+                          title="Aktuelle Version als Kunden-Snapshot einfrieren"
+                        >
+                          📌 Freigeben
+                        </button>
+                      )}
+                      {!o.archivedAt && o.publishedVersion !== null && o.publishedVersion !== undefined && o.publishedVersion !== o.version && (
+                        <button
+                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                          onClick={() => doPublish(o)}
+                          title={`Aktuelle Version v${o.version} zum neuen Snapshot machen (aktuell v${o.publishedVersion})`}
+                        >
+                          ↻ v{o.version} freigeben
+                        </button>
+                      )}
+                      {!o.archivedAt && o.publishedVersion !== null && o.publishedVersion !== undefined && (
+                        <button
+                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                          onClick={() => doUnpublish(o)}
+                          title="Snapshot deaktivieren, Kunde sieht Live-Version"
+                        >
+                          ✕ Snapshot
+                        </button>
+                      )}
+                      {!o.archivedAt && o.blockedAt && (
+                        <button
+                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}
+                          onClick={() => doUnblock(o)}
+                          title="Sperre aufheben, Kunde kommt wieder rein"
+                        >
+                          🔓 Entsperren
+                        </button>
+                      )}
                       {o.archivedAt ? (
                         <button
                           className={`${styles.btn} ${styles.btnGhost} ${styles.btnSmall}`}

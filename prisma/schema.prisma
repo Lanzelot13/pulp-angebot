@@ -68,6 +68,10 @@ model Offer {
   // (Rückwärtskompatibilität für Bestandsangebote vor dem Publish-Rollout).
   publishedSnapshot Json?
   publishedAt       DateTime?
+  // Offer.version zum Zeitpunkt der letzten Freigabe. Wird im Backend als
+  // Info angezeigt ("Snapshot v3, Live ist v5"), damit klar ist wie weit
+  // die Live-Version vom Kunden-Snapshot abgewichen ist.
+  publishedVersion  Int?
 
   // Edit token for inline editor
   editToken     String      @unique @default(cuid())
