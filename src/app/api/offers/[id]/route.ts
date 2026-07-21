@@ -96,6 +96,21 @@ export async function PATCH(
     }
   }
 
+  // Datumsfelder (validUntil, blockedAt) separat behandeln: ISO-String
+  // in Date umwandeln, leerer String / null bedeutet "zurücksetzen".
+  const dateFields = ['validUntil', 'blockedAt'] as const
+  for (const field of dateFields) {
+    if (field in body) {
+      const raw = (body as Record<string, unknown>)[field]
+      if (raw === null || raw === '' || raw === undefined) {
+        updateData[field] = null
+      } else if (typeof raw === 'string' || raw instanceof Date) {
+        const d = new Date(raw)
+        if (!isNaN(d.getTime())) updateData[field] = d
+      }
+    }
+  }
+
   const updated = await prisma.offer.update({
     where: { id: params.id },
     data: updateData,

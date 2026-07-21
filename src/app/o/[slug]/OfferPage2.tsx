@@ -635,6 +635,65 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               {draft.status === 'PRICED' && 'Preise sichtbar'}
               {draft.status === 'ACCEPTED' && 'Kunde entschieden'}
             </span>
+            {(() => {
+              // Zusatz-Anzeige: Sperr-Status und Gültigkeit. Beides direkt
+              // in der Status-Bar, damit man's im Editor immer sieht.
+              const blocked = !!(draft as unknown as { blockedAt?: string | Date | null }).blockedAt
+              const validUntilRaw = (draft as unknown as { validUntil?: string | Date | null }).validUntil
+              const validUntil = validUntilRaw ? new Date(validUntilRaw) : null
+              const expired = !!(validUntil && validUntil < new Date())
+              return (
+                <>
+                  <button
+                    type="button"
+                    className={styles.statusPill}
+                    onClick={async () => {
+                      const next = blocked ? null : new Date().toISOString()
+                      const res = await fetch(`/api/offers/${draft.id}?edit=${draft.editToken}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ blockedAt: next }),
+                      })
+                      if (res.ok) {
+                        setDraft((prev) => ({ ...prev, blockedAt: next } as unknown as typeof prev))
+                        setSavedOffer((prev) => ({ ...prev, blockedAt: next } as unknown as typeof prev))
+                        showToast(next ? 'Für Kunden gesperrt' : 'Wieder freigegeben')
+                      }
+                    }}
+                    title={blocked ? 'Sperre aufheben' : 'Für Kunden sperren, bis du wieder freigibst'}
+                    style={{
+                      background: blocked ? '#FF1900' : 'transparent',
+                      color: blocked ? '#fff' : 'rgba(255,255,255,0.6)',
+                      border: '1px solid ' + (blocked ? '#FF1900' : 'rgba(255,255,255,0.2)'),
+                    }}
+                  >
+                    {blocked ? '🔒 Gesperrt' : '🔓 Sperren'}
+                  </button>
+                  {expired && (
+                    <label className={styles.statusPill} style={{ background: '#331500', color: '#ffb74d', border: '1px solid #ff9800', cursor: 'pointer' }}>
+                      ⏰ Abgelaufen · verlängern:
+                      <input
+                        type="date"
+                        onChange={async (e) => {
+                          const iso = e.target.value ? new Date(e.target.value).toISOString() : null
+                          const res = await fetch(`/api/offers/${draft.id}?edit=${draft.editToken}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ validUntil: iso }),
+                          })
+                          if (res.ok) {
+                            setDraft((prev) => ({ ...prev, validUntil: iso as unknown as typeof prev.validUntil }))
+                            setSavedOffer((prev) => ({ ...prev, validUntil: iso as unknown as typeof prev.validUntil }))
+                            showToast('Gültigkeit verlängert')
+                          }
+                        }}
+                        style={{ marginLeft: 8, background: 'transparent', color: '#ffb74d', border: 'none', fontSize: '0.7rem' }}
+                      />
+                    </label>
+                  )}
+                </>
+              )
+            })()}
           </div>
           <div className={styles.statusRight}>
             <button

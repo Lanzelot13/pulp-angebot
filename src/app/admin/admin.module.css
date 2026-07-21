@@ -918,6 +918,30 @@
   border-radius: 4px;
   margin-left: 8px;
 }
+.blockedBadge {
+  display: inline-block;
+  background: #FF1900;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+.expiredBadge {
+  display: inline-block;
+  background: #fff3e0;
+  color: #e65100;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
 
 /* === MODAL: WIDER VARIANT === */
 .modalWide { width: 640px; }

@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { getSessionFromCookies } from '@/lib/admin-auth'
 import { OfferPage } from './OfferPage'
 import { OfferPage2 } from './OfferPage2'
+import { OfferUnavailable } from './OfferUnavailable'
 
 interface PageProps {
   params: { slug: string }
@@ -18,6 +20,26 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   // Archived offers are not reachable for customers
   if ((offer as unknown as { archivedAt?: Date | null }).archivedAt) notFound()
+
+  // Zugriffs-Check: Wenn das Angebot manuell gesperrt oder abgelaufen ist,
+  // sehen nur eingeloggte Admins und Aufrufe mit gültigem edit-Token es
+  // weiterhin. Alle anderen bekommen die Info-Seite.
+  const offerAny = offer as unknown as { blockedAt?: Date | null; validUntil?: Date | null }
+  const editToken = searchParams.edit
+  const hasEditToken = editToken && editToken === offer.editToken
+  const adminUser = hasEditToken ? null : await getSessionFromCookies()
+  const bypass = hasEditToken || adminUser
+  const isBlocked = !!offerAny.blockedAt
+  const isExpired = !!(offerAny.validUntil && new Date(offerAny.validUntil) < new Date())
+  if (!bypass && (isBlocked || isExpired)) {
+    return (
+      <OfferUnavailable
+        reason={isExpired ? 'expired' : 'blocked'}
+        contact={offer.contact ?? null}
+        clientCompany={offer.clientCompany}
+      />
+    )
+  }
 
   // If a specific version is requested, load from version snapshot
   if (searchParams.version) {
@@ -71,8 +93,7 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   // Determine mode
   const isClean = searchParams.clean === '1'
-  const editToken = searchParams.edit
-  const isEdit = !isClean && editToken === offer.editToken
+  const isEdit = !isClean && !!hasEditToken
 
   const tpl2 = (offer as unknown as { template?: string }).template
   const TemplateComponent = tpl2 === 'TEMPLATE2' ? OfferPage2 : OfferPage

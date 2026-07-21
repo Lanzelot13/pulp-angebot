@@ -53,6 +53,10 @@ model Offer {
   updatedAt     DateTime    @updatedAt
   validUntil    DateTime?
   archivedAt    DateTime?
+  // Manuelle Sofort-Sperre: wenn gesetzt, ist das Angebot für Kunden nicht
+  // mehr erreichbar (Info-Seite statt Rendering). Admin und Edit-Token
+  // funktionieren weiter.
+  blockedAt     DateTime?
 
   // Edit token for inline editor
   editToken     String      @unique @default(cuid())
@@ -85,6 +89,7 @@ model Offer {
   @@index([status])
   @@index([contactSlug])
   @@index([archivedAt])
+  @@index([blockedAt])
 }
 
 model OfferVersion {

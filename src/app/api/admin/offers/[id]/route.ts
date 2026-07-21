@@ -82,6 +82,17 @@ export async function PATCH(
       data.validUntil = d
     }
   }
+  if (body.blockedAt !== undefined) {
+    if (body.blockedAt === null || body.blockedAt === '') {
+      data.blockedAt = null
+    } else {
+      const d = new Date(body.blockedAt)
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: 'Ungültiges Sperrdatum' }, { status: 400 })
+      }
+      data.blockedAt = d
+    }
+  }
   // Moco-Verknüpfungs-Felder (alle optional, null leert)
   if (body.mocoRef !== undefined) {
     data.mocoRef = body.mocoRef === null || body.mocoRef === '' ? null : String(body.mocoRef)

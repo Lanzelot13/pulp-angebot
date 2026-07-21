@@ -39,6 +39,7 @@ interface OfferRow {
   contactSlug: string
   validUntil: string | null
   archivedAt: string | null
+  blockedAt: string | null
   createdAt: string
   contact: { name: string }
   _count: { versions: number }
@@ -929,6 +930,10 @@ export default function OffersPage() {
                   <td>
                     <strong>{o.clientCompany}</strong>
                     {o.archivedAt && <span className={styles.archivedBadge}>Archiv</span>}
+                    {o.blockedAt && <span className={styles.blockedBadge} title="Für Kunden gesperrt">Gesperrt</span>}
+                    {o.validUntil && new Date(o.validUntil) < new Date() && !o.blockedAt && (
+                      <span className={styles.expiredBadge} title="Gültigkeit abgelaufen">Abgelaufen</span>
+                    )}
                     <br />
                     <span style={{ fontSize: 13, color: '#888' }}>{o.projectName}</span>
                   </td>

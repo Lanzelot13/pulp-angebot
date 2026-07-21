@@ -1241,3 +1241,115 @@
   .timelineStep { grid-template-columns: 100px 1fr; }
   .nav { padding: 1rem 1.5rem; }
 }
+
+/* === Info-Seite für gesperrte oder abgelaufene Angebote === */
+.unavailableWrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.unavailableCard {
+  max-width: 640px;
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 3.5rem 3rem;
+  text-align: left;
+}
+.unavailableEyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #FF1900;
+  margin-bottom: 1rem;
+}
+.unavailableTitle {
+  font-family: 'Anton', sans-serif;
+  font-size: 2.4rem;
+  line-height: 1.15;
+  color: #fff;
+  margin: 0 0 1.2rem;
+  text-transform: uppercase;
+}
+.unavailableText {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.6;
+  margin: 0 0 2rem;
+}
+.unavailableMeta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.06em;
+  margin-bottom: 2rem;
+}
+.unavailableMeta strong { color: #fff; }
+.unavailableContact {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 1.6rem;
+}
+.unavailableContactLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 0.5rem;
+}
+.unavailableContactName {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.4rem;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.unavailableContactRole {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 0.8rem;
+}
+.unavailableContactLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+}
+.unavailableContactLinks a {
+  color: #FF1900;
+  text-decoration: none;
+  font-size: 0.95rem;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.unavailableContactLinks a:hover { border-color: #FF1900; }
+.unavailableFooter {
+  margin-top: 2.4rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.unavailableFooter a {
+  color: rgba(255,255,255,0.4);
+  text-decoration: none;
+}
+.unavailableFooter a:hover { color: #FF1900; }
+
+/* Kleiner Pill-Button in der Editor-Status-Bar (Sperren / Gültigkeit) */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.25rem 0.6rem;
+  margin-left: 0.5rem;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
