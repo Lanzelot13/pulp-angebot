@@ -4,3 +4,20 @@
   margin: 0;
   padding: 0;
 }
+
+/* Konsistentes Font-Rendering, unabhängig vom Display.
+ *
+ * Safari nutzt auf Retina-Displays standardmäßig subpixel-Anti-Aliasing,
+ * wechselt aber auf externen Monitoren mit anderer Pixeldichte gerne in
+ * einen gröberen Modus. Anton ist eine kondensierte Display-Font mit
+ * dünnen Konturen und leidet darunter besonders (dicke, unscharfe Kanten).
+ *
+ * Mit den drei folgenden Regeln forcieren wir überall Grayscale-Anti-
+ * Aliasing plus Kerning/Ligatur-Optimierung. Ergebnis: Safari, Chrome und
+ * Firefox rendern die Angebotsseiten optisch identisch, egal ob MacBook-
+ * Screen oder externer Bildschirm. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
