@@ -221,9 +221,13 @@
 
 .understandingCard h3 {
   font-family: 'Anton', sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.55rem;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
   margin-bottom: 0.8rem;
+  /* Anton ist kondensiert — Safari rendert das auf externen Displays sonst
+   * gerne als klumpigen Block. Kern-Feature explizit einschalten. */
+  font-feature-settings: "kern" 1;
 }
 
 .understandingCard p {
