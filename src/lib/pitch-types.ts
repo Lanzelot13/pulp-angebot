@@ -30,6 +30,7 @@ export type PitchModuleType =
   | 'tipps'           // 3 Flip-Card Tipps
   | 'ideas'           // Vorschläge pro Pitch (was wir konkret für euch tun würden)
   | 'optionen'        // 3 Pakete
+  | 'background'      // Fullscreen-Hintergrundbild mit Overlay-Text
   | 'outro'
 
 export const PITCH_MODULE_TYPES: PitchModuleType[] = [
@@ -51,6 +52,7 @@ export const PITCH_MODULE_TYPES: PitchModuleType[] = [
   'tipps',
   'ideas',
   'optionen',
+  'background',
   'outro',
 ]
 
@@ -73,6 +75,7 @@ export const PITCH_MODULE_LABELS: Record<PitchModuleType, string> = {
   'tipps': 'Tipps · Flip-Cards',
   'ideas': 'Vorschläge · Was wir für euch tun würden',
   'optionen': 'Optionen · Drei Pakete',
+  'background': 'Background · Fullscreen-Bild',
   'outro': 'Outro · Let\'s talk',
 }
 
@@ -95,6 +98,7 @@ export const PITCH_MODULE_DESCRIPTIONS: Record<PitchModuleType, string> = {
   'tipps': 'Drei Tipps für die Pitch-Empfänger. Antippen dreht die Karte.',
   'ideas': 'Konkrete Vorschläge für genau diesen Kunden. Pro Karte ein Säulen-Icon, Headline, Body und optional ein Bild.',
   'optionen': 'Drei Einstiegs-Pakete als Karten.',
+  'background': 'Fullscreen-Foto als Hintergrund mit großer Überschrift und optionalem Body im Vordergrund. Für Zäsur-Folien wie "2005: Gründung", "Der Wendepunkt" oder Kapitel-Übergänge.',
   'outro': 'Abschluss-Folie mit Kontaktdaten.',
 }
 
@@ -353,6 +357,19 @@ export interface OutroContent {
   sig?: string             // "DON'T MAKE ADS. MAKE LOVE."
 }
 
+// Fullscreen-Bild-Folie mit Overlay-Text. imageUrl kann aus dem
+// Upload-Endpoint (Vercel Blob) oder aus public/ kommen. overlayDarkness
+// steuert wie stark das Bild abgedunkelt wird (0 = klar, 1 = schwarz).
+export interface BackgroundContent {
+  imageUrl: string
+  eyebrow?: string
+  headline?: string        // `**Text**` wird rot
+  sub?: string             // Optionaler Body (WYSIWYG-HTML)
+  overlayDarkness?: number // 0..1, default 0.4
+  align?: 'center' | 'bottom-left' | 'bottom-center'
+  focalPoint?: string      // CSS background-position, default "center center"
+}
+
 export type ModuleContent =
   | HeroContent
   | TeamContent
@@ -373,6 +390,7 @@ export type ModuleContent =
   | IdeasContent
   | OptionenContent
   | OutroContent
+  | BackgroundContent
 
 // =========================================================
 // Verfügbare Icon-Keys (Mapping zu public/pitch/*.svg)
@@ -626,6 +644,14 @@ export const DEFAULT_CONTENT: Record<PitchModuleType, ModuleContent> = {
       { pkgName: '03 · PARTNER',  iconKey: 'pixel-heart', title: 'Laufende Betreuung',    description: 'Als verlängerte Brand-Abteilung an eurer Seite. Strategie-Reviews, fortlaufende Produktion, Performance-Optimierung — ein eingespieltes Team, das eure Marke kennt.' },
     ],
   } as OptionenContent,
+  'background': {
+    imageUrl: '/pitch/background-example-2005.jpg',
+    headline: '2005: **Gründung**',
+    sub: '',
+    overlayDarkness: 0.4,
+    align: 'center',
+    focalPoint: 'center center',
+  } as BackgroundContent,
   'outro': {
     email: 'hallo@pulpmedia.at',
     phone: '+43 732 6300',

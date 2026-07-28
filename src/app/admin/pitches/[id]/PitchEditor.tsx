@@ -8,6 +8,7 @@ import { SchemaHelp } from '../../SchemaHelp'
 import {
   StandardHeaderFields,
   CaseEmbedField,
+  BackgroundFields,
   showsStandardHeader,
   casePlatformsFor,
 } from '../../ModuleContentFields'
@@ -843,6 +844,14 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
                       }
                     />
                   )}
+                  {customDraft.type === 'background' && (
+                    <BackgroundFields
+                      contentJson={customDraft.contentJson}
+                      onChange={(json) =>
+                        setCustomDraft((d) => ({ ...d, contentJson: json }))
+                      }
+                    />
+                  )}
                   {(() => {
                     const platforms = casePlatformsFor(customDraft.type)
                     if (!platforms) return null
@@ -999,6 +1008,14 @@ export function PitchEditor({ initialPitch, contacts }: Props) {
               )}
               {editingModule.type === 'team' && (
                 <TeamFields
+                  contentJson={editForm.contentJson}
+                  onChange={(json) =>
+                    setEditForm((f) => ({ ...f, contentJson: json }))
+                  }
+                />
+              )}
+              {editingModule.type === 'background' && (
+                <BackgroundFields
                   contentJson={editForm.contentJson}
                   onChange={(json) =>
                     setEditForm((f) => ({ ...f, contentJson: json }))

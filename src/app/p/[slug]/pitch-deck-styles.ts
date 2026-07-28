@@ -1327,6 +1327,79 @@ body.mode-slides .slide.fullbleed .fb-overlay { min-height: 0; height: 100vh; he
 .slide.outro .sig .red { color: var(--red); }
 
 /* =====================================================================
+   BACKGROUND · Fullscreen-Bild mit Overlay-Text
+   ===================================================================== */
+.slide.background {
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+}
+.slide.background .bg-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.slide.background .bg-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 8vw;
+  max-width: 100%;
+}
+.slide.background.bg-align-center .bg-content {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.slide.background.bg-align-bottom-center .bg-content {
+  align-items: center;
+  justify-content: flex-end;
+  text-align: center;
+}
+.slide.background.bg-align-bottom-left .bg-content {
+  align-items: flex-start;
+  justify-content: flex-end;
+  text-align: left;
+}
+.slide.background .eyebrow {
+  color: #fff;
+}
+.slide.background .eyebrow .bar {
+  background: var(--red);
+}
+.slide.background .bg-headline {
+  font-family: Anton, sans-serif;
+  font-weight: 400;
+  font-size: clamp(80px, 12vw, 220px);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.35);
+}
+.slide.background .bg-headline .red {
+  color: var(--red);
+}
+.slide.background .bg-sub {
+  max-width: 720px;
+  font-size: clamp(16px, 1.6vw, 22px);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+}
+.slide.background .bg-sub a {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: var(--red);
+  text-underline-offset: 3px;
+}
+
+/* =====================================================================
    05 UNNÜTZES WISSEN · Origin Story · 3 columns
    ===================================================================== */
 .slide.uw { padding: 110px 6vw 90px; justify-content: flex-start; }

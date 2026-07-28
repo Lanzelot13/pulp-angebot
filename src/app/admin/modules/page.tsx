@@ -10,6 +10,7 @@ import { SchemaHelp } from '../SchemaHelp'
 import {
   StandardHeaderFields,
   CaseEmbedField,
+  BackgroundFields,
   showsStandardHeader,
   casePlatformsFor,
 } from '../ModuleContentFields'
@@ -433,6 +434,15 @@ export default function ModulesPage() {
 
               {form.type === 'love-brands' && (
                 <LoveBrandFields
+                  contentJson={form.contentJson}
+                  onChange={(json) =>
+                    setForm((f) => ({ ...f, contentJson: json }))
+                  }
+                />
+              )}
+
+              {form.type === 'background' && (
+                <BackgroundFields
                   contentJson={form.contentJson}
                   onChange={(json) =>
                     setForm((f) => ({ ...f, contentJson: json }))

@@ -135,6 +135,13 @@ export const MODULE_SCHEMA: Record<PitchModuleType, SchemaField[]> = {
     { name: 'web', type: 'string', required: true, description: 'Web-URL', example: '"pulpmedia.at"' },
     { name: 'sig', type: 'string', description: 'Signatur-Spruch', example: '"DON\'T MAKE ADS. MAKE LOVE."' },
   ],
+  background: [
+    { name: 'imageUrl', type: 'string', required: true, description: 'Bild-URL. Aus Vercel Blob oder /pitch/...', example: '"https://blob.../background.jpg"' },
+    ...STANDARD_HEADER,
+    { name: 'overlayDarkness', type: 'number (0..1)', description: 'Abdunkelung des Bildes, damit der Text lesbar bleibt', example: '0.4' },
+    { name: 'align', type: 'center | bottom-left | bottom-center', description: 'Position des Text-Overlays', example: '"center"' },
+    { name: 'focalPoint', type: 'string', description: 'CSS background-position, wenn der Bildmittelpunkt nicht in der Mitte liegen soll', example: '"center top"' },
+  ],
 }
 
 // Welche Module unterstützen den Standard-Header-Block (eyebrow/headline/sub)?

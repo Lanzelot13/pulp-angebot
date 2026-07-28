@@ -36,6 +36,7 @@ import type {
   IdeasContent,
   OptionenContent,
   OutroContent,
+  BackgroundContent,
   EmbedConfig,
 } from '@/lib/pitch-types'
 import { ICON_FILES, DEFAULT_CONTENT } from '@/lib/pitch-types'
@@ -621,6 +622,7 @@ function ModuleRouter({
     case 'tipps':        return <TippsModule data={content as TippsContent} label={label} />
     case 'ideas':        return <IdeasModule data={content as IdeasContent} label={label} />
     case 'optionen':     return <OptionenModule data={content as OptionenContent} label={label} />
+    case 'background':   return <BackgroundModule data={content as BackgroundContent} label={label} />
     case 'outro':        return <OutroModule data={content as OutroContent} label={label} />
     default:
       return (
@@ -1382,6 +1384,61 @@ function OptionenModule({ data, label }: { data: OptionenContent; label: string 
             </div>
           )
         })}
+      </div>
+    </section>
+  )
+}
+
+// =========================================================
+// BACKGROUND · Fullscreen-Bild mit Overlay-Text
+// =========================================================
+function BackgroundModule({ data, label }: { data: BackgroundContent; label: string }) {
+  const imageUrl = data.imageUrl
+    ? (data.imageUrl.startsWith('/') || /^https?:\/\//i.test(data.imageUrl)
+        ? data.imageUrl
+        : '/' + data.imageUrl)
+    : ''
+  const darkness = typeof data.overlayDarkness === 'number'
+    ? Math.max(0, Math.min(1, data.overlayDarkness))
+    : 0.4
+  const align = data.align || 'center'
+  const focal = data.focalPoint || 'center center'
+  const alignClass =
+    align === 'bottom-left'
+      ? 'bg-align-bottom-left'
+      : align === 'bottom-center'
+        ? 'bg-align-bottom-center'
+        : 'bg-align-center'
+  return (
+    <section
+      className={`slide background ${alignClass}`}
+      data-slide-type="background"
+      data-screen-label={label}
+      style={{
+        backgroundImage: imageUrl ? `url("${imageUrl}")` : undefined,
+        backgroundPosition: focal,
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#111',
+      }}
+    >
+      <div
+        className="bg-overlay"
+        style={{ background: `rgba(0,0,0,${darkness})` }}
+      />
+      <div className="bg-content">
+        {data.eyebrow && (
+          <div className="eyebrow reveal-fade">
+            <span className="bar" />
+            <span>{data.eyebrow}</span>
+          </div>
+        )}
+        {data.headline && (
+          <h2 className="bg-headline reveal-fade delay-2">
+            {renderHeadline(data.headline)}
+          </h2>
+        )}
+        <RichSub html={data.sub} className="bg-sub" delay={3} />
       </div>
     </section>
   )
