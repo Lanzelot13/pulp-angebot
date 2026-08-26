@@ -1190,11 +1190,11 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       )}
                     </>
                   ) : draft.status === 'DRAFT' ? (
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '2rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', marginBottom: '2rem' }}>
                       Preis nach gemeinsamer Abstimmung
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '2rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', marginBottom: '2rem' }}>
                       Auf Anfrage
                     </div>
                   )}
@@ -1278,7 +1278,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                 </div>
                 {(!isEdit || !packages?.addOnsHidden) && (
                   <>
-                    <p style={{ fontSize: '1.05rem', fontWeight: 300, color: 'rgba(255,255,255,0.6)', marginBottom: '2rem' }}>Zu jedem Paket flexibel dazubuchbar.</p>
+                    <p style={{ fontSize: '1.05rem', fontWeight: 400, color: 'rgba(255,255,255,0.82)', marginBottom: '2rem' }}>Zu jedem Paket flexibel dazubuchbar.</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                       {(packages?.addOns || []).map((addon, ai) => (
                         <div key={ai} style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.06)', padding: '2rem', position: 'relative' }}>
@@ -1292,7 +1292,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             updateDraft('packages', { ...packages!, addOns })
                           }} style={{ fontFamily: 'Anton', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem' }} />
                           {draft.status === 'DRAFT' ? (
-                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Preis nach gemeinsamer Abstimmung</div>
+                            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', marginBottom: '1rem' }}>Preis nach gemeinsamer Abstimmung</div>
                           ) : addon.price !== null ? (
                             <>
                               <div style={{ fontSize: '1rem', color: '#FF1900', marginBottom: '0.3rem' }}>
@@ -1321,7 +1321,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             </>
                           ) : (
                             <>
-                              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: isEdit ? '0.5rem' : '1rem' }}>Auf Anfrage</div>
+                              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', marginBottom: isEdit ? '0.5rem' : '1rem' }}>Auf Anfrage</div>
                               {isEdit && (
                                 <button
                                   className={styles.toggleBtn}
@@ -1341,7 +1341,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                             const addOns = [...(packages?.addOns || [])]
                             addOns[ai] = { ...addOns[ai], description: v }
                             updateDraft('packages', { ...packages!, addOns })
-                          }} style={{ fontSize: '0.8rem', fontWeight: 300, color: 'rgba(255,255,255,0.6)' }} />
+                          }} style={{ fontSize: '0.8rem', fontWeight: 400, color: 'rgba(255,255,255,0.82)' }} />
                         </div>
                       ))}
                     </div>
