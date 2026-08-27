@@ -19,6 +19,12 @@
   opacity: 1;
 }
 
+/* Sichtbar-Zustand über data-Attribut, damit React beim Re-Render die
+ * Klasse nicht überschreibt (siehe OfferPage2 IntersectionObserver). */
+.reveal[data-visible="true"] {
+  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 .visible {
   animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -102,7 +108,8 @@
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s;
 }
 
-.sectionLabel.visible::before {
+.sectionLabel.visible::before,
+.sectionLabel[data-visible="true"]::before {
   width: 40px;
 }
 

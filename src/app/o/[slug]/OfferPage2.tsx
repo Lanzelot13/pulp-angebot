@@ -70,12 +70,21 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
 
   // Scroll animations
   useEffect(() => {
+    // Reveal-Animation: sobald ein .reveal-Element in den Viewport kommt,
+    // markieren wir es mit data-visible="true", und CSS blendet es ein.
+    //
+    // Wichtig: NICHT über classList.add(styles.visible) — CSS-Modul-Klassen
+    // hängen als Hash am className, und React würde manuelle className-
+    // Manipulationen bei einem Re-Render (z.B. durch Lightbox-State-Änderung)
+    // wieder überschreiben. Sections wären dann nach dem Schließen der Light-
+    // box "wieder auf opacity: 0". data-Attribute hingegen fasst React nicht
+    // an, wenn sie nicht in den JSX-Props stehen.
     const els = document.querySelectorAll(`.${rev}`)
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const delay = parseInt((entry.target as HTMLElement).dataset.delay || '0')
-          setTimeout(() => entry.target.classList.add(styles.visible), delay)
+          setTimeout(() => (entry.target as HTMLElement).setAttribute('data-visible', 'true'), delay)
           observer.unobserve(entry.target)
         }
       })
