@@ -5,11 +5,12 @@ import type { Offer, Contact, Reference, Channel } from '@prisma/client'
 import type {
   HeroSection, UnderstandingSection, ServicesSection,
   PackagesSection, TimelineSection, StatItem, LegalSection,
-  NotIncludedSection,
+  NotIncludedSection, MoodboardSection, MoodboardItem,
 } from '@/lib/types'
 import { DEFAULT_NOT_INCLUDED } from '@/lib/types'
 import { useTracking } from '@/lib/use-tracking'
 import { hasUnpublishedChanges } from '@/lib/publish'
+import { Lightbox } from './Lightbox'
 import styles from './offer2.module.css'
 
 // Available icons for understanding cards and stats. Used for the cycle button,
@@ -50,6 +51,12 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   const [statsHidden, setStatsHidden] = useState(
     !!(initialOffer as unknown as { statsHidden?: boolean }).statsHidden
   )
+  const [moodboardHidden, setMoodboardHidden] = useState(
+    !!(initialOffer as unknown as { moodboardHidden?: boolean }).moodboardHidden
+  )
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [moodUploading, setMoodUploading] = useState(false)
+  const [dragMoodIdx, setDragMoodIdx] = useState<number | null>(null)
   const [dragChIdx, setDragChIdx] = useState<number | null>(null)
 
   const isEdit = mode === 'edit'
@@ -94,6 +101,13 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   // Defaults render in view mode; in edit mode the user can save them to make them stick.
   const rawNotIncluded = (draft as unknown as { notIncluded?: NotIncludedSection | null }).notIncluded
   const notIncluded: NotIncludedSection = rawNotIncluded || DEFAULT_NOT_INCLUDED
+  // Moodboard-Section aus dem Draft ziehen. Bestandsangebote haben das Feld
+  // noch nicht (null) — dann bleibt die Section im View-Modus komplett aus.
+  const rawMoodboard = (draft as unknown as { moodboard?: MoodboardSection | MoodboardItem[] | null }).moodboard
+  const moodboard: MoodboardSection = Array.isArray(rawMoodboard)
+    ? { items: rawMoodboard, headline: 'Moodboard' }
+    : rawMoodboard || { items: [], headline: 'Moodboard' }
+  const moodItems = moodboard.items || []
   const timeline = (draft.timeline as unknown as TimelineSection) || null
   const stats = (draft.stats as unknown as StatItem[]) || []
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -129,7 +143,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     try {
       // Collect changed fields
       const changes: Record<string, unknown> = { changedBy: 'editor' }
-      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'statsHeadline', 'statsHidden', 'legal', 'referenceIds', 'referencesHeadline', 'referencesHidden', 'channelIds', 'channelsHidden', 'channelsHeadline'] as const
+      const fields = ['clientName', 'clientCompany', 'projectName', 'offerNumber', 'hero', 'understanding', 'services', 'packages', 'notIncluded', 'timeline', 'stats', 'statsHeadline', 'statsHidden', 'legal', 'referenceIds', 'referencesHeadline', 'referencesHidden', 'channelIds', 'channelsHidden', 'channelsHeadline', 'moodboard', 'moodboardHidden'] as const
       for (const f of fields) {
         const draftValue = (draft as unknown as Record<string, unknown>)[f]
         const savedValue = (savedOffer as unknown as Record<string, unknown>)[f]
@@ -453,6 +467,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   if (understanding || isEdit) sectionNumbers.understanding = String(++sectionNum).padStart(2, '0')
   if (services || isEdit) sectionNumbers.services = String(++sectionNum).padStart(2, '0')
   if (packages || isEdit) sectionNumbers.packages = String(++sectionNum).padStart(2, '0')
+  if ((moodItems.length > 0 || isEdit) && !moodboardHidden) sectionNumbers.moodboard = String(++sectionNum).padStart(2, '0')
   if ((timeline || isEdit) && !timelineHidden) sectionNumbers.timeline = String(++sectionNum).padStart(2, '0')
   if ((stats.length > 0 || isEdit) && !statsHidden) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
   // Referenzen zählen nur, wenn wirklich welche zugeordnet sind (oder im Edit-Modus)
@@ -1468,6 +1483,163 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
         </section>
       )}
 
+      {/* MOODBOARD */}
+      {(moodItems.length > 0 || isEdit) && (!moodboardHidden || isEdit) && (
+        <section
+          className={styles.section}
+          style={isEdit && moodboardHidden ? { opacity: 0.4 } : undefined}
+          data-track-section="moodboard"
+          data-track-type="moodboard"
+          data-track-index="5"
+        >
+          <div className={`${rev} ${styles.sectionLabel}`} data-delay="0">
+            {sectionNumbers.moodboard || '—'} — Moodboard {isEdit && moodboardHidden && '(ausgeblendet)'}
+            {isEdit && (
+              <button
+                className={styles.toggleBtn}
+                style={{ marginLeft: '1rem' }}
+                onClick={() => {
+                  const newHidden = !moodboardHidden
+                  setMoodboardHidden(newHidden)
+                  updateDraft('moodboardHidden', newHidden)
+                }}
+              >
+                {moodboardHidden ? '👁 Einblenden' : '👁 Ausblenden'}
+              </button>
+            )}
+          </div>
+          <Editable
+            tag="h2"
+            className={`${styles.sectionHeadline} ${rev}`}
+            value={moodboard.headline || 'Moodboard'}
+            onSave={(v) => updateDraft('moodboard', { ...moodboard, items: moodItems, headline: v })}
+          />
+
+          {moodItems.length > 0 && (
+            <div
+              className={
+                moodItems.length === 1
+                  ? styles.moodboardSingle
+                  : styles.moodboardGrid
+              }
+            >
+              {moodItems.map((item, i) => (
+                <figure
+                  key={`${item.url}-${i}`}
+                  className={`${styles.moodboardItem} ${rev}`}
+                  data-delay={100 + i * 60}
+                  draggable={isEdit}
+                  onDragStart={isEdit ? () => setDragMoodIdx(i) : undefined}
+                  onDragOver={isEdit ? (e) => {
+                    e.preventDefault()
+                    if (dragMoodIdx === null || dragMoodIdx === i) return
+                    const arr = [...moodItems]
+                    const [moved] = arr.splice(dragMoodIdx, 1)
+                    arr.splice(i, 0, moved)
+                    setDragMoodIdx(i)
+                    updateDraft('moodboard', { ...moodboard, items: arr })
+                  } : undefined}
+                  onDragEnd={isEdit ? () => setDragMoodIdx(null) : undefined}
+                >
+                  {isEdit && (
+                    <button
+                      type="button"
+                      className={styles.moodboardRemove}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const arr = moodItems.filter((_, idx) => idx !== i)
+                        updateDraft('moodboard', { ...moodboard, items: arr })
+                      }}
+                      title="Bild entfernen"
+                    >
+                      ×
+                    </button>
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.url}
+                    alt={item.caption || `Moodbild ${i + 1}`}
+                    className={styles.moodboardImage}
+                    onClick={!isEdit ? () => setLightboxIndex(i) : undefined}
+                    style={{ cursor: isEdit ? 'move' : 'zoom-in' }}
+                  />
+                  {isEdit ? (
+                    <input
+                      type="text"
+                      className={styles.moodboardCaptionInput}
+                      value={item.caption || ''}
+                      placeholder="Bildunterschrift (optional)"
+                      onChange={(e) => {
+                        const arr = [...moodItems]
+                        arr[i] = { ...arr[i], caption: e.target.value || undefined }
+                        updateDraft('moodboard', { ...moodboard, items: arr })
+                      }}
+                    />
+                  ) : item.caption ? (
+                    <figcaption className={styles.moodboardCaption}>
+                      {item.caption}
+                    </figcaption>
+                  ) : null}
+                </figure>
+              ))}
+            </div>
+          )}
+
+          {isEdit && (
+            <div className={styles.moodboardUpload}>
+              <label className={styles.moodboardUploadLabel}>
+                {moodUploading
+                  ? 'Lädt hoch …'
+                  : moodItems.length >= 12
+                    ? 'Maximal 12 Bilder'
+                    : '+ Bild(er) hinzufügen'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  disabled={moodUploading || moodItems.length >= 12}
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || [])
+                    if (files.length === 0) return
+                    setMoodUploading(true)
+                    const slots = Math.max(0, 12 - moodItems.length)
+                    const toUpload = files.slice(0, slots)
+                    const uploaded: MoodboardItem[] = []
+                    for (const file of toUpload) {
+                      const fd = new FormData()
+                      fd.append('file', file)
+                      fd.append('offerSlug', draft.slug || 'offer')
+                      const res = await fetch(
+                        `/api/admin/moodboard/upload?offerId=${draft.id}&edit=${draft.editToken}`,
+                        { method: 'POST', body: fd }
+                      )
+                      if (res.ok) {
+                        const j = await res.json()
+                        if (j.url) uploaded.push({ url: j.url })
+                      }
+                    }
+                    if (uploaded.length > 0) {
+                      updateDraft('moodboard', {
+                        ...moodboard,
+                        items: [...moodItems, ...uploaded],
+                      })
+                    }
+                    setMoodUploading(false)
+                    // Input zurücksetzen, damit die gleiche Datei nochmal
+                    // ausgewählt werden kann
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              <span className={styles.moodboardUploadHint}>
+                Max 5 MB pro Bild · JPG, PNG, WEBP · bis zu 12 Bilder
+              </span>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* TIMELINE */}
       {(timeline || isEdit) && (!timelineHidden || isEdit) && (
         <section
@@ -1858,6 +2030,17 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
           <a href="https://pulpmedia.at/Impressum" target="_blank" rel="noopener">Impressum</a>
         </div>
       </div>
+
+      {/* MOODBOARD LIGHTBOX */}
+      {lightboxIndex !== null && moodItems.length > 0 && (
+        <Lightbox
+          images={moodItems}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onPrev={() => setLightboxIndex((idx) => (idx === null ? null : (idx - 1 + moodItems.length) % moodItems.length))}
+          onNext={() => setLightboxIndex((idx) => (idx === null ? null : (idx + 1) % moodItems.length))}
+        />
+      )}
 
       {/* TOAST */}
       {toast && <div className={styles.toast}>{toast}</div>}

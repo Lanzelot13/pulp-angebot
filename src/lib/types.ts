@@ -73,6 +73,19 @@ export interface PackagesSection {
   addOnsHidden?: boolean
 }
 
+// Moodboard: einzelnes Bild mit optionaler Bildunterschrift, die der Kunde
+// unter dem Bild sieht (z.B. "Referenz-Look Foto-Shooting").
+export interface MoodboardItem {
+  url: string
+  caption?: string
+}
+
+export interface MoodboardSection {
+  hidden?: boolean
+  headline?: string
+  items: MoodboardItem[]
+}
+
 export interface NotIncludedItem {
   title: string
 }

@@ -30,6 +30,8 @@ export const PUBLISHABLE_FIELDS = [
   'channelIds',
   'channelsHidden',
   'channelsHeadline',
+  'moodboard',
+  'moodboardHidden',
   'legal',
 ] as const
 

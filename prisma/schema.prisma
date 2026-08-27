@@ -89,6 +89,10 @@ model Offer {
   channelsHidden   Boolean    @default(false)
   referencesHidden Boolean    @default(false)
   statsHidden      Boolean    @default(false)
+  moodboardHidden  Boolean    @default(false)
+  // Moodboard: Array von Bildern mit optionaler Bildunterschrift.
+  // Struktur pro Item: { url: string, caption?: string }
+  moodboard        Json?
   channelsHeadline String?    // Custom headline for channels section
   statsHeadline    String?    // Custom headline for stats section ("Warum Pulpmedia")
   referencesHeadline String?  // Custom headline for references section

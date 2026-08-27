@@ -1246,6 +1246,211 @@
   .nav { padding: 1rem 1.5rem; }
 }
 
+/* === MOODBOARD === */
+.moodboardSingle {
+  width: 100%;
+  margin-top: 1rem;
+}
+.moodboardSingle .moodboardItem {
+  margin: 0;
+}
+.moodboardSingle .moodboardImage {
+  width: 100%;
+  height: auto;
+  max-height: 78vh;
+  object-fit: cover;
+  display: block;
+}
+.moodboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.moodboardItem {
+  position: relative;
+  background: #1a1a1a;
+  overflow: hidden;
+  margin: 0;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.moodboardGrid .moodboardItem:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.moodboardImage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s;
+}
+.moodboardGrid .moodboardImage:hover {
+  opacity: 0.9;
+}
+.moodboardCaption {
+  padding: 0.7rem 1rem 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.5;
+}
+.moodboardCaptionInput {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed rgba(255,255,255,0.15);
+  padding: 0.7rem 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.03em;
+  outline: none;
+}
+.moodboardCaptionInput::placeholder {
+  color: rgba(255,255,255,0.35);
+  font-style: italic;
+}
+.moodboardCaptionInput:focus {
+  background: rgba(255,25,0,0.05);
+}
+.moodboardRemove {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.moodboardRemove:hover {
+  background: #FF1900;
+}
+.moodboardUpload {
+  margin-top: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.moodboardUploadLabel {
+  display: inline-block;
+  padding: 0.8rem 1.4rem;
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.85);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.moodboardUploadLabel:hover {
+  border-color: #FF1900;
+  color: #FF1900;
+}
+.moodboardUploadHint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.03em;
+}
+
+/* === LIGHTBOX === */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  animation: fadeIn 0.2s ease-out;
+}
+.lightboxContent {
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.lightboxImage {
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  display: block;
+}
+.lightboxCaption {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.03em;
+  text-align: center;
+  max-width: 700px;
+}
+.lightboxCounter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.1em;
+}
+.lightboxClose,
+.lightboxPrev,
+.lightboxNext {
+  position: absolute;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: 'Anton', sans-serif;
+}
+.lightboxClose:hover,
+.lightboxPrev:hover,
+.lightboxNext:hover {
+  border-color: #FF1900;
+  background: rgba(255,25,0,0.1);
+}
+.lightboxClose {
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.lightboxPrev,
+.lightboxNext {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.lightboxPrev { left: 1.5rem; }
+.lightboxNext { right: 1.5rem; }
+
 /* === Info-Seite für gesperrte oder abgelaufene Angebote === */
 .unavailableWrap {
   min-height: 100vh;

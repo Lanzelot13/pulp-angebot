@@ -87,6 +87,7 @@ export async function PATCH(
     'stats', 'statsHeadline', 'statsHidden',
     'referenceIds', 'referencesHeadline', 'referencesHidden',
     'channelIds', 'channelsHidden', 'channelsHeadline',
+    'moodboard', 'moodboardHidden',
     'legal', 'template',
   ]
 

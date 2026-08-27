@@ -115,6 +115,12 @@ export async function PATCH(
   if (typeof body.statsHidden === 'boolean') {
     data.statsHidden = body.statsHidden
   }
+  if (typeof body.moodboardHidden === 'boolean') {
+    data.moodboardHidden = body.moodboardHidden
+  }
+  if (body.moodboard !== undefined) {
+    data.moodboard = body.moodboard
+  }
   if (typeof body.slug === 'string') {
     const newSlug = normalizeSlug(body.slug)
     if (!newSlug) {
