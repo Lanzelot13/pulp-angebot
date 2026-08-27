@@ -21,6 +21,33 @@ interface Props {
 export function Lightbox({ images, index, onClose, onPrev, onNext }: Props) {
   const current = images[index]
 
+  // Body-Scroll sperren, während die Lightbox offen ist.
+  //
+  // Nicht mit `overflow: hidden` — das setzt in Safari die Scroll-Position auf 0
+  // zurück und beim Schließen sind alle Sections darunter noch nicht durch den
+  // Reveal-Observer sichtbar gemacht worden (sehen wie "ausgeblendet" aus).
+  // Stattdessen: Body auf position: fixed mit negativem top einfrieren.
+  // Nach dem Schließen zurückscrollen auf die alte Position.
+  //
+  // Eigener Effect mit []-Deps, damit er bei Parent-Re-Renders nicht neu läuft.
+  useEffect(() => {
+    const scrollY = window.scrollY
+    const prevPos = document.body.style.position
+    const prevTop = document.body.style.top
+    const prevWidth = document.body.style.width
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    return () => {
+      document.body.style.position = prevPos
+      document.body.style.top = prevTop
+      document.body.style.width = prevWidth
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+
+  // Key-Handler darf ruhig neu registriert werden, wenn sich die Callbacks
+  // ändern — er nutzt sie ja direkt.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -28,12 +55,8 @@ export function Lightbox({ images, index, onClose, onPrev, onNext }: Props) {
       else if (e.key === 'ArrowRight') onNext()
     }
     document.addEventListener('keydown', onKey)
-    // Body-Scroll unterbinden, solange die Lightbox offen ist
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
     }
   }, [onClose, onPrev, onNext])
 
