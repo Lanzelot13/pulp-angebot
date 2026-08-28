@@ -96,7 +96,7 @@ interface ContactOption {
   role: string
 }
 
-type Filter = 'active' | 'all' | 'archived'
+type Filter = 'active' | 'expired' | 'all' | 'archived'
 
 interface MetaForm {
   clientName: string
@@ -204,6 +204,10 @@ export default function OffersPage() {
         } else if (f === 'active') {
           params.set('status', 'DRAFT,PRICED')
         }
+        // Ablauf-Filter: "Aktiv" schließt abgelaufene aus, "Abgelaufen"
+        // zeigt ausschließlich abgelaufene Angebote.
+        if (f === 'active') params.set('expired', 'false')
+        else if (f === 'expired') params.set('expired', 'true')
         const res = await fetch(`/api/admin/offers?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
@@ -827,9 +831,16 @@ export default function OffersPage() {
         <button
           className={`${styles.filterTab} ${filter === 'active' ? styles.filterTabActive : ''}`}
           onClick={() => setFilter('active')}
-          title="Nur offene Angebote: Optionsfindung und Angebot"
+          title="Nur offene Angebote: Optionsfindung und Angebot, deren Gültigkeit noch läuft"
         >
           Aktiv
+        </button>
+        <button
+          className={`${styles.filterTab} ${filter === 'expired' ? styles.filterTabActive : ''}`}
+          onClick={() => setFilter('expired')}
+          title="Nur Angebote, deren Gültigkeit abgelaufen ist"
+        >
+          Abgelaufen
         </button>
         <button
           className={`${styles.filterTab} ${filter === 'all' ? styles.filterTabActive : ''}`}

@@ -11,6 +11,8 @@ const VALID_STATUS = new Set(['DRAFT', 'PRICED', 'ACCEPTED', 'DECLINED'])
 //   ?search=foo               freitext über clientCompany / clientName / projectName / offerNumber
 //   ?contactSlug=paul         filter nach Pulpmedia-Accounter
 //   ?status=DRAFT             filter nach Status
+//   ?expired=true|false       true = nur abgelaufene (validUntil < heute)
+//                             false = nur nicht-abgelaufene (validUntil >= heute oder null)
 export async function GET(request: NextRequest) {
   const authResult = await requireAdmin(request)
   if (authResult instanceof NextResponse) return authResult
@@ -20,6 +22,7 @@ export async function GET(request: NextRequest) {
   const search = (params.get('search') || '').trim()
   const contactSlug = (params.get('contactSlug') || '').trim()
   const statusParam = (params.get('status') || '').trim().toUpperCase()
+  const expiredParam = (params.get('expired') || '').toLowerCase()
 
   // Build where clause — loose cast because Prisma client may not yet know archivedAt
   const where: Record<string, unknown> = {}
@@ -50,13 +53,36 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (search) {
-    where.OR = [
-      { clientCompany: { contains: search, mode: 'insensitive' } },
-      { clientName: { contains: search, mode: 'insensitive' } },
-      { projectName: { contains: search, mode: 'insensitive' } },
-      { offerNumber: { contains: search, mode: 'insensitive' } },
-    ]
+  // Ablauf-Filter: validUntil < heute = abgelaufen. Angebote ohne validUntil
+  // gelten als nicht-abgelaufen (kein Ablaufdatum gesetzt = unbefristet).
+  const now = new Date()
+  const expiredCondition =
+    expiredParam === 'true'
+      ? { validUntil: { lt: now } }
+      : expiredParam === 'false'
+        ? { OR: [{ validUntil: null }, { validUntil: { gte: now } }] }
+        : null
+
+  const searchCondition = search
+    ? {
+        OR: [
+          { clientCompany: { contains: search, mode: 'insensitive' } },
+          { clientName: { contains: search, mode: 'insensitive' } },
+          { projectName: { contains: search, mode: 'insensitive' } },
+          { offerNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      }
+    : null
+
+  // Search und Expired kombinieren wir über AND, damit sich die beiden
+  // OR-Klauseln nicht gegenseitig überschreiben.
+  const andConditions: Array<Record<string, unknown>> = []
+  if (expiredCondition) andConditions.push(expiredCondition)
+  if (searchCondition) andConditions.push(searchCondition)
+  if (andConditions.length === 1) {
+    Object.assign(where, andConditions[0])
+  } else if (andConditions.length > 1) {
+    where.AND = andConditions
   }
 
   const offers = await prisma.offer.findMany({
