@@ -11,22 +11,26 @@
   to { opacity: 1; }
 }
 
+/* Reveal-System: Elemente sind IMMER sichtbar (opacity: 1). Die Fade-in-
+ * Animation wird nur zusätzlich per data-visible="true" ausgelöst — reine
+ * Kosmetik. Sollte der IntersectionObserver aus irgendeinem Grund nicht
+ * greifen (React-Re-Render, Modal-Interaktion), sind die Sections trotzdem
+ * lesbar. Kein Content darf mehr durch versagende Animationen unsichtbar
+ * werden. */
 .reveal {
-  opacity: 0;
+  opacity: 1;
 }
 
 .revealEdit {
   opacity: 1;
 }
 
-/* Sichtbar-Zustand über data-Attribut, damit React beim Re-Render die
- * Klasse nicht überschreibt (siehe OfferPage2 IntersectionObserver). */
 .reveal[data-visible="true"] {
-  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .visible {
-  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* PAGE */
