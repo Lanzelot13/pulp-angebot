@@ -11,26 +11,39 @@
   to { opacity: 1; }
 }
 
-/* Reveal-System: Elemente sind IMMER sichtbar (opacity: 1). Die Fade-in-
- * Animation wird nur zusätzlich per data-visible="true" ausgelöst — reine
- * Kosmetik. Sollte der IntersectionObserver aus irgendeinem Grund nicht
- * greifen (React-Re-Render, Modal-Interaktion), sind die Sections trotzdem
- * lesbar. Kein Content darf mehr durch versagende Animationen unsichtbar
- * werden. */
+/* Reveal-System via CSS-Transition (statt Keyframe-Animation).
+ *
+ * Warum Transition und nicht Animation:
+ * - Idempotent: data-visible="true" ist der Zielzustand. Wird das Attribut
+ *   nochmal gesetzt (Re-Render, doppelter Observer-Fire), passiert nichts.
+ *   Die alte @keyframes-Animation startete jedes Mal wieder bei opacity: 0
+ *   → sichtbares Blinken.
+ * - React-safe: data-visible steht nicht in JSX, React kennt es nicht und
+ *   räumt es bei className-Änderungen nicht ab. Elements, die einmal
+ *   sichtbar waren, bleiben sichtbar.
+ *
+ * Startzustand: opacity 0 + 40px nach unten. Zielzustand nach data-visible:
+ * opacity 1 + Original-Position. Kein Frame-Sprung dazwischen. */
 .reveal {
-  opacity: 1;
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
 
+.reveal[data-visible="true"],
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Im Editor-Modus keine Reveal-Animation — der Editor braucht sofortige
+ * Sichtbarkeit aller Sections zum Bearbeiten. */
 .revealEdit {
   opacity: 1;
-}
-
-.reveal[data-visible="true"] {
-  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.visible {
-  animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform: none;
 }
 
 /* PAGE */
