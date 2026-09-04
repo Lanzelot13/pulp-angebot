@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, Fragment } from 'react'
+import { useState, useCallback, useEffect, useLayoutEffect, Fragment } from 'react'
 import type { Offer, Contact, Reference, Channel } from '@prisma/client'
 import type {
   HeroSection, UnderstandingSection, ServicesSection,
@@ -68,18 +68,32 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     fetch('/api/channels').then(r => r.json()).then(setAllChannels)
   }, [isEdit])
 
-  // Scroll animations
-  useEffect(() => {
-    // Reveal-Animation: sobald ein .reveal-Element in den Viewport kommt,
-    // markieren wir es mit data-visible="true", und CSS blendet es ein.
-    //
-    // Wichtig: NICHT über classList.add(styles.visible) — CSS-Modul-Klassen
-    // hängen als Hash am className, und React würde manuelle className-
-    // Manipulationen bei einem Re-Render (z.B. durch Lightbox-State-Änderung)
-    // wieder überschreiben. Sections wären dann nach dem Schließen der Light-
-    // box "wieder auf opacity: 0". data-Attribute hingegen fasst React nicht
-    // an, wenn sie nicht in den JSX-Props stehen.
-    const els = document.querySelectorAll(`.${rev}`)
+  // Scroll animations — Inverted-Default-Reveal.
+  //
+  // CSS-Setup (siehe offer2.module.css):
+  //   .reveal ohne Attribut     → sichtbar (opacity: 1)
+  //   .reveal[data-visible=false] → versteckt
+  //   .reveal[data-visible=true]  → sichtbar, mit Transition
+  //
+  // useLayoutEffect statt useEffect: läuft synchron nach DOM-Update, aber
+  // VOR dem Paint. Damit können wir data-visible="false" setzen und der
+  // Observer im gleichen Frame Elemente im Viewport auf "true" bringen —
+  // ohne dass der Nutzer erst sichtbare, dann versteckte Elemente sieht.
+  //
+  // Kernidee des Inverted-Default: Wenn data-visible aus IRGENDEINEM Grund
+  // verloren geht (React remount, Lightbox-Interaktion, was auch immer),
+  // fällt das Element auf den Default "sichtbar" zurück — nie mehr auf 0.
+  // Content ist nie unsichtbar durch fehlendes Attribut.
+  useLayoutEffect(() => {
+    const els = Array.from(document.querySelectorAll(`.${rev}`)) as HTMLElement[]
+    // Erst-Mal alle noch nicht sichtbaren Elemente explizit auf false setzen.
+    // Elemente, die bereits data-visible="true" haben (z.B. nach einem Re-
+    // Setup), lassen wir in Ruhe.
+    els.forEach(el => {
+      if (el.getAttribute('data-visible') !== 'true') {
+        el.setAttribute('data-visible', 'false')
+      }
+    })
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -91,6 +105,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     }, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' })
     els.forEach(el => observer.observe(el))
     return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Anonymes Tracking (nur im View-Modus, nicht im Editor).

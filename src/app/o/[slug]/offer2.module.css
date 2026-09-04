@@ -11,30 +11,34 @@
   to { opacity: 1; }
 }
 
-/* Reveal-System via CSS-Transition (statt Keyframe-Animation).
+/* Reveal-System: Inverted-Default-Strategie.
  *
- * Warum Transition und nicht Animation:
- * - Idempotent: data-visible="true" ist der Zielzustand. Wird das Attribut
- *   nochmal gesetzt (Re-Render, doppelter Observer-Fire), passiert nichts.
- *   Die alte @keyframes-Animation startete jedes Mal wieder bei opacity: 0
- *   → sichtbares Blinken.
- * - React-safe: data-visible steht nicht in JSX, React kennt es nicht und
- *   räumt es bei className-Änderungen nicht ab. Elements, die einmal
- *   sichtbar waren, bleiben sichtbar.
+ * Kernidee: Default ist SICHTBAR. Nur wenn data-visible="false" explizit
+ * gesetzt ist, wird das Element versteckt. Der Observer setzt beim
+ * Intersection data-visible="true", die Transition läuft ganz normal.
  *
- * Startzustand: opacity 0 + 40px nach unten. Zielzustand nach data-visible:
- * opacity 1 + Original-Position. Kein Frame-Sprung dazwischen. */
+ * Warum invertiert:
+ * - Wenn data-visible aus irgendeinem Grund verloren geht (z.B. weil ein
+ *   Section-Element durch React-Reconciliation neu gemountet wird), fällt
+ *   das Element auf den Default (opacity: 1) zurück — nicht auf 0. Der
+ *   Content ist NIE unsichtbar, wenn das Attribut fehlt.
+ * - Nur das JS beim ersten Mount setzt data-visible="false" auf Elemente,
+ *   die außerhalb des Viewports liegen. Elemente ohne Attribut sind
+ *   automatisch sichtbar.
+ * - Idempotent: Wird data-visible mehrfach gesetzt, keine Neuanimation.
+ *   Die Transition rennt nur bei tatsächlicher Wertänderung. */
 .reveal {
-  opacity: 0;
-  transform: translateY(40px);
   transition:
     opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
 }
 
-.reveal[data-visible="true"],
-.reveal.visible {
+.reveal[data-visible="false"] {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.reveal[data-visible="true"] {
   opacity: 1;
   transform: translateY(0);
 }
