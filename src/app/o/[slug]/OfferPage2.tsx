@@ -1615,11 +1615,30 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                     onClick={!isEdit ? () => setLightboxIndex(0) : undefined}
                     style={{ cursor: isEdit ? 'default' : 'zoom-in' }}
                   >
+                    {/* YouTube-Thumbnail: Versuche zuerst maxresdefault (1280×720).
+                        Das existiert nur bei HD-Uploads — bei älteren Videos
+                        liefert YouTube dann ein graues 120×90-Platzhalterbild
+                        (naturalWidth === 120). In beiden Fehlerfällen fallen
+                        wir sauber auf hqdefault zurück (immer verfügbar). */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`https://img.youtube.com/vi/${moodVideoId}/hqdefault.jpg`}
+                      src={`https://img.youtube.com/vi/${moodVideoId}/maxresdefault.jpg`}
                       alt="YouTube-Video"
                       className={styles.moodboardImage}
+                      onError={(e) => {
+                        const img = e.currentTarget
+                        if (!img.src.endsWith('/hqdefault.jpg')) {
+                          img.src = `https://img.youtube.com/vi/${moodVideoId}/hqdefault.jpg`
+                        }
+                      }}
+                      onLoad={(e) => {
+                        const img = e.currentTarget
+                        // YouTubes Platzhalter für fehlendes maxresdefault
+                        // ist 120×90 — in dem Fall ebenfalls herunterfallen.
+                        if (img.naturalWidth === 120 && !img.src.endsWith('/hqdefault.jpg')) {
+                          img.src = `https://img.youtube.com/vi/${moodVideoId}/hqdefault.jpg`
+                        }
+                      }}
                     />
                     <div className={styles.moodboardPlayIcon} aria-hidden="true">▶</div>
                   </div>
