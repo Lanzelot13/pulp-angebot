@@ -3,13 +3,17 @@
 import { useEffect } from 'react'
 import styles from './offer2.module.css'
 
-interface LightboxImage {
+// Lightbox-Item: entweder ein Bild (url) oder ein YouTube-Video (videoId).
+// Wenn videoId gesetzt ist, wird ein eingebetteter YouTube-Player gerendert
+// und url (falls vorhanden) als Thumbnail-Fallback behandelt.
+export interface LightboxItem {
   url: string
   caption?: string
+  videoId?: string
 }
 
 interface Props {
-  images: LightboxImage[]
+  images: LightboxItem[]
   index: number
   onClose: () => void
   onPrev: () => void
@@ -83,7 +87,7 @@ export function Lightbox({ images, index, onClose, onPrev, onNext }: Props) {
         <button
           className={styles.lightboxPrev}
           onClick={(e) => { e.stopPropagation(); onPrev() }}
-          aria-label="Vorheriges Bild"
+          aria-label="Vorheriges Element"
           type="button"
         >
           ‹
@@ -91,12 +95,25 @@ export function Lightbox({ images, index, onClose, onPrev, onNext }: Props) {
       )}
 
       <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={current.url}
-          alt={current.caption || `Bild ${index + 1}`}
-          className={styles.lightboxImage}
-        />
+        {current.videoId ? (
+          <div className={styles.lightboxVideoWrap}>
+            <iframe
+              key={current.videoId}
+              src={`https://www.youtube.com/embed/${current.videoId}?autoplay=1&rel=0&modestbranding=1`}
+              title={current.caption || `Video ${index + 1}`}
+              className={styles.lightboxVideo}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={current.url}
+            alt={current.caption || `Bild ${index + 1}`}
+            className={styles.lightboxImage}
+          />
+        )}
         {current.caption && (
           <div className={styles.lightboxCaption}>{current.caption}</div>
         )}
@@ -111,7 +128,7 @@ export function Lightbox({ images, index, onClose, onPrev, onNext }: Props) {
         <button
           className={styles.lightboxNext}
           onClick={(e) => { e.stopPropagation(); onNext() }}
-          aria-label="Nächstes Bild"
+          aria-label="Nächstes Element"
           type="button"
         >
           ›

@@ -84,6 +84,11 @@ export interface MoodboardSection {
   hidden?: boolean
   headline?: string
   items: MoodboardItem[]
+  // Optionales YouTube-Video, das visuell als weiteres "Bild" im Grid
+  // mitläuft (Thumbnail + Play-Overlay). Klick öffnet die Lightbox mit
+  // dem eingebetteten YouTube-Player. Nur eine URL — mehr brauchen wir
+  // bewusst nicht, das Moodboard soll kein Showreel werden.
+  videoUrl?: string | null
 }
 
 export interface NotIncludedItem {

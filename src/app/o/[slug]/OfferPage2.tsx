@@ -19,6 +19,29 @@ import styles from './offer2.module.css'
 const ICON_OPTIONS = ['pixel_heart', 'blume', 'blitz', 'smiley', 'explosion', 'skull', 'horn_hand']
 const iconByIndex = (i: number) => ICON_OPTIONS[i % ICON_OPTIONS.length]
 
+// Extrahiert die 11-stellige YouTube-Video-ID aus allen gängigen URL-Formaten
+// (youtube.com/watch?v=, youtu.be/, youtube.com/embed/, youtube.com/shorts/).
+// Gibt null zurück, wenn die URL kein YouTube-Link ist oder nicht erkannt
+// werden konnte. Die ID brauchen wir für das Embed, das Thumbnail und als
+// Lightbox-Kennzeichnung.
+function parseYouTubeId(url: string | null | undefined): string | null {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  const patterns = [
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+  ]
+  for (const p of patterns) {
+    const m = trimmed.match(p)
+    if (m) return m[1]
+  }
+  return null
+}
+
 type OfferWithContact = Offer & { contact: Contact }
 
 interface OfferPage2Props {
@@ -132,6 +155,26 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
     ? { items: rawMoodboard, headline: 'Moodboard' }
     : rawMoodboard || { items: [], headline: 'Moodboard' }
   const moodItems = moodboard.items || []
+  // YouTube-Video (optional). Wenn parseYouTubeId null zurückgibt, ist keine
+  // gültige URL hinterlegt oder sie konnte nicht erkannt werden.
+  const moodVideoId = parseYouTubeId(moodboard.videoUrl)
+  // Kombinierte Liste für die Lightbox-Navigation: Video (falls vorhanden)
+  // zuerst, dann die Bilder in der aktuellen Reihenfolge. Das Video zählt
+  // bewusst als eigenes Item mit videoId, damit die Lightbox weiß, dass sie
+  // ein YouTube-Embed statt eines <img> rendern soll.
+  const moodLightboxItems: Array<{ url: string; caption?: string; videoId?: string }> = [
+    ...(moodVideoId
+      ? [{
+          url: `https://img.youtube.com/vi/${moodVideoId}/hqdefault.jpg`,
+          caption: undefined,
+          videoId: moodVideoId,
+        }]
+      : []),
+    ...moodItems,
+  ]
+  // Hat das Moodboard insgesamt (Video + Bilder) genau ein Item? Dann rendern
+  // wir es volle Breite statt im Grid.
+  const moodTotalCount = (moodVideoId ? 1 : 0) + moodItems.length
   const timeline = (draft.timeline as unknown as TimelineSection) || null
   const stats = (draft.stats as unknown as StatItem[]) || []
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -491,7 +534,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
   if (understanding || isEdit) sectionNumbers.understanding = String(++sectionNum).padStart(2, '0')
   if (services || isEdit) sectionNumbers.services = String(++sectionNum).padStart(2, '0')
   if (packages || isEdit) sectionNumbers.packages = String(++sectionNum).padStart(2, '0')
-  if ((moodItems.length > 0 || isEdit) && !moodboardHidden) sectionNumbers.moodboard = String(++sectionNum).padStart(2, '0')
+  if ((moodTotalCount > 0 || isEdit) && !moodboardHidden) sectionNumbers.moodboard = String(++sectionNum).padStart(2, '0')
   if ((timeline || isEdit) && !timelineHidden) sectionNumbers.timeline = String(++sectionNum).padStart(2, '0')
   if ((stats.length > 0 || isEdit) && !statsHidden) sectionNumbers.stats = String(++sectionNum).padStart(2, '0')
   // Referenzen zählen nur, wenn wirklich welche zugeordnet sind (oder im Edit-Modus)
@@ -1508,7 +1551,7 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       )}
 
       {/* MOODBOARD */}
-      {(moodItems.length > 0 || isEdit) && (!moodboardHidden || isEdit) && (
+      {(moodTotalCount > 0 || isEdit) && (!moodboardHidden || isEdit) && (
         <section
           className={styles.section}
           style={isEdit && moodboardHidden ? { opacity: 0.4 } : undefined}
@@ -1539,31 +1582,20 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
             onSave={(v) => updateDraft('moodboard', { ...moodboard, items: moodItems, headline: v })}
           />
 
-          {moodItems.length > 0 && (
+          {moodTotalCount > 0 && (
             <div
               className={
-                moodItems.length === 1
+                moodTotalCount === 1
                   ? styles.moodboardSingle
                   : styles.moodboardGrid
               }
             >
-              {moodItems.map((item, i) => (
+              {/* YouTube-Video als erstes Grid-Item, wenn vorhanden. */}
+              {moodVideoId && (
                 <figure
-                  key={`${item.url}-${i}`}
-                  className={`${styles.moodboardItem} ${rev}`}
-                  data-delay={100 + i * 60}
-                  draggable={isEdit}
-                  onDragStart={isEdit ? () => setDragMoodIdx(i) : undefined}
-                  onDragOver={isEdit ? (e) => {
-                    e.preventDefault()
-                    if (dragMoodIdx === null || dragMoodIdx === i) return
-                    const arr = [...moodItems]
-                    const [moved] = arr.splice(dragMoodIdx, 1)
-                    arr.splice(i, 0, moved)
-                    setDragMoodIdx(i)
-                    updateDraft('moodboard', { ...moodboard, items: arr })
-                  } : undefined}
-                  onDragEnd={isEdit ? () => setDragMoodIdx(null) : undefined}
+                  key={`video-${moodVideoId}`}
+                  className={`${styles.moodboardItem} ${styles.moodboardVideoItem} ${rev}`}
+                  data-delay={100}
                 >
                   {isEdit && (
                     <button
@@ -1571,41 +1603,92 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
                       className={styles.moodboardRemove}
                       onClick={(e) => {
                         e.stopPropagation()
-                        const arr = moodItems.filter((_, idx) => idx !== i)
-                        updateDraft('moodboard', { ...moodboard, items: arr })
+                        updateDraft('moodboard', { ...moodboard, videoUrl: null })
                       }}
-                      title="Bild entfernen"
+                      title="Video entfernen"
                     >
                       ×
                     </button>
                   )}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.url}
-                    alt={item.caption || `Moodbild ${i + 1}`}
-                    className={styles.moodboardImage}
-                    onClick={!isEdit ? () => setLightboxIndex(i) : undefined}
-                    style={{ cursor: isEdit ? 'move' : 'zoom-in' }}
-                  />
-                  {isEdit ? (
-                    <input
-                      type="text"
-                      className={styles.moodboardCaptionInput}
-                      value={item.caption || ''}
-                      placeholder="Bildunterschrift (optional)"
-                      onChange={(e) => {
-                        const arr = [...moodItems]
-                        arr[i] = { ...arr[i], caption: e.target.value || undefined }
-                        updateDraft('moodboard', { ...moodboard, items: arr })
-                      }}
+                  <div
+                    className={styles.moodboardVideoThumb}
+                    onClick={!isEdit ? () => setLightboxIndex(0) : undefined}
+                    style={{ cursor: isEdit ? 'default' : 'zoom-in' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://img.youtube.com/vi/${moodVideoId}/hqdefault.jpg`}
+                      alt="YouTube-Video"
+                      className={styles.moodboardImage}
                     />
-                  ) : item.caption ? (
-                    <figcaption className={styles.moodboardCaption}>
-                      {item.caption}
-                    </figcaption>
-                  ) : null}
+                    <div className={styles.moodboardPlayIcon} aria-hidden="true">▶</div>
+                  </div>
                 </figure>
-              ))}
+              )}
+
+              {moodItems.map((item, i) => {
+                // Lightbox-Index verschiebt sich um 1, wenn vorne ein Video steht.
+                const lightboxIdx = i + (moodVideoId ? 1 : 0)
+                return (
+                  <figure
+                    key={`${item.url}-${i}`}
+                    className={`${styles.moodboardItem} ${rev}`}
+                    data-delay={100 + lightboxIdx * 60}
+                    draggable={isEdit}
+                    onDragStart={isEdit ? () => setDragMoodIdx(i) : undefined}
+                    onDragOver={isEdit ? (e) => {
+                      e.preventDefault()
+                      if (dragMoodIdx === null || dragMoodIdx === i) return
+                      const arr = [...moodItems]
+                      const [moved] = arr.splice(dragMoodIdx, 1)
+                      arr.splice(i, 0, moved)
+                      setDragMoodIdx(i)
+                      updateDraft('moodboard', { ...moodboard, items: arr })
+                    } : undefined}
+                    onDragEnd={isEdit ? () => setDragMoodIdx(null) : undefined}
+                  >
+                    {isEdit && (
+                      <button
+                        type="button"
+                        className={styles.moodboardRemove}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const arr = moodItems.filter((_, idx) => idx !== i)
+                          updateDraft('moodboard', { ...moodboard, items: arr })
+                        }}
+                        title="Bild entfernen"
+                      >
+                        ×
+                      </button>
+                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.url}
+                      alt={item.caption || `Moodbild ${i + 1}`}
+                      className={styles.moodboardImage}
+                      onClick={!isEdit ? () => setLightboxIndex(lightboxIdx) : undefined}
+                      style={{ cursor: isEdit ? 'move' : 'zoom-in' }}
+                    />
+                    {isEdit ? (
+                      <input
+                        type="text"
+                        className={styles.moodboardCaptionInput}
+                        value={item.caption || ''}
+                        placeholder="Bildunterschrift (optional)"
+                        onChange={(e) => {
+                          const arr = [...moodItems]
+                          arr[i] = { ...arr[i], caption: e.target.value || undefined }
+                          updateDraft('moodboard', { ...moodboard, items: arr })
+                        }}
+                      />
+                    ) : item.caption ? (
+                      <figcaption className={styles.moodboardCaption}>
+                        {item.caption}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                )
+              })}
             </div>
           )}
 
@@ -1659,6 +1742,30 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
               <span className={styles.moodboardUploadHint}>
                 Max 5 MB pro Bild · JPG, PNG, WEBP · bis zu 12 Bilder
               </span>
+
+              {/* YouTube-URL-Input (optional, ein Video pro Angebot). */}
+              <div className={styles.moodboardVideoInputWrap}>
+                <input
+                  type="url"
+                  className={styles.moodboardVideoInput}
+                  placeholder="YouTube-URL (optional, z. B. https://youtu.be/…)"
+                  value={moodboard.videoUrl || ''}
+                  onChange={(e) => {
+                    const v = e.target.value.trim()
+                    updateDraft('moodboard', { ...moodboard, videoUrl: v || null })
+                  }}
+                />
+                {moodboard.videoUrl && !moodVideoId && (
+                  <span className={styles.moodboardVideoWarn}>
+                    URL nicht erkannt — bitte YouTube-Link verwenden
+                  </span>
+                )}
+                {moodVideoId && (
+                  <span className={styles.moodboardVideoHint}>
+                    Video erkannt: {moodVideoId}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </section>
@@ -2056,13 +2163,13 @@ export function OfferPage2({ offer: initialOffer, references: initialRefs, chann
       </div>
 
       {/* MOODBOARD LIGHTBOX */}
-      {lightboxIndex !== null && moodItems.length > 0 && (
+      {lightboxIndex !== null && moodTotalCount > 0 && (
         <Lightbox
-          images={moodItems}
+          images={moodLightboxItems}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
-          onPrev={() => setLightboxIndex((idx) => (idx === null ? null : (idx - 1 + moodItems.length) % moodItems.length))}
-          onNext={() => setLightboxIndex((idx) => (idx === null ? null : (idx + 1) % moodItems.length))}
+          onPrev={() => setLightboxIndex((idx) => (idx === null ? null : (idx - 1 + moodTotalCount) % moodTotalCount))}
+          onNext={() => setLightboxIndex((idx) => (idx === null ? null : (idx + 1) % moodTotalCount))}
         />
       )}
 

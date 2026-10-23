@@ -20,14 +20,58 @@
 
 ## Deployment & Git
 
-- **Branches:** Aktuell nur `main` → Production. DEV-Branch geplant, aber noch nicht eingerichtet.
-- **Deployment:** Vercel baut automatisch bei `git push`
+- **Branches:**
+  - `main` → **Production** (https://angebot.pulpmedia.at)
+  - `dev` → **Preview** (https://pulp-angebot.vercel.app/)
+  - Feature-Arbeit passiert direkt auf `dev`. Wenn alles läuft, wird `dev` → `main` gemergt.
+- **Deployment:** Vercel baut automatisch bei `git push` – separater Deploy pro Branch.
+- **Datenbank (Neon):** Pro Git-Branch **ein eigener DB-Branch** (ephemeral). `dev` hat also seine eigene DB, `main` ihre eigene. Kein Datenaustausch zwischen den beiden.
+- **Vercel Blob:** **Nicht** zwischen Preview und Production getrennt – beide Umgebungen schreiben und lesen aus demselben Bucket. Uploads aus einem Preview-Test sind also auch in Production sichtbar (Vorteil: einfache Reproduktion; Nachteil: keine "Test-Assets" isoliert löschbar).
+- **Prisma-Schema-Push:** **Manuell pro Umgebung.** Nach jeder Schema-Änderung muss Paul zweimal pushen (siehe Workflow unten).
 - **Build-Command:** `prisma generate && next build`
-- **DB-Schema-Push:** `prisma db push --accept-data-loss`
-- **Production-URL:** https://angebot.pulpmedia.at
 - **Admin-URL:** https://angebot.pulpmedia.at/admin/ (Login mit Moco-Daten)
 - **Git-Push aus Sandbox geht NICHT** (Proxy-403). Paul muss lokal pushen.
 - **Paul braucht Copy/Paste-Befehle** für Git/Terminal-Operationen.
+
+### Workflow für Änderungen
+
+Standard (ohne Schema-Änderung):
+```bash
+# Änderungen auf dev pushen → automatisch Preview-Deploy
+git checkout dev
+git add -A && git commit -m "…" && git push
+
+# Wenn Preview OK: dev in main mergen → Production-Deploy
+git checkout main
+git merge dev
+git push
+```
+
+Mit Prisma-Schema-Änderung (zwei Umgebungen, zwei Pushes):
+```bash
+# 1) Auf dev pushen
+git checkout dev
+git add -A && git commit -m "…" && git push
+
+# 2) Preview-DB updaten (Env aus Vercel ziehen, dann Schema pushen)
+vercel env pull .env.local --environment=preview
+npx prisma db push --accept-data-loss
+npx prisma generate
+
+# 3) Auf Preview-URL testen
+
+# 4) dev → main mergen
+git checkout main
+git merge dev
+git push
+
+# 5) Production-DB updaten
+vercel env pull .env.local --environment=production
+npx prisma db push --accept-data-loss
+npx prisma generate
+```
+
+**Wichtig:** Nach `vercel env pull` liegt in `.env.local` die DB-URL der jeweils gepullten Umgebung. Also nicht zwischen den Umgebungen wechseln, ohne bewusst neu zu pullen — sonst pushed man das Schema in die falsche DB.
 
 ## Konventionen
 
@@ -48,10 +92,9 @@
 
 ## Offene Punkte / Next Steps
 
-1. DEV-Branch einrichten (Vercel Preview Deployment)
-2. Optional: Moco-Integration für automatischen Import von Deal-Daten
-3. Optional: PDF-Export der Angebotsseiten
-4. Optional: Analytics (Wann hat der Kunde die Seite angeschaut?)
+1. Optional: Moco-Integration für automatischen Import von Deal-Daten
+2. Optional: PDF-Export der Angebotsseiten
+3. Optional: Analytics (Wann hat der Kunde die Seite angeschaut?)
 
 ## Wichtige Entscheidungen (mit Begründung)
 

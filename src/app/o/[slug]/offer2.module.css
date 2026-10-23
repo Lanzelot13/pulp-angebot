@@ -1397,6 +1397,86 @@
   letter-spacing: 0.03em;
 }
 
+/* YouTube-Video im Moodboard: Thumbnail + Play-Icon-Overlay. Thumbnail nutzt
+ * dieselbe .moodboardImage-Fläche wie Bilder, damit Grid-Rhythmik stimmt. */
+.moodboardVideoThumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+}
+.moodboardSingle .moodboardVideoThumb .moodboardImage {
+  aspect-ratio: 16 / 9;
+  max-height: 78vh;
+}
+.moodboardPlayIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: rgba(255,25,0,0.9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  padding-left: 6px; /* optische Zentrierung des Dreiecks */
+  pointer-events: none;
+  transition: transform 0.2s, background 0.2s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.moodboardVideoThumb:hover .moodboardPlayIcon {
+  transform: translate(-50%, -50%) scale(1.08);
+  background: #FF1900;
+}
+.moodboardVideoItem .moodboardImage {
+  cursor: zoom-in;
+}
+
+/* Edit-UI: YouTube-URL-Input unter dem Upload-Button. */
+.moodboardVideoInputWrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+}
+.moodboardVideoInput {
+  width: 100%;
+  max-width: 520px;
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.9);
+  padding: 0.7rem 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  outline: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.moodboardVideoInput::placeholder {
+  color: rgba(255,255,255,0.4);
+}
+.moodboardVideoInput:focus {
+  border-color: #FF1900;
+  color: #fff;
+}
+.moodboardVideoHint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(120,220,120,0.75);
+  letter-spacing: 0.03em;
+}
+.moodboardVideoWarn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: #FF8060;
+  letter-spacing: 0.03em;
+}
+
 /* === LIGHTBOX === */
 .lightboxOverlay {
   position: fixed;
@@ -1421,6 +1501,23 @@
   max-width: 100%;
   max-height: 78vh;
   object-fit: contain;
+  display: block;
+}
+/* YouTube-Embed in der Lightbox: 16:9-Container, so breit wie möglich bis
+ * zur Fallback-Höhe. */
+.lightboxVideoWrap {
+  position: relative;
+  width: min(90vw, 1400px);
+  aspect-ratio: 16 / 9;
+  max-height: 78vh;
+  background: #000;
+}
+.lightboxVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
   display: block;
 }
 .lightboxCaption {
